@@ -7,7 +7,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 
-enum SidebarItem { home, teams, players }
+enum SidebarItem { home, tournaments, teams, players }
 
 class AppSidebar extends ConsumerWidget {
   const AppSidebar({
@@ -21,6 +21,7 @@ class AppSidebar extends ConsumerWidget {
 
   static const _items = [
     _SidebarItemData(item: SidebarItem.home, label: 'Home', icon: Icons.home_rounded),
+    _SidebarItemData(item: SidebarItem.tournaments, label: 'Tournaments', icon: Icons.emoji_events_rounded),
     _SidebarItemData(item: SidebarItem.teams, label: 'Teams', icon: Icons.groups_rounded),
     _SidebarItemData(item: SidebarItem.players, label: 'Players', icon: Icons.person_rounded),
   ];

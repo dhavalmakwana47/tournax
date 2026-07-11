@@ -21,6 +21,12 @@ import '../../features/profile/data/repositories/profile_repository_impl.dart';
 import '../../features/profile/domain/repositories/profile_repository.dart';
 import '../../features/profile/domain/usecases/get_profile_usecase.dart';
 import '../../features/profile/domain/usecases/update_profile_usecase.dart';
+import '../../features/tournament/data/datasource/tournament_remote_datasource.dart';
+import '../../features/tournament/data/repositories/tournament_repository_impl.dart';
+import '../../features/tournament/domain/repositories/tournament_repository.dart';
+import '../../features/tournament/domain/usecases/get_tournaments_usecase.dart';
+import '../../features/tournament/domain/usecases/create_tournament_usecase.dart';
+import '../../features/tournament/domain/usecases/get_tournament_meta_usecase.dart';
 
 // --- Infrastructure ---
 
@@ -110,4 +116,30 @@ final getProfileUseCaseProvider = Provider<GetProfileUseCase>(
 
 final updateProfileUseCaseProvider = Provider<UpdateProfileUseCase>(
   (ref) => UpdateProfileUseCase(ref.read(profileRepositoryProvider)),
+);
+
+// --- Tournament ---
+
+final tournamentRemoteDatasourceProvider =
+    Provider<TournamentRemoteDatasource>(
+  (ref) => TournamentRemoteDatasourceImpl(ref.read(apiClientProvider)),
+);
+
+final tournamentRepositoryProvider = Provider<TournamentRepository>(
+  (ref) => TournamentRepositoryImpl(
+    remoteDatasource: ref.read(tournamentRemoteDatasourceProvider),
+    networkInfo: ref.read(networkInfoProvider),
+  ),
+);
+
+final getTournamentsUseCaseProvider = Provider<GetTournamentsUseCase>(
+  (ref) => GetTournamentsUseCase(ref.read(tournamentRepositoryProvider)),
+);
+
+final createTournamentUseCaseProvider = Provider<CreateTournamentUseCase>(
+  (ref) => CreateTournamentUseCase(ref.read(tournamentRepositoryProvider)),
+);
+
+final getTournamentMetaUseCaseProvider = Provider<GetTournamentMetaUseCase>(
+  (ref) => GetTournamentMetaUseCase(ref.read(tournamentRepositoryProvider)),
 );

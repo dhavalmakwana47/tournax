@@ -1,4 +1,8 @@
 abstract final class Validators {
+  static String? required(String? value) {
+    if (value == null || value.trim().isEmpty) return 'This field is required.';
+    return null;
+  }
   static String? emailOrUsername(String? value) {
     if (value == null || value.trim().isEmpty) return 'Email or username is required.';
     return null;

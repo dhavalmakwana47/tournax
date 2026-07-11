@@ -4,6 +4,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/constants/app_assets.dart';
 import '../widgets/app_sidebar.dart';
+import '../../../tournament/presentation/pages/tournament_list_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -17,18 +18,21 @@ class _HomePageState extends State<HomePage> {
 
   static const _titles = {
     SidebarItem.home: 'Home',
+    SidebarItem.tournaments: 'Tournaments',
     SidebarItem.teams: 'Teams',
     SidebarItem.players: 'Players',
   };
 
   static const _pages = [
     _HomeContent(),
+    TournamentListPage(),
     _PlaceholderContent(icon: Icons.groups_rounded, label: 'Teams'),
     _PlaceholderContent(icon: Icons.person_rounded, label: 'Players'),
   ];
 
   static const _order = [
     SidebarItem.home,
+    SidebarItem.tournaments,
     SidebarItem.teams,
     SidebarItem.players,
   ];

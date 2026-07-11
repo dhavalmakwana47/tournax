@@ -11,6 +11,8 @@ import '../../features/home/presentation/pages/home_page.dart';
 import '../../features/profile/domain/entities/profile_entity.dart';
 import '../../features/profile/presentation/pages/edit_profile_page.dart';
 import '../../features/profile/presentation/pages/settings_page.dart';
+import '../../features/tournament/presentation/pages/tournament_list_page.dart';
+import '../../features/tournament/presentation/pages/create_tournament_page.dart';
 
 abstract final class AppRoutes {
   static const String login = '/login';
@@ -22,6 +24,8 @@ abstract final class AppRoutes {
   static const String home = '/home';
   static const String settings = '/settings';
   static const String editProfile = '/edit-profile';
+  static const String tournaments = '/tournaments';
+  static const String createTournament = '/tournaments/create';
 }
 
 class AuthNotifier extends ChangeNotifier {
@@ -108,6 +112,16 @@ GoRouter buildRouter(Ref ref, String? initialToken) {
         builder: (context, state) => EditProfilePage(
           profile: state.extra as ProfileEntity,
         ),
+      ),
+      GoRoute(
+        path: AppRoutes.tournaments,
+        name: AppRoutes.tournaments,
+        builder: (context, state) => const TournamentListPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.createTournament,
+        name: AppRoutes.createTournament,
+        builder: (context, state) => const CreateTournamentPage(),
       ),
     ],
   );
