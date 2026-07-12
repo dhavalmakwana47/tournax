@@ -50,6 +50,7 @@ abstract final class AppTheme {
           ),
           hintStyle: AppTextStyles.bodyMedium,
           labelStyle: AppTextStyles.bodyMedium,
+          errorMaxLines: 3,
         ),
       );
 }

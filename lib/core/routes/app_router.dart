@@ -23,6 +23,7 @@ import '../../features/tournament/presentation/pages/edit_player_page.dart';
 import '../../features/tournament/presentation/pages/stage_list_page.dart';
 import '../../features/tournament/presentation/pages/create_stage_page.dart';
 import '../../features/tournament/presentation/pages/edit_stage_page.dart';
+import '../../features/tournament/presentation/pages/edit_tournament_page.dart';
 import 'route_args.dart';
 
 abstract final class AppRoutes {
@@ -46,6 +47,7 @@ abstract final class AppRoutes {
   static const String stageList = '/tournaments/stages';
   static const String createStage = '/tournaments/stages/create';
   static const String editStage = '/tournaments/stages/edit';
+  static const String editTournament = '/tournaments/edit';
 }
 
 class AuthNotifier extends ChangeNotifier {
@@ -226,6 +228,13 @@ GoRouter buildRouter(Ref ref, String? initialToken) {
             stageId: args.stageId,
           );
         },
+      ),
+      GoRoute(
+        path: AppRoutes.editTournament,
+        name: AppRoutes.editTournament,
+        builder: (context, state) => EditTournamentPage(
+          tournamentId: (state.extra as EditTournamentArgs).tournamentId,
+        ),
       ),
     ],
   );

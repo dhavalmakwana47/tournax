@@ -269,6 +269,7 @@ class _EditStagePageState extends ConsumerState<EditStagePage> {
   InputDecoration _inputDecoration(String hint) => InputDecoration(
         hintText: hint,
         hintStyle: AppTextStyles.bodyMedium,
+        errorMaxLines: 3,
         filled: true,
         fillColor: AppColors.inputFill,
         contentPadding: const EdgeInsets.symmetric(

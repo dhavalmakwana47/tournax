@@ -87,6 +87,21 @@ class TournamentCard extends StatelessWidget {
             children: [
               TextButton.icon(
                 onPressed: () => context.pushNamed(
+                  AppRoutes.editTournament,
+                  extra: EditTournamentArgs(tournamentId: tournament.id),
+                ),
+                icon: const Icon(Icons.edit_outlined,
+                    size: 16, color: AppColors.primary),
+                label: const Text(
+                  'Edit',
+                  style: TextStyle(
+                      color: AppColors.primary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600),
+                ),
+              ),
+              TextButton.icon(
+                onPressed: () => context.pushNamed(
                   AppRoutes.stageList,
                   extra: StageArgs(tournament: tournament),
                 ),

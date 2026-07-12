@@ -5,7 +5,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/utils/validators.dart';
-import '../../../../features/tournament/domain/entities/tournament_meta_entity.dart';
+import '../../domain/entities/tournament_meta_entity.dart';
 import '../controller/tournament_controller.dart';
 
 class CreateTournamentPage extends ConsumerStatefulWidget {
@@ -24,9 +24,26 @@ class _CreateTournamentPageState extends ConsumerState<CreateTournamentPage> {
   final _maxPlayersCtrl = TextEditingController();
   final _startDateCtrl = TextEditingController();
   final _endDateCtrl = TextEditingController();
+  final _regStartCtrl = TextEditingController();
+  final _regEndCtrl = TextEditingController();
+  final _rulesCtrl = TextEditingController();
 
   MetaOption? _mode;
   MetaOption? _tournamentType;
+  MetaOption? _leaderboardType;
+  bool _checkInEnabled = false;
+  bool _allowSubstitute = false;
+  bool _autoQualify = false;
+
+  static String _formatDateTime(DateTime dt) {
+    final y = dt.year.toString().padLeft(4, '0');
+    final mo = dt.month.toString().padLeft(2, '0');
+    final d = dt.day.toString().padLeft(2, '0');
+    final h = dt.hour.toString().padLeft(2, '0');
+    final mi = dt.minute.toString().padLeft(2, '0');
+    final s = dt.second.toString().padLeft(2, '0');
+    return '$y-$mo-$d $h:$mi:$s';
+  }
 
   @override
   void initState() {
@@ -44,17 +61,21 @@ class _CreateTournamentPageState extends ConsumerState<CreateTournamentPage> {
     _maxPlayersCtrl.dispose();
     _startDateCtrl.dispose();
     _endDateCtrl.dispose();
+    _regStartCtrl.dispose();
+    _regEndCtrl.dispose();
+    _rulesCtrl.dispose();
     super.dispose();
   }
 
-  Future<void> _pickDate(TextEditingController ctrl) async {
-    final picked = await showDatePicker(
+  Future<void> _pickDateTime(TextEditingController ctrl) async {
+    final initial = DateTime.tryParse(ctrl.text) ?? DateTime.now();
+    final date = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
+      initialDate: initial,
       firstDate: DateTime(2020),
       lastDate: DateTime(2100),
-      builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(
+      builder: (ctx, child) => Theme(
+        data: Theme.of(ctx).copyWith(
           colorScheme: const ColorScheme.dark(
             primary: AppColors.primary,
             surface: AppColors.cardBackground,
@@ -63,10 +84,32 @@ class _CreateTournamentPageState extends ConsumerState<CreateTournamentPage> {
         child: child!,
       ),
     );
-    if (picked != null) {
-      ctrl.text =
-          '${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
-    }
+    if (date == null || !mounted) return;
+
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(initial),
+      builder: (ctx, child) => Theme(
+        data: Theme.of(ctx).copyWith(
+          colorScheme: const ColorScheme.dark(
+            primary: AppColors.primary,
+            surface: AppColors.cardBackground,
+          ),
+        ),
+        child: child!,
+      ),
+    );
+    if (!mounted) return;
+
+    final dt = DateTime(
+      date.year,
+      date.month,
+      date.day,
+      time?.hour ?? 0,
+      time?.minute ?? 0,
+    );
+    ctrl.text = _formatDateTime(dt);
+    setState(() {});
   }
 
   Future<void> _submit() async {
@@ -79,19 +122,31 @@ class _CreateTournamentPageState extends ConsumerState<CreateTournamentPage> {
           name: _nameCtrl.text.trim(),
           mode: _mode!.value,
           tournamentType: _tournamentType!.value,
-          maxTeams: int.parse(_maxTeamsCtrl.text),
-          maxPlayersPerTeam: int.parse(_maxPlayersCtrl.text),
-          startDate: _startDateCtrl.text,
-          endDate: _endDateCtrl.text,
+          maxTeams: int.parse(_maxTeamsCtrl.text.trim()),
+          maxPlayersPerTeam: int.parse(_maxPlayersCtrl.text.trim()),
+          startDate: _startDateCtrl.text.trim(),
+          endDate: _endDateCtrl.text.trim(),
           description:
               _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim(),
+          registrationStart: _regStartCtrl.text.trim().isEmpty
+              ? null
+              : _regStartCtrl.text.trim(),
+          registrationEnd: _regEndCtrl.text.trim().isEmpty
+              ? null
+              : _regEndCtrl.text.trim(),
+          checkInEnabled: _checkInEnabled,
+          allowSubstitute: _allowSubstitute,
+          autoQualify: _autoQualify,
+          leaderboardType: _leaderboardType?.value,
+          rules: _rulesCtrl.text.trim().isEmpty ? null : _rulesCtrl.text.trim(),
         );
 
-    if (!success && mounted) {
+    if (!mounted) return;
+    if (!success) {
       _formKey.currentState!.validate();
+    } else {
+      Navigator.of(context).pop();
     }
-
-    if (success && mounted) Navigator.of(context).pop();
   }
 
   @override
@@ -107,6 +162,8 @@ class _CreateTournamentPageState extends ConsumerState<CreateTournamentPage> {
       _mode ??= meta.modes.isNotEmpty ? meta.modes.first : null;
       _tournamentType ??=
           meta.tournamentTypes.isNotEmpty ? meta.tournamentTypes.first : null;
+      _leaderboardType ??=
+          meta.leaderboardTypes.isNotEmpty ? meta.leaderboardTypes.first : null;
     }
 
     ref.listen(tournamentControllerProvider, (_, next) {
@@ -131,226 +188,303 @@ class _CreateTournamentPageState extends ConsumerState<CreateTournamentPage> {
               color: AppColors.textPrimary),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: const Text('Create Tournament',
-            style: AppTextStyles.titleMedium),
+        title: const Text('Create Tournament', style: AppTextStyles.titleMedium),
       ),
-      body: _buildBody(
-        metaLoading: metaLoading,
-        metaError: metaError,
-        isLoading: isLoading,
-        fieldErrors: fieldErrors,
-        meta: meta,
-      ),
+      body: metaLoading
+          ? const Center(
+              child: CircularProgressIndicator(color: AppColors.primary))
+          : metaError
+              ? _MetaErrorState(
+                  onRetry: () => ref
+                      .read(tournamentControllerProvider.notifier)
+                      .fetchTournamentMeta(),
+                )
+              : Form(
+                  key: _formKey,
+                  child: ListView(
+                    padding: const EdgeInsets.all(AppSpacing.lg),
+                    children: [
+                      _SectionHeader(title: 'Basic Info'),
+                      const SizedBox(height: AppSpacing.sm),
+                      _FormField(
+                        label: 'Tournament Name',
+                        child: TextFormField(
+                          controller: _nameCtrl,
+                          style: const TextStyle(color: AppColors.textPrimary),
+                          maxLength: 100,
+                          decoration: _inputDec('e.g. Champions League 2025')
+                              .copyWith(
+                                  errorText: fieldErrors['name'],
+                                  counterText: ''),
+                          validator: Validators.tournamentName,
+                          textInputAction: TextInputAction.next,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      _FormField(
+                        label: 'Description (optional)',
+                        child: TextFormField(
+                          controller: _descCtrl,
+                          style: const TextStyle(color: AppColors.textPrimary),
+                          maxLength: 2000,
+                          decoration: _inputDec('Brief description...')
+                              .copyWith(
+                                  errorText: fieldErrors['description'],
+                                  counterText: ''),
+                          validator: Validators.description,
+                          maxLines: 3,
+                          textInputAction: TextInputAction.next,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      _SectionHeader(title: 'Format'),
+                      const SizedBox(height: AppSpacing.sm),
+                      if (meta != null && _mode != null)
+                        _FormField(
+                          label: 'Mode',
+                          child: _DropdownField<MetaOption>(
+                            value: _mode!,
+                            items: meta.modes,
+                            errorText: fieldErrors['mode'],
+                            onChanged: (v) => setState(() => _mode = v),
+                          ),
+                        ),
+                      const SizedBox(height: AppSpacing.md),
+                      if (meta != null && _tournamentType != null)
+                        _FormField(
+                          label: 'Tournament Type',
+                          child: _DropdownField<MetaOption>(
+                            value: _tournamentType!,
+                            items: meta.tournamentTypes,
+                            errorText: fieldErrors['tournament_type'],
+                            onChanged: (v) =>
+                                setState(() => _tournamentType = v),
+                          ),
+                        ),
+                      const SizedBox(height: AppSpacing.md),
+                      if (meta != null && _leaderboardType != null)
+                        _FormField(
+                          label: 'Leaderboard Type',
+                          child: _DropdownField<MetaOption>(
+                            value: _leaderboardType!,
+                            items: meta.leaderboardTypes,
+                            errorText: fieldErrors['leaderboard_type'],
+                            onChanged: (v) =>
+                                setState(() => _leaderboardType = v),
+                          ),
+                        ),
+                      const SizedBox(height: AppSpacing.md),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _FormField(
+                              label: 'Max Teams',
+                              child: TextFormField(
+                                controller: _maxTeamsCtrl,
+                                style: const TextStyle(
+                                    color: AppColors.textPrimary),
+                                decoration: _inputDec('e.g. 16').copyWith(
+                                    errorText: fieldErrors['max_teams']),
+                                keyboardType: TextInputType.number,
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.digitsOnly
+                                ],
+                                validator: Validators.maxTeams,
+                                textInputAction: TextInputAction.next,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.md),
+                          Expanded(
+                            child: _FormField(
+                              label: 'Max Players / Team',
+                              child: TextFormField(
+                                controller: _maxPlayersCtrl,
+                                style: const TextStyle(
+                                    color: AppColors.textPrimary),
+                                decoration: _inputDec('e.g. 4').copyWith(
+                                    errorText:
+                                        fieldErrors['max_players_per_team']),
+                                keyboardType: TextInputType.number,
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.digitsOnly
+                                ],
+                                validator: Validators.maxPlayersPerTeam,
+                                textInputAction: TextInputAction.done,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      _SectionHeader(title: 'Schedule'),
+                      const SizedBox(height: AppSpacing.sm),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _FormField(
+                              label: 'Start Date & Time',
+                              child: TextFormField(
+                                controller: _startDateCtrl,
+                                readOnly: true,
+                                style: const TextStyle(
+                                    color: AppColors.textPrimary),
+                                decoration:
+                                    _inputDec('yyyy-MM-dd HH:mm:ss').copyWith(
+                                  suffixIcon: const Icon(
+                                      Icons.calendar_today_outlined,
+                                      color: AppColors.textSecondary,
+                                      size: 18),
+                                  errorText: fieldErrors['start_date'],
+                                ),
+                                validator: Validators.futureDateTime,
+                                onTap: () => _pickDateTime(_startDateCtrl),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.md),
+                          Expanded(
+                            child: _FormField(
+                              label: 'End Date & Time',
+                              child: TextFormField(
+                                controller: _endDateCtrl,
+                                readOnly: true,
+                                style: const TextStyle(
+                                    color: AppColors.textPrimary),
+                                decoration:
+                                    _inputDec('yyyy-MM-dd HH:mm:ss').copyWith(
+                                  suffixIcon: const Icon(
+                                      Icons.calendar_today_outlined,
+                                      color: AppColors.textSecondary,
+                                      size: 18),
+                                  errorText: fieldErrors['end_date'],
+                                ),
+                                validator: Validators.endDateAfterStart(
+                                    _startDateCtrl.text),
+                                onTap: () => _pickDateTime(_endDateCtrl),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _FormField(
+                              label: 'Registration Start (optional)',
+                              child: TextFormField(
+                                controller: _regStartCtrl,
+                                readOnly: true,
+                                style: const TextStyle(
+                                    color: AppColors.textPrimary),
+                                decoration:
+                                    _inputDec('yyyy-MM-dd HH:mm:ss').copyWith(
+                                  suffixIcon: const Icon(
+                                      Icons.calendar_today_outlined,
+                                      color: AppColors.textSecondary,
+                                      size: 18),
+                                  errorText: fieldErrors['registration_start'],
+                                ),
+                                onTap: () => _pickDateTime(_regStartCtrl),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.md),
+                          Expanded(
+                            child: _FormField(
+                              label: 'Registration End (optional)',
+                              child: TextFormField(
+                                controller: _regEndCtrl,
+                                readOnly: true,
+                                style: const TextStyle(
+                                    color: AppColors.textPrimary),
+                                decoration:
+                                    _inputDec('yyyy-MM-dd HH:mm:ss').copyWith(
+                                  suffixIcon: const Icon(
+                                      Icons.calendar_today_outlined,
+                                      color: AppColors.textSecondary,
+                                      size: 18),
+                                  errorText: fieldErrors['registration_end'],
+                                ),
+                                validator: Validators.registrationEndAfterStart(
+                                    _regStartCtrl.text),
+                                onTap: () => _pickDateTime(_regEndCtrl),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      _SectionHeader(title: 'Settings'),
+                      const SizedBox(height: AppSpacing.xs),
+                      _ToggleTile(
+                        label: 'Check-in Enabled',
+                        value: _checkInEnabled,
+                        onChanged: (v) => setState(() => _checkInEnabled = v),
+                      ),
+                      _ToggleTile(
+                        label: 'Allow Substitute',
+                        value: _allowSubstitute,
+                        onChanged: (v) => setState(() => _allowSubstitute = v),
+                      ),
+                      _ToggleTile(
+                        label: 'Auto Qualify',
+                        value: _autoQualify,
+                        onChanged: (v) => setState(() => _autoQualify = v),
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      _SectionHeader(title: 'Rules'),
+                      const SizedBox(height: AppSpacing.sm),
+                      TextFormField(
+                        controller: _rulesCtrl,
+                        style: const TextStyle(color: AppColors.textPrimary),
+                        maxLength: 5000,
+                        decoration: _inputDec('Tournament rules...')
+                            .copyWith(
+                                errorText: fieldErrors['rules'],
+                                counterText: ''),
+                        validator: Validators.rules,
+                        maxLines: 5,
+                        textInputAction: TextInputAction.newline,
+                      ),
+                      const SizedBox(height: AppSpacing.xl),
+                      FilledButton(
+                        onPressed: isLoading ? null : _submit,
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: AppColors.textPrimary,
+                          disabledBackgroundColor:
+                              AppColors.primary.withValues(alpha: 0.5),
+                          padding: const EdgeInsets.symmetric(
+                              vertical: AppSpacing.md),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(AppRadius.md),
+                          ),
+                        ),
+                        child: isLoading
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: AppColors.textPrimary,
+                                ),
+                              )
+                            : const Text('Create Tournament',
+                                style: AppTextStyles.labelLarge),
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                    ],
+                  ),
+                ),
     );
   }
 
-  Widget _buildBody({
-    required bool metaLoading,
-    required bool metaError,
-    required bool isLoading,
-    required Map<String, String> fieldErrors,
-    required dynamic meta,
-  }) {
-    if (metaLoading) {
-      return const Center(
-        child: CircularProgressIndicator(color: AppColors.primary),
-      );
-    }
-
-    if (metaError) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.error_outline,
-                color: AppColors.error, size: 48),
-            const SizedBox(height: AppSpacing.md),
-            const Text('Failed to load options.',
-                style: AppTextStyles.bodyMedium),
-            const SizedBox(height: AppSpacing.md),
-            FilledButton(
-              onPressed: () => ref
-                  .read(tournamentControllerProvider.notifier)
-                  .fetchTournamentMeta(),
-              style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.primary),
-              child: const Text('Retry'),
-            ),
-          ],
-        ),
-      );
-    }
-
-    final modes = meta?.modes ?? const <MetaOption>[];
-    final tournamentTypes = meta?.tournamentTypes ?? const <MetaOption>[];
-
-    return Form(
-      key: _formKey,
-      child: ListView(
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        children: [
-          _FormField(
-            label: 'Tournament Name',
-            child: TextFormField(
-              controller: _nameCtrl,
-              style: const TextStyle(color: AppColors.textPrimary),
-              decoration: _inputDecoration('e.g. Champions League 2025'),
-              validator: (v) =>
-                  Validators.required(v) ?? fieldErrors['name'],
-              textInputAction: TextInputAction.next,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          _FormField(
-            label: 'Mode',
-            child: _mode == null
-                ? const SizedBox.shrink()
-                : _DropdownField<MetaOption>(
-                    value: _mode!,
-                    items: modes,
-                    errorText: fieldErrors['mode'],
-                    onChanged: (v) => setState(() => _mode = v),
-                  ),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          _FormField(
-            label: 'Tournament Type',
-            child: _tournamentType == null
-                ? const SizedBox.shrink()
-                : _DropdownField<MetaOption>(
-                    value: _tournamentType!,
-                    items: tournamentTypes,
-                    errorText: fieldErrors['tournament_type'],
-                    onChanged: (v) => setState(() => _tournamentType = v),
-                  ),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          _FormField(
-            label: 'Description (optional)',
-            child: TextFormField(
-              controller: _descCtrl,
-              style: const TextStyle(color: AppColors.textPrimary),
-              decoration: _inputDecoration('Brief description...'),
-              validator: (_) => fieldErrors['description'],
-              maxLines: 3,
-              textInputAction: TextInputAction.next,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Row(
-            children: [
-              Expanded(
-                child: _FormField(
-                  label: 'Start Date',
-                  child: TextFormField(
-                    controller: _startDateCtrl,
-                    readOnly: true,
-                    style: const TextStyle(color: AppColors.textPrimary),
-                    decoration: _inputDecoration('YYYY-MM-DD').copyWith(
-                      suffixIcon: const Icon(Icons.calendar_today_outlined,
-                          color: AppColors.textSecondary, size: 18),
-                    ),
-                    validator: (v) =>
-                        Validators.required(v) ?? fieldErrors['start_date'],
-                    onTap: () => _pickDate(_startDateCtrl),
-                  ),
-                ),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: _FormField(
-                  label: 'End Date',
-                  child: TextFormField(
-                    controller: _endDateCtrl,
-                    readOnly: true,
-                    style: const TextStyle(color: AppColors.textPrimary),
-                    decoration: _inputDecoration('YYYY-MM-DD').copyWith(
-                      suffixIcon: const Icon(Icons.calendar_today_outlined,
-                          color: AppColors.textSecondary, size: 18),
-                    ),
-                    validator: (v) =>
-                        Validators.required(v) ?? fieldErrors['end_date'],
-                    onTap: () => _pickDate(_endDateCtrl),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Row(
-            children: [
-              Expanded(
-                child: _FormField(
-                  label: 'Max Teams',
-                  child: TextFormField(
-                    controller: _maxTeamsCtrl,
-                    style: const TextStyle(color: AppColors.textPrimary),
-                    decoration: _inputDecoration('e.g. 16'),
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly
-                    ],
-                    validator: (v) =>
-                        Validators.required(v) ?? fieldErrors['max_teams'],
-                    textInputAction: TextInputAction.next,
-                  ),
-                ),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: _FormField(
-                  label: 'Max Players / Team',
-                  child: TextFormField(
-                    controller: _maxPlayersCtrl,
-                    style: const TextStyle(color: AppColors.textPrimary),
-                    decoration: _inputDecoration('e.g. 11'),
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly
-                    ],
-                    validator: (v) =>
-                        Validators.required(v) ??
-                        fieldErrors['max_players_per_team'],
-                    textInputAction: TextInputAction.done,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.xl),
-          FilledButton(
-            onPressed: isLoading ? null : _submit,
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: AppColors.textPrimary,
-              disabledBackgroundColor:
-                  AppColors.primary.withValues(alpha: 0.5),
-              padding:
-                  const EdgeInsets.symmetric(vertical: AppSpacing.md),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppRadius.md),
-              ),
-            ),
-            child: isLoading
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: AppColors.textPrimary,
-                    ),
-                  )
-                : const Text('Create Tournament',
-                    style: AppTextStyles.labelLarge),
-          ),
-        ],
-      ),
-    );
-  }
-
-  InputDecoration _inputDecoration(String hint) => InputDecoration(
+  InputDecoration _inputDec(String hint) => InputDecoration(
         hintText: hint,
         hintStyle: AppTextStyles.bodyMedium,
+        errorMaxLines: 3,
         filled: true,
         fillColor: AppColors.inputFill,
         contentPadding: const EdgeInsets.symmetric(
@@ -365,8 +499,8 @@ class _CreateTournamentPageState extends ConsumerState<CreateTournamentPage> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.md),
-          borderSide: const BorderSide(
-              color: AppColors.inputBorderFocused, width: 1.5),
+          borderSide:
+              const BorderSide(color: AppColors.inputBorderFocused, width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.md),
@@ -377,6 +511,53 @@ class _CreateTournamentPageState extends ConsumerState<CreateTournamentPage> {
           borderSide: const BorderSide(color: AppColors.error, width: 1.5),
         ),
       );
+}
+
+class _MetaErrorState extends StatelessWidget {
+  const _MetaErrorState({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.error_outline, color: AppColors.error, size: 48),
+          const SizedBox(height: AppSpacing.md),
+          const Text('Failed to load options.',
+              style: AppTextStyles.bodyMedium),
+          const SizedBox(height: AppSpacing.md),
+          FilledButton(
+            onPressed: onRetry,
+            style:
+                FilledButton.styleFrom(backgroundColor: AppColors.primary),
+            child: const Text('Retry'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({required this.title});
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title,
+            style: AppTextStyles.titleMedium.copyWith(color: AppColors.primary)),
+        const SizedBox(height: AppSpacing.xs),
+        const Divider(color: AppColors.divider, height: 1),
+      ],
+    );
+  }
 }
 
 class _FormField extends StatelessWidget {
@@ -411,19 +592,17 @@ class _DropdownField<T> extends StatelessWidget {
   final ValueChanged<T?> onChanged;
   final String? errorText;
 
-  String _displayLabel(T item) {
-    if (item is MetaOption) return item.label;
-    return item.toString();
-  }
+  String _label(T item) => item is MetaOption ? item.label : item.toString();
 
   @override
   Widget build(BuildContext context) {
     return DropdownButtonFormField<T>(
-      value: value,
+      initialValue: value,
       dropdownColor: AppColors.cardBackground,
       style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
       decoration: InputDecoration(
         errorText: errorText,
+        errorMaxLines: 3,
         filled: true,
         fillColor: AppColors.inputFill,
         contentPadding: const EdgeInsets.symmetric(
@@ -451,12 +630,42 @@ class _DropdownField<T> extends StatelessWidget {
         ),
       ),
       items: items
-          .map((e) => DropdownMenuItem<T>(
-                value: e,
-                child: Text(_displayLabel(e)),
-              ))
+          .map((e) => DropdownMenuItem<T>(value: e, child: Text(_label(e))))
           .toList(),
       onChanged: onChanged,
+    );
+  }
+}
+
+class _ToggleTile extends StatelessWidget {
+  const _ToggleTile({
+    required this.label,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final String label;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppSpacing.xs),
+      decoration: BoxDecoration(
+        color: AppColors.cardBackground,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: AppColors.divider),
+      ),
+      child: SwitchListTile(
+        title: Text(label, style: AppTextStyles.bodyMedium),
+        value: value,
+        onChanged: onChanged,
+        activeThumbColor: AppColors.primary,
+        dense: true,
+        contentPadding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md, vertical: AppSpacing.xs),
+      ),
     );
   }
 }

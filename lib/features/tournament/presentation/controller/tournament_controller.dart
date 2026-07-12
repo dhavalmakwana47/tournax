@@ -8,6 +8,8 @@ import '../../domain/entities/tournament_meta_entity.dart';
 import '../../domain/usecases/get_tournaments_usecase.dart';
 import '../../domain/usecases/create_tournament_usecase.dart';
 import '../../domain/usecases/get_tournament_meta_usecase.dart';
+import '../../domain/usecases/show_tournament_usecase.dart';
+import '../../domain/usecases/update_tournament_usecase.dart';
 
 enum TournamentListStatus { initial, loading, success, empty, error }
 
@@ -15,11 +17,14 @@ enum TournamentCreateStatus { idle, loading, success, error }
 
 enum TournamentMetaStatus { initial, loading, success, error }
 
+enum TournamentUpdateStatus { idle, loading, success, error }
+
 class TournamentState extends Equatable {
   const TournamentState({
     this.listStatus = TournamentListStatus.initial,
     this.createStatus = TournamentCreateStatus.idle,
     this.metaStatus = TournamentMetaStatus.initial,
+    this.updateStatus = TournamentUpdateStatus.idle,
     this.tournaments = const [],
     this.meta,
     this.errorMessage,
@@ -29,6 +34,7 @@ class TournamentState extends Equatable {
   final TournamentListStatus listStatus;
   final TournamentCreateStatus createStatus;
   final TournamentMetaStatus metaStatus;
+  final TournamentUpdateStatus updateStatus;
   final List<TournamentEntity> tournaments;
   final TournamentMetaEntity? meta;
   final String? errorMessage;
@@ -38,6 +44,7 @@ class TournamentState extends Equatable {
     TournamentListStatus? listStatus,
     TournamentCreateStatus? createStatus,
     TournamentMetaStatus? metaStatus,
+    TournamentUpdateStatus? updateStatus,
     List<TournamentEntity>? tournaments,
     TournamentMetaEntity? meta,
     String? errorMessage,
@@ -48,6 +55,7 @@ class TournamentState extends Equatable {
         listStatus: listStatus ?? this.listStatus,
         createStatus: createStatus ?? this.createStatus,
         metaStatus: metaStatus ?? this.metaStatus,
+        updateStatus: updateStatus ?? this.updateStatus,
         tournaments: tournaments ?? this.tournaments,
         meta: meta ?? this.meta,
         errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
@@ -59,6 +67,7 @@ class TournamentState extends Equatable {
         listStatus,
         createStatus,
         metaStatus,
+        updateStatus,
         tournaments,
         meta,
         errorMessage,
@@ -76,13 +85,22 @@ class TournamentController extends Notifier<TournamentState> {
       ref.read(createTournamentUseCaseProvider);
   GetTournamentMetaUseCase get _metaUseCase =>
       ref.read(getTournamentMetaUseCaseProvider);
+  ShowTournamentUseCase get _showUseCase =>
+      ref.read(showTournamentUseCaseProvider);
+  UpdateTournamentUseCase get _updateUseCase =>
+      ref.read(updateTournamentUseCaseProvider);
 
+  /// Fetches meta only if not already loaded. Safe to call multiple times.
   Future<void> fetchTournamentMeta() async {
-    if (state.metaStatus == TournamentMetaStatus.loading) return;
+    if (state.metaStatus == TournamentMetaStatus.loading ||
+        state.metaStatus == TournamentMetaStatus.success) {
+      return;
+    }
     state = state.copyWith(metaStatus: TournamentMetaStatus.loading);
     try {
       final meta = await _metaUseCase();
-      state = state.copyWith(metaStatus: TournamentMetaStatus.success, meta: meta);
+      state =
+          state.copyWith(metaStatus: TournamentMetaStatus.success, meta: meta);
     } on ApiException catch (e) {
       appLogger.e('Fetch tournament meta failed', error: e);
       state = state.copyWith(
@@ -134,6 +152,11 @@ class TournamentController extends Notifier<TournamentState> {
     String? description,
     String? registrationStart,
     String? registrationEnd,
+    bool checkInEnabled = false,
+    bool allowSubstitute = false,
+    bool autoQualify = false,
+    String? leaderboardType,
+    String? rules,
   }) async {
     state = state.copyWith(
         createStatus: TournamentCreateStatus.loading, clearError: true);
@@ -149,6 +172,11 @@ class TournamentController extends Notifier<TournamentState> {
         description: description,
         registrationStart: registrationStart,
         registrationEnd: registrationEnd,
+        checkInEnabled: checkInEnabled,
+        allowSubstitute: allowSubstitute,
+        autoQualify: autoQualify,
+        leaderboardType: leaderboardType,
+        rules: rules,
       );
       state = state.copyWith(
         createStatus: TournamentCreateStatus.success,
@@ -174,8 +202,89 @@ class TournamentController extends Notifier<TournamentState> {
     }
   }
 
+  Future<TournamentEntity?> showTournament(int tournamentId) async {
+    try {
+      return await _showUseCase(tournamentId);
+    } on ApiException catch (e) {
+      appLogger.e('Show tournament failed', error: e);
+      return null;
+    } catch (e) {
+      appLogger.e('Unexpected show tournament error', error: e);
+      return null;
+    }
+  }
+
+  Future<bool> updateTournament(Map<String, dynamic> data) async {
+    state = state.copyWith(
+        updateStatus: TournamentUpdateStatus.loading, clearError: true);
+    try {
+      await _updateUseCase(data);
+      // Refresh the list so the updated tournament is reflected.
+      final tournamentId = data['tournament_id'] as int?;
+      if (tournamentId != null) {
+        final updated = state.tournaments.map((t) {
+          if (t.id != tournamentId) return t;
+          return TournamentEntity(
+            id: t.id,
+            name: data['name'] as String? ?? t.name,
+            slug: t.slug,
+            mode: data['mode'] as String? ?? t.mode,
+            tournamentType:
+                data['tournament_type'] as String? ?? t.tournamentType,
+            status: t.status,
+            maxTeams: data['max_teams'] as int? ?? t.maxTeams,
+            maxPlayersPerTeam:
+                data['max_players_per_team'] as int? ?? t.maxPlayersPerTeam,
+            description: data['description'] as String? ?? t.description,
+            startDate: data['start_date'] as String? ?? t.startDate,
+            endDate: data['end_date'] as String? ?? t.endDate,
+            registrationStart:
+                data['registration_start'] as String? ?? t.registrationStart,
+            registrationEnd:
+                data['registration_end'] as String? ?? t.registrationEnd,
+            checkInEnabled:
+                data['check_in_enabled'] as bool? ?? t.checkInEnabled,
+            allowSubstitute:
+                data['allow_substitute'] as bool? ?? t.allowSubstitute,
+            autoQualify: data['auto_qualify'] as bool? ?? t.autoQualify,
+            leaderboardType:
+                data['leaderboard_type'] as String? ?? t.leaderboardType,
+            rules: data['rules'] as String? ?? t.rules,
+            createdAt: t.createdAt,
+          );
+        }).toList();
+        state = state.copyWith(
+          updateStatus: TournamentUpdateStatus.success,
+          tournaments: updated,
+        );
+      } else {
+        state =
+            state.copyWith(updateStatus: TournamentUpdateStatus.success);
+      }
+      return true;
+    } on ApiException catch (e) {
+      appLogger.e('Update tournament failed', error: e);
+      state = state.copyWith(
+        updateStatus: TournamentUpdateStatus.error,
+        errorMessage: e.fieldErrors.isEmpty ? e.message : null,
+        fieldErrors: e.fieldErrors,
+      );
+      return false;
+    } catch (e) {
+      appLogger.e('Unexpected update tournament error', error: e);
+      state = state.copyWith(
+        updateStatus: TournamentUpdateStatus.error,
+        errorMessage: 'Failed to update tournament.',
+      );
+      return false;
+    }
+  }
+
   void resetCreateStatus() => state =
       state.copyWith(createStatus: TournamentCreateStatus.idle, clearError: true);
+
+  void resetUpdateStatus() => state =
+      state.copyWith(updateStatus: TournamentUpdateStatus.idle, clearError: true);
 }
 
 final tournamentControllerProvider =

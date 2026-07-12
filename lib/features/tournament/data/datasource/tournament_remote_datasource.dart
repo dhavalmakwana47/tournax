@@ -9,6 +9,8 @@ abstract interface class TournamentRemoteDatasource {
   Future<List<TournamentModel>> getTournaments({int perPage = 15});
   Future<TournamentModel> createTournament(Map<String, dynamic> data);
   Future<TournamentMetaModel> getTournamentMeta();
+  Future<TournamentModel> showTournament(int tournamentId);
+  Future<void> updateTournament(Map<String, dynamic> data);
 }
 
 class TournamentRemoteDatasourceImpl implements TournamentRemoteDatasource {
@@ -66,6 +68,37 @@ class TournamentRemoteDatasourceImpl implements TournamentRemoteDatasource {
       rethrow;
     } catch (e, st) {
       appLogger.e('Tournament meta parse error', error: e, stackTrace: st);
+      throw ApiException.unexpected();
+    }
+  }
+
+  @override
+  Future<TournamentModel> showTournament(int tournamentId) async {
+    try {
+      final response = await _apiClient.post(
+        ApiConstants.tournamentsShow,
+        data: {'tournament_id': tournamentId},
+      );
+      appLogger.d('Show tournament response: $response');
+      final data = response['data'] as Map<String, dynamic>?;
+      if (data == null) throw ApiException.unexpected();
+      return TournamentModel.fromJson(data);
+    } on ApiException {
+      rethrow;
+    } catch (e, st) {
+      appLogger.e('Show tournament error', error: e, stackTrace: st);
+      throw ApiException.unexpected();
+    }
+  }
+
+  @override
+  Future<void> updateTournament(Map<String, dynamic> data) async {
+    try {
+      await _apiClient.post(ApiConstants.tournamentsUpdate, data: data);
+    } on ApiException {
+      rethrow;
+    } catch (e, st) {
+      appLogger.e('Update tournament error', error: e, stackTrace: st);
       throw ApiException.unexpected();
     }
   }

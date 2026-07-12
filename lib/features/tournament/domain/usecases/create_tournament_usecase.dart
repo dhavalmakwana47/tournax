@@ -17,6 +17,11 @@ class CreateTournamentUseCase {
     String? description,
     String? registrationStart,
     String? registrationEnd,
+    bool checkInEnabled = false,
+    bool allowSubstitute = false,
+    bool autoQualify = false,
+    String? leaderboardType,
+    String? rules,
   }) =>
       _repository.createTournament(
         name: name,
@@ -29,5 +34,10 @@ class CreateTournamentUseCase {
         description: description,
         registrationStart: registrationStart,
         registrationEnd: registrationEnd,
+        checkInEnabled: checkInEnabled,
+        allowSubstitute: allowSubstitute,
+        autoQualify: autoQualify,
+        leaderboardType: leaderboardType,
+        rules: rules,
       );
 }

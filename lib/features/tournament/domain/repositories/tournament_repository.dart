@@ -14,6 +14,13 @@ abstract interface class TournamentRepository {
     String? description,
     String? registrationStart,
     String? registrationEnd,
+    bool checkInEnabled,
+    bool allowSubstitute,
+    bool autoQualify,
+    String? leaderboardType,
+    String? rules,
   });
   Future<TournamentMetaEntity> getTournamentMeta();
+  Future<TournamentEntity> showTournament(int tournamentId);
+  Future<void> updateTournament(Map<String, dynamic> data);
 }

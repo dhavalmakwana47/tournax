@@ -6,15 +6,17 @@ class TournamentMetaModel {
     required this.tournamentTypes,
     required this.playerRoles,
     this.stageTypes = const [],
+    this.leaderboardTypes = const [],
   });
 
   final List<MetaOption> modes;
   final List<MetaOption> tournamentTypes;
   final List<MetaOption> playerRoles;
   final List<MetaOption> stageTypes;
+  final List<MetaOption> leaderboardTypes;
 
   factory TournamentMetaModel.fromJson(Map<String, dynamic> json) {
-    List<MetaOption> _toOptionList(dynamic raw) {
+    List<MetaOption> toOptionList(dynamic raw) {
       if (raw is! List) return const [];
       return raw.map((e) {
         final map = e as Map<String, dynamic>;
@@ -26,10 +28,11 @@ class TournamentMetaModel {
     }
 
     return TournamentMetaModel(
-      modes: _toOptionList(json['modes']),
-      tournamentTypes: _toOptionList(json['tournament_types']),
-      playerRoles: _toOptionList(json['player_roles']),
-      stageTypes: _toOptionList(json['stage_types']),
+      modes: toOptionList(json['modes']),
+      tournamentTypes: toOptionList(json['tournament_types']),
+      playerRoles: toOptionList(json['player_roles']),
+      stageTypes: toOptionList(json['stage_types']),
+      leaderboardTypes: toOptionList(json['leaderboard_types']),
     );
   }
 
@@ -38,5 +41,6 @@ class TournamentMetaModel {
         tournamentTypes: tournamentTypes,
         playerRoles: playerRoles,
         stageTypes: stageTypes,
+        leaderboardTypes: leaderboardTypes,
       );
 }

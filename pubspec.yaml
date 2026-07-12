@@ -52,6 +52,19 @@ dev_dependencies:
   freezed: ^2.5.8
   json_serializable: ^6.9.5
   riverpod_generator: ^2.6.4
+  flutter_launcher_icons: ^0.14.3
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/App Logo/logo.png"
+  min_sdk_android: 21
+  web:
+    generate: false
+  windows:
+    generate: false
+  macos:
+    generate: false
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

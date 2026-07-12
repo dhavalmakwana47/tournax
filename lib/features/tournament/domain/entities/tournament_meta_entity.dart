@@ -16,13 +16,16 @@ class TournamentMetaEntity extends Equatable {
     required this.tournamentTypes,
     required this.playerRoles,
     this.stageTypes = const [],
+    this.leaderboardTypes = const [],
   });
 
   final List<MetaOption> modes;
   final List<MetaOption> tournamentTypes;
   final List<MetaOption> playerRoles;
   final List<MetaOption> stageTypes;
+  final List<MetaOption> leaderboardTypes;
 
   @override
-  List<Object> get props => [modes, tournamentTypes, playerRoles, stageTypes];
+  List<Object> get props =>
+      [modes, tournamentTypes, playerRoles, stageTypes, leaderboardTypes];
 }

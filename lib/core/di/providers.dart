@@ -30,6 +30,8 @@ import '../../features/tournament/domain/repositories/team_repository.dart';
 import '../../features/tournament/domain/usecases/get_tournaments_usecase.dart';
 import '../../features/tournament/domain/usecases/create_tournament_usecase.dart';
 import '../../features/tournament/domain/usecases/get_tournament_meta_usecase.dart';
+import '../../features/tournament/domain/usecases/show_tournament_usecase.dart';
+import '../../features/tournament/domain/usecases/update_tournament_usecase.dart';
 import '../../features/tournament/domain/usecases/get_teams_usecase.dart';
 import '../../features/tournament/domain/usecases/create_team_usecase.dart';
 import '../../features/tournament/domain/usecases/get_team_usecase.dart';
@@ -167,6 +169,14 @@ final createTournamentUseCaseProvider = Provider<CreateTournamentUseCase>(
 
 final getTournamentMetaUseCaseProvider = Provider<GetTournamentMetaUseCase>(
   (ref) => GetTournamentMetaUseCase(ref.read(tournamentRepositoryProvider)),
+);
+
+final showTournamentUseCaseProvider = Provider<ShowTournamentUseCase>(
+  (ref) => ShowTournamentUseCase(ref.read(tournamentRepositoryProvider)),
+);
+
+final updateTournamentUseCaseProvider = Provider<UpdateTournamentUseCase>(
+  (ref) => UpdateTournamentUseCase(ref.read(tournamentRepositoryProvider)),
 );
 
 // --- Team ---

@@ -41,3 +41,8 @@ class EditStageArgs {
   final TournamentEntity tournament;
   final int stageId;
 }
+
+class EditTournamentArgs {
+  const EditTournamentArgs({required this.tournamentId});
+  final int tournamentId;
+}
