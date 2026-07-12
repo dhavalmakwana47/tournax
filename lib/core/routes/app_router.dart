@@ -11,8 +11,16 @@ import '../../features/home/presentation/pages/home_page.dart';
 import '../../features/profile/domain/entities/profile_entity.dart';
 import '../../features/profile/presentation/pages/edit_profile_page.dart';
 import '../../features/profile/presentation/pages/settings_page.dart';
+import '../../features/tournament/domain/entities/tournament_entity.dart';
 import '../../features/tournament/presentation/pages/tournament_list_page.dart';
 import '../../features/tournament/presentation/pages/create_tournament_page.dart';
+import '../../features/tournament/presentation/pages/team_list_page.dart';
+import '../../features/tournament/presentation/pages/add_team_page.dart';
+import '../../features/tournament/presentation/pages/add_player_page.dart';
+import '../../features/tournament/presentation/pages/player_list_page.dart';
+import '../../features/tournament/presentation/pages/edit_team_page.dart';
+import '../../features/tournament/presentation/pages/edit_player_page.dart';
+import 'route_args.dart';
 
 abstract final class AppRoutes {
   static const String login = '/login';
@@ -26,6 +34,12 @@ abstract final class AppRoutes {
   static const String editProfile = '/edit-profile';
   static const String tournaments = '/tournaments';
   static const String createTournament = '/tournaments/create';
+  static const String teamList = '/tournaments/teams';
+  static const String addTeam = '/tournaments/teams/add';
+  static const String playerList = '/tournaments/teams/players';
+  static const String addPlayer = '/tournaments/teams/players/add';
+  static const String editTeam = '/tournaments/teams/edit';
+  static const String editPlayer = '/tournaments/teams/players/edit';
 }
 
 class AuthNotifier extends ChangeNotifier {
@@ -122,6 +136,65 @@ GoRouter buildRouter(Ref ref, String? initialToken) {
         path: AppRoutes.createTournament,
         name: AppRoutes.createTournament,
         builder: (context, state) => const CreateTournamentPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.teamList,
+        name: AppRoutes.teamList,
+        builder: (context, state) => TeamListPage(
+          tournament: state.extra as TournamentEntity,
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.addTeam,
+        name: AppRoutes.addTeam,
+        builder: (context, state) => AddTeamPage(
+          tournament: state.extra as TournamentEntity,
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.playerList,
+        name: AppRoutes.playerList,
+        builder: (context, state) {
+          final args = state.extra as PlayerListArgs;
+          return PlayerListPage(
+            tournament: args.tournament,
+            team: args.team,
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.addPlayer,
+        name: AppRoutes.addPlayer,
+        builder: (context, state) {
+          final args = state.extra as AddPlayerArgs;
+          return AddPlayerPage(
+            tournament: args.tournament,
+            team: args.team,
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.editTeam,
+        name: AppRoutes.editTeam,
+        builder: (context, state) {
+          final args = state.extra as EditTeamArgs;
+          return EditTeamPage(
+            tournament: args.tournament,
+            team: args.team,
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.editPlayer,
+        name: AppRoutes.editPlayer,
+        builder: (context, state) {
+          final args = state.extra as EditPlayerArgs;
+          return EditPlayerPage(
+            tournament: args.tournament,
+            team: args.team,
+            player: args.player,
+          );
+        },
       ),
     ],
   );

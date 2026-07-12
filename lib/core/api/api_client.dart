@@ -52,6 +52,25 @@ class ApiClient {
     }
   }
 
+  Future<void> delete(
+    String path, {
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+  }) async {
+    try {
+      await _dioClient.dio.delete<void>(
+        path,
+        queryParameters: queryParameters,
+        options: options,
+      );
+    } on DioException catch (e) {
+      throw _resolveException(e);
+    } catch (e, st) {
+      appLogger.e('ApiClient.delete unexpected', error: e, stackTrace: st);
+      throw ApiException(message: e.toString());
+    }
+  }
+
   Future<Map<String, dynamic>> get(
     String path, {
     Map<String, dynamic>? queryParameters,

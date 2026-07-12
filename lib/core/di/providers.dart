@@ -22,11 +22,28 @@ import '../../features/profile/domain/repositories/profile_repository.dart';
 import '../../features/profile/domain/usecases/get_profile_usecase.dart';
 import '../../features/profile/domain/usecases/update_profile_usecase.dart';
 import '../../features/tournament/data/datasource/tournament_remote_datasource.dart';
+import '../../features/tournament/data/datasource/team_remote_datasource.dart';
 import '../../features/tournament/data/repositories/tournament_repository_impl.dart';
+import '../../features/tournament/data/repositories/team_repository_impl.dart';
 import '../../features/tournament/domain/repositories/tournament_repository.dart';
+import '../../features/tournament/domain/repositories/team_repository.dart';
 import '../../features/tournament/domain/usecases/get_tournaments_usecase.dart';
 import '../../features/tournament/domain/usecases/create_tournament_usecase.dart';
 import '../../features/tournament/domain/usecases/get_tournament_meta_usecase.dart';
+import '../../features/tournament/domain/usecases/get_teams_usecase.dart';
+import '../../features/tournament/domain/usecases/create_team_usecase.dart';
+import '../../features/tournament/domain/usecases/get_team_usecase.dart';
+import '../../features/tournament/domain/usecases/update_team_usecase.dart';
+import '../../features/tournament/domain/usecases/add_player_usecase.dart';
+import '../../features/tournament/domain/usecases/get_players_usecase.dart';
+import '../../features/tournament/domain/usecases/get_player_usecase.dart';
+import '../../features/tournament/domain/usecases/update_player_usecase.dart';
+import '../../features/tournament/domain/usecases/delete_team_usecase.dart';
+import '../../features/tournament/domain/usecases/delete_player_usecase.dart';
+import '../../features/tournament/data/datasource/player_search_datasource.dart';
+import '../../features/tournament/data/repositories/player_search_repository_impl.dart';
+import '../../features/tournament/domain/repositories/player_search_repository.dart';
+import '../../features/tournament/domain/usecases/search_player_usecase.dart';
 
 // --- Infrastructure ---
 
@@ -142,4 +159,74 @@ final createTournamentUseCaseProvider = Provider<CreateTournamentUseCase>(
 
 final getTournamentMetaUseCaseProvider = Provider<GetTournamentMetaUseCase>(
   (ref) => GetTournamentMetaUseCase(ref.read(tournamentRepositoryProvider)),
+);
+
+// --- Team ---
+
+final teamRemoteDatasourceProvider = Provider<TeamRemoteDatasource>(
+  (ref) => TeamRemoteDatasourceImpl(ref.read(apiClientProvider)),
+);
+
+final teamRepositoryProvider = Provider<TeamRepository>(
+  (ref) => TeamRepositoryImpl(
+    remoteDatasource: ref.read(teamRemoteDatasourceProvider),
+    networkInfo: ref.read(networkInfoProvider),
+  ),
+);
+
+final getTeamsUseCaseProvider = Provider<GetTeamsUseCase>(
+  (ref) => GetTeamsUseCase(ref.read(teamRepositoryProvider)),
+);
+
+final createTeamUseCaseProvider = Provider<CreateTeamUseCase>(
+  (ref) => CreateTeamUseCase(ref.read(teamRepositoryProvider)),
+);
+
+final getTeamUseCaseProvider = Provider<GetTeamUseCase>(
+  (ref) => GetTeamUseCase(ref.read(teamRepositoryProvider)),
+);
+
+final updateTeamUseCaseProvider = Provider<UpdateTeamUseCase>(
+  (ref) => UpdateTeamUseCase(ref.read(teamRepositoryProvider)),
+);
+
+final addPlayerUseCaseProvider = Provider<AddPlayerUseCase>(
+  (ref) => AddPlayerUseCase(ref.read(teamRepositoryProvider)),
+);
+
+final getPlayersUseCaseProvider = Provider<GetPlayersUseCase>(
+  (ref) => GetPlayersUseCase(ref.read(teamRepositoryProvider)),
+);
+
+final getPlayerUseCaseProvider = Provider<GetPlayerUseCase>(
+  (ref) => GetPlayerUseCase(ref.read(teamRepositoryProvider)),
+);
+
+final updatePlayerUseCaseProvider = Provider<UpdatePlayerUseCase>(
+  (ref) => UpdatePlayerUseCase(ref.read(teamRepositoryProvider)),
+);
+
+final deleteTeamUseCaseProvider = Provider<DeleteTeamUseCase>(
+  (ref) => DeleteTeamUseCase(ref.read(teamRepositoryProvider)),
+);
+
+final deletePlayerUseCaseProvider = Provider<DeletePlayerUseCase>(
+  (ref) => DeletePlayerUseCase(ref.read(teamRepositoryProvider)),
+);
+
+// --- Player Search ---
+
+final playerSearchDatasourceProvider = Provider<PlayerSearchDatasource>(
+  (ref) => PlayerSearchDatasourceImpl(ref.read(apiClientProvider)),
+);
+
+final playerSearchRepositoryProvider = Provider<PlayerSearchRepository>(
+  (ref) => PlayerSearchRepositoryImpl(
+    datasource: ref.read(playerSearchDatasourceProvider),
+    networkInfo: ref.read(networkInfoProvider),
+  ),
+);
+
+final searchPlayerUseCaseProvider = Provider<SearchPlayerUseCase>(
+  (ref) => SearchPlayerUseCase(ref.read(playerSearchRepositoryProvider)),
 );

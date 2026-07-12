@@ -17,4 +17,19 @@ abstract final class ApiConstants {
 
   static const String tournaments = '/tournaments';
   static const String tournamentsMeta = '/tournaments/meta';
+
+  static String tournamentTeams(int tournamentId) =>
+      '/tournaments/$tournamentId/teams';
+
+  static String tournamentTeam(int tournamentId, int teamId) =>
+      '/tournaments/$tournamentId/teams/$teamId';
+
+  static String tournamentTeamPlayers(int tournamentId, int teamId) =>
+      '/tournaments/$tournamentId/teams/$teamId/players';
+
+  static String tournamentTeamPlayer(
+          int tournamentId, int teamId, int playerId) =>
+      '/tournaments/$tournamentId/teams/$teamId/players/$playerId';
+
+  static const String playersSearch = '/players/search';
 }
