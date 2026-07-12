@@ -32,4 +32,10 @@ abstract final class ApiConstants {
       '/tournaments/$tournamentId/teams/$teamId/players/$playerId';
 
   static const String playersSearch = '/players/search';
+
+  static const String stages = '/stages';
+  static const String stagesList = '/stages/list';
+  static const String stagesShow = '/stages/show';
+  static const String stagesUpdate = '/stages/update';
+  static const String stagesDelete = '/stages/delete';
 }

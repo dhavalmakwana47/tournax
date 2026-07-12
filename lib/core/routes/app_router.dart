@@ -20,6 +20,9 @@ import '../../features/tournament/presentation/pages/add_player_page.dart';
 import '../../features/tournament/presentation/pages/player_list_page.dart';
 import '../../features/tournament/presentation/pages/edit_team_page.dart';
 import '../../features/tournament/presentation/pages/edit_player_page.dart';
+import '../../features/tournament/presentation/pages/stage_list_page.dart';
+import '../../features/tournament/presentation/pages/create_stage_page.dart';
+import '../../features/tournament/presentation/pages/edit_stage_page.dart';
 import 'route_args.dart';
 
 abstract final class AppRoutes {
@@ -40,6 +43,9 @@ abstract final class AppRoutes {
   static const String addPlayer = '/tournaments/teams/players/add';
   static const String editTeam = '/tournaments/teams/edit';
   static const String editPlayer = '/tournaments/teams/players/edit';
+  static const String stageList = '/tournaments/stages';
+  static const String createStage = '/tournaments/stages/create';
+  static const String editStage = '/tournaments/stages/edit';
 }
 
 class AuthNotifier extends ChangeNotifier {
@@ -193,6 +199,31 @@ GoRouter buildRouter(Ref ref, String? initialToken) {
             tournament: args.tournament,
             team: args.team,
             player: args.player,
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.stageList,
+        name: AppRoutes.stageList,
+        builder: (context, state) => StageListPage(
+          tournament: (state.extra as StageArgs).tournament,
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.createStage,
+        name: AppRoutes.createStage,
+        builder: (context, state) => CreateStagePage(
+          tournament: (state.extra as StageArgs).tournament,
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.editStage,
+        name: AppRoutes.editStage,
+        builder: (context, state) {
+          final args = state.extra as EditStageArgs;
+          return EditStagePage(
+            tournament: args.tournament,
+            stageId: args.stageId,
           );
         },
       ),

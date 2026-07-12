@@ -44,6 +44,14 @@ import '../../features/tournament/data/datasource/player_search_datasource.dart'
 import '../../features/tournament/data/repositories/player_search_repository_impl.dart';
 import '../../features/tournament/domain/repositories/player_search_repository.dart';
 import '../../features/tournament/domain/usecases/search_player_usecase.dart';
+import '../../features/tournament/data/datasource/stage_remote_datasource.dart';
+import '../../features/tournament/data/repositories/stage_repository_impl.dart';
+import '../../features/tournament/domain/repositories/stage_repository.dart';
+import '../../features/tournament/domain/usecases/get_stages_usecase.dart';
+import '../../features/tournament/domain/usecases/create_stage_usecase.dart';
+import '../../features/tournament/domain/usecases/show_stage_usecase.dart';
+import '../../features/tournament/domain/usecases/update_stage_usecase.dart';
+import '../../features/tournament/domain/usecases/delete_stage_usecase.dart';
 
 // --- Infrastructure ---
 
@@ -229,4 +237,37 @@ final playerSearchRepositoryProvider = Provider<PlayerSearchRepository>(
 
 final searchPlayerUseCaseProvider = Provider<SearchPlayerUseCase>(
   (ref) => SearchPlayerUseCase(ref.read(playerSearchRepositoryProvider)),
+);
+
+// --- Stage ---
+
+final stageRemoteDatasourceProvider = Provider<StageRemoteDatasource>(
+  (ref) => StageRemoteDatasourceImpl(ref.read(apiClientProvider)),
+);
+
+final stageRepositoryProvider = Provider<StageRepository>(
+  (ref) => StageRepositoryImpl(
+    remoteDatasource: ref.read(stageRemoteDatasourceProvider),
+    networkInfo: ref.read(networkInfoProvider),
+  ),
+);
+
+final getStagesUseCaseProvider = Provider<GetStagesUseCase>(
+  (ref) => GetStagesUseCase(ref.read(stageRepositoryProvider)),
+);
+
+final createStageUseCaseProvider = Provider<CreateStageUseCase>(
+  (ref) => CreateStageUseCase(ref.read(stageRepositoryProvider)),
+);
+
+final showStageUseCaseProvider = Provider<ShowStageUseCase>(
+  (ref) => ShowStageUseCase(ref.read(stageRepositoryProvider)),
+);
+
+final updateStageUseCaseProvider = Provider<UpdateStageUseCase>(
+  (ref) => UpdateStageUseCase(ref.read(stageRepositoryProvider)),
+);
+
+final deleteStageUseCaseProvider = Provider<DeleteStageUseCase>(
+  (ref) => DeleteStageUseCase(ref.read(stageRepositoryProvider)),
 );

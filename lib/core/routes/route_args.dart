@@ -30,3 +30,14 @@ class EditPlayerArgs {
   final TeamEntity team;
   final PlayerEntity player;
 }
+
+class StageArgs {
+  const StageArgs({required this.tournament});
+  final TournamentEntity tournament;
+}
+
+class EditStageArgs {
+  const EditStageArgs({required this.tournament, required this.stageId});
+  final TournamentEntity tournament;
+  final int stageId;
+}

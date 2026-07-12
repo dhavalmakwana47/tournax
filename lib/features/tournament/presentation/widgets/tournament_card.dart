@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/routes/app_router.dart';
+import '../../../../core/routes/route_args.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
@@ -78,26 +79,43 @@ class TournamentCard extends StatelessWidget {
               ],
             ),
           ],
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: AppSpacing.xs),
           const Divider(color: AppColors.divider, height: 1),
           const SizedBox(height: AppSpacing.xs),
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton.icon(
-              onPressed: () => context.pushNamed(
-                AppRoutes.teamList,
-                extra: tournament,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton.icon(
+                onPressed: () => context.pushNamed(
+                  AppRoutes.stageList,
+                  extra: StageArgs(tournament: tournament),
+                ),
+                icon: const Icon(Icons.account_tree_rounded,
+                    size: 16, color: AppColors.primary),
+                label: const Text(
+                  'Stages',
+                  style: TextStyle(
+                      color: AppColors.primary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600),
+                ),
               ),
-              icon: const Icon(Icons.groups_rounded,
-                  size: 16, color: AppColors.primary),
-              label: const Text(
-                'Teams',
-                style: TextStyle(
-                    color: AppColors.primary,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600),
+              TextButton.icon(
+                onPressed: () => context.pushNamed(
+                  AppRoutes.teamList,
+                  extra: tournament,
+                ),
+                icon: const Icon(Icons.groups_rounded,
+                    size: 16, color: AppColors.primary),
+                label: const Text(
+                  'Teams',
+                  style: TextStyle(
+                      color: AppColors.primary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600),
+                ),
               ),
-            ),
+            ],
           ),
         ],
       ),
