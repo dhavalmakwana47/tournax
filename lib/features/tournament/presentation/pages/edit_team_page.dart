@@ -27,7 +27,6 @@ class _EditTeamPageState extends ConsumerState<EditTeamPage> {
   final _formKey = GlobalKey<FormState>();
   final _nameCtrl = TextEditingController();
   bool _prefilled = false;
-  Map<String, String> _fieldErrors = const {};
 
   @override
   void initState() {
@@ -51,7 +50,6 @@ class _EditTeamPageState extends ConsumerState<EditTeamPage> {
   }
 
   Future<void> _submit() async {
-    setState(() => _fieldErrors = const {});
     if (!_formKey.currentState!.validate()) return;
 
     final notifier =
@@ -63,40 +61,33 @@ class _EditTeamPageState extends ConsumerState<EditTeamPage> {
       name: _nameCtrl.text.trim(),
     );
 
-    if (!mounted) return;
-
-    if (!success) {
-      _formKey.currentState!.validate();
-      return;
+    if (success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Team updated successfully.'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+      context.pop();
     }
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Team updated successfully.'),
-        backgroundColor: AppColors.success,
-      ),
-    );
-    context.pop();
   }
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(teamControllerProvider(widget.tournament.id));
     final isLoading = state.updateTeamStatus == TeamActionStatus.loading;
+    final fieldErrors = state.fieldErrors;
 
     ref.listen(teamControllerProvider(widget.tournament.id), (_, next) {
-      if (next.updateTeamStatus == TeamActionStatus.error) {
-        if (next.fieldErrors.isNotEmpty) {
-          setState(() => _fieldErrors = next.fieldErrors);
-          _formKey.currentState!.validate();
-        } else if (next.errorMessage != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(next.errorMessage!),
-              backgroundColor: AppColors.error,
-            ),
-          );
-        }
+      if (next.updateTeamStatus == TeamActionStatus.error &&
+          next.fieldErrors.isEmpty &&
+          next.errorMessage != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(next.errorMessage!),
+            backgroundColor: AppColors.error,
+          ),
+        );
       }
     });
 
@@ -133,9 +124,10 @@ class _EditTeamPageState extends ConsumerState<EditTeamPage> {
                     TextFormField(
                       controller: _nameCtrl,
                       style: const TextStyle(color: AppColors.textPrimary),
-                      decoration: _inputDecoration('e.g. Team Alpha'),
-                      validator: (v) =>
-                          Validators.required(v) ?? _fieldErrors['name'],
+                      decoration: _inputDecoration('e.g. Team Alpha').copyWith(
+                        errorText: fieldErrors['name'],
+                      ),
+                      validator: (v) => Validators.required(v),
                       textInputAction: TextInputAction.done,
                       onFieldSubmitted: (_) => _submit(),
                     ),

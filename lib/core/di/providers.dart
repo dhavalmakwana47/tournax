@@ -54,6 +54,38 @@ import '../../features/tournament/domain/usecases/create_stage_usecase.dart';
 import '../../features/tournament/domain/usecases/show_stage_usecase.dart';
 import '../../features/tournament/domain/usecases/update_stage_usecase.dart';
 import '../../features/tournament/domain/usecases/delete_stage_usecase.dart';
+import '../../features/tournament/data/datasource/group_remote_datasource.dart';
+import '../../features/tournament/data/repositories/group_repository_impl.dart';
+import '../../features/tournament/domain/repositories/group_repository.dart';
+import '../../features/tournament/domain/usecases/get_groups_usecase.dart';
+import '../../features/tournament/domain/usecases/create_group_usecase.dart';
+import '../../features/tournament/domain/usecases/show_group_usecase.dart';
+import '../../features/tournament/domain/usecases/update_group_usecase.dart';
+import '../../features/tournament/domain/usecases/delete_group_usecase.dart';
+import '../../features/tournament/domain/usecases/add_group_team_usecase.dart';
+import '../../features/tournament/domain/usecases/remove_group_team_usecase.dart';
+import '../../features/tournament/data/datasource/round_remote_datasource.dart';
+import '../../features/tournament/data/repositories/round_repository_impl.dart';
+import '../../features/tournament/domain/repositories/round_repository.dart';
+import '../../features/tournament/domain/usecases/get_rounds_usecase.dart';
+import '../../features/tournament/domain/usecases/create_round_usecase.dart';
+import '../../features/tournament/domain/usecases/delete_round_usecase.dart';
+import '../../features/tournament/data/datasource/point_system_remote_datasource.dart';
+import '../../features/tournament/data/repositories/point_system_repository_impl.dart';
+import '../../features/tournament/domain/repositories/point_system_repository.dart';
+import '../../features/tournament/domain/usecases/get_point_systems_usecase.dart';
+import '../../features/tournament/domain/usecases/create_point_system_usecase.dart';
+import '../../features/tournament/domain/usecases/update_point_system_usecase.dart';
+import '../../features/tournament/domain/usecases/delete_point_system_usecase.dart';
+import '../../features/tournament/data/datasource/match_remote_datasource.dart';
+import '../../features/tournament/data/repositories/match_repository_impl.dart';
+import '../../features/tournament/domain/repositories/match_repository.dart';
+import '../../features/tournament/domain/usecases/get_matches_usecase.dart';
+import '../../features/tournament/domain/usecases/create_match_usecase.dart';
+import '../../features/tournament/domain/usecases/update_match_usecase.dart';
+import '../../features/tournament/domain/usecases/delete_match_usecase.dart';
+import '../../features/tournament/domain/usecases/add_match_team_usecase.dart';
+import '../../features/tournament/domain/usecases/remove_match_team_usecase.dart';
 
 // --- Infrastructure ---
 
@@ -280,4 +312,136 @@ final updateStageUseCaseProvider = Provider<UpdateStageUseCase>(
 
 final deleteStageUseCaseProvider = Provider<DeleteStageUseCase>(
   (ref) => DeleteStageUseCase(ref.read(stageRepositoryProvider)),
+);
+
+// --- Group ---
+
+final groupRemoteDatasourceProvider = Provider<GroupRemoteDatasource>(
+  (ref) => GroupRemoteDatasourceImpl(ref.read(apiClientProvider)),
+);
+
+final groupRepositoryProvider = Provider<GroupRepository>(
+  (ref) => GroupRepositoryImpl(
+    remoteDatasource: ref.read(groupRemoteDatasourceProvider),
+    networkInfo: ref.read(networkInfoProvider),
+  ),
+);
+
+final getGroupsUseCaseProvider = Provider<GetGroupsUseCase>(
+  (ref) => GetGroupsUseCase(ref.read(groupRepositoryProvider)),
+);
+
+final createGroupUseCaseProvider = Provider<CreateGroupUseCase>(
+  (ref) => CreateGroupUseCase(ref.read(groupRepositoryProvider)),
+);
+
+final showGroupUseCaseProvider = Provider<ShowGroupUseCase>(
+  (ref) => ShowGroupUseCase(ref.read(groupRepositoryProvider)),
+);
+
+final updateGroupUseCaseProvider = Provider<UpdateGroupUseCase>(
+  (ref) => UpdateGroupUseCase(ref.read(groupRepositoryProvider)),
+);
+
+final deleteGroupUseCaseProvider = Provider<DeleteGroupUseCase>(
+  (ref) => DeleteGroupUseCase(ref.read(groupRepositoryProvider)),
+);
+
+final addGroupTeamUseCaseProvider = Provider<AddGroupTeamUseCase>(
+  (ref) => AddGroupTeamUseCase(ref.read(groupRepositoryProvider)),
+);
+
+final removeGroupTeamUseCaseProvider = Provider<RemoveGroupTeamUseCase>(
+  (ref) => RemoveGroupTeamUseCase(ref.read(groupRepositoryProvider)),
+);
+
+// --- Round ---
+
+final roundRemoteDatasourceProvider = Provider<RoundRemoteDatasource>(
+  (ref) => RoundRemoteDatasourceImpl(ref.read(apiClientProvider)),
+);
+
+final roundRepositoryProvider = Provider<RoundRepository>(
+  (ref) => RoundRepositoryImpl(
+    remoteDatasource: ref.read(roundRemoteDatasourceProvider),
+    networkInfo: ref.read(networkInfoProvider),
+  ),
+);
+
+final getRoundsUseCaseProvider = Provider<GetRoundsUseCase>(
+  (ref) => GetRoundsUseCase(ref.read(roundRepositoryProvider)),
+);
+
+final createRoundUseCaseProvider = Provider<CreateRoundUseCase>(
+  (ref) => CreateRoundUseCase(ref.read(roundRepositoryProvider)),
+);
+
+final deleteRoundUseCaseProvider = Provider<DeleteRoundUseCase>(
+  (ref) => DeleteRoundUseCase(ref.read(roundRepositoryProvider)),
+);
+
+// --- Point System ---
+
+final pointSystemRemoteDatasourceProvider = Provider<PointSystemRemoteDatasource>(
+  (ref) => PointSystemRemoteDatasourceImpl(ref.read(apiClientProvider)),
+);
+
+final pointSystemRepositoryProvider = Provider<PointSystemRepository>(
+  (ref) => PointSystemRepositoryImpl(
+    remoteDatasource: ref.read(pointSystemRemoteDatasourceProvider),
+    networkInfo: ref.read(networkInfoProvider),
+  ),
+);
+
+final getPointSystemsUseCaseProvider = Provider<GetPointSystemsUseCase>(
+  (ref) => GetPointSystemsUseCase(ref.read(pointSystemRepositoryProvider)),
+);
+
+final createPointSystemUseCaseProvider = Provider<CreatePointSystemUseCase>(
+  (ref) => CreatePointSystemUseCase(ref.read(pointSystemRepositoryProvider)),
+);
+
+final updatePointSystemUseCaseProvider = Provider<UpdatePointSystemUseCase>(
+  (ref) => UpdatePointSystemUseCase(ref.read(pointSystemRepositoryProvider)),
+);
+
+final deletePointSystemUseCaseProvider = Provider<DeletePointSystemUseCase>(
+  (ref) => DeletePointSystemUseCase(ref.read(pointSystemRepositoryProvider)),
+);
+
+// --- Match ---
+
+final matchRemoteDatasourceProvider = Provider<MatchRemoteDatasource>(
+  (ref) => MatchRemoteDatasourceImpl(ref.read(apiClientProvider)),
+);
+
+final matchRepositoryProvider = Provider<MatchRepository>(
+  (ref) => MatchRepositoryImpl(
+    remoteDatasource: ref.read(matchRemoteDatasourceProvider),
+    networkInfo: ref.read(networkInfoProvider),
+  ),
+);
+
+final getMatchesUseCaseProvider = Provider<GetMatchesUseCase>(
+  (ref) => GetMatchesUseCase(ref.read(matchRepositoryProvider)),
+);
+
+final createMatchUseCaseProvider = Provider<CreateMatchUseCase>(
+  (ref) => CreateMatchUseCase(ref.read(matchRepositoryProvider)),
+);
+
+final updateMatchUseCaseProvider = Provider<UpdateMatchUseCase>(
+  (ref) => UpdateMatchUseCase(ref.read(matchRepositoryProvider)),
+);
+
+final deleteMatchUseCaseProvider = Provider<DeleteMatchUseCase>(
+  (ref) => DeleteMatchUseCase(ref.read(matchRepositoryProvider)),
+);
+
+final addMatchTeamUseCaseProvider = Provider<AddMatchTeamUseCase>(
+  (ref) => AddMatchTeamUseCase(ref.read(matchRepositoryProvider)),
+);
+
+final removeMatchTeamUseCaseProvider = Provider<RemoveMatchTeamUseCase>(
+  (ref) => RemoveMatchTeamUseCase(ref.read(matchRepositoryProvider)),
 );

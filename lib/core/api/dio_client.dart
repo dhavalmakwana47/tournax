@@ -13,6 +13,9 @@ class DioClient {
         connectTimeout: ApiConstants.connectTimeout,
         receiveTimeout: ApiConstants.receiveTimeout,
         sendTimeout: ApiConstants.sendTimeout,
+        headers: {
+          'Accept': 'application/json',
+        },
       ),
     )
       ..interceptors.add(_AuthInterceptor(_storage))
@@ -112,6 +115,7 @@ class _ErrorInterceptor extends Interceptor {
     final data = err.response?.data;
     final statusCode = err.response?.statusCode ?? 0;
     final serverMessage = data?['message'] as String?;
+    final isWarning = data is Map ? (data['warning'] as bool? ?? false) : false;
 
     Map<String, String> fieldErrors = const {};
     if (statusCode == 422 && data?['errors'] is Map) {
@@ -124,6 +128,11 @@ class _ErrorInterceptor extends Interceptor {
       });
     }
 
-    return ApiException.fromStatusCode(statusCode, serverMessage, fieldErrors);
+    return ApiException.fromStatusCode(
+      statusCode,
+      serverMessage,
+      fieldErrors,
+      isWarning,
+    );
   }
 }

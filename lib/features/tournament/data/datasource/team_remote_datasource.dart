@@ -188,7 +188,7 @@ class TeamRemoteDatasourceImpl implements TeamRemoteDatasource {
           'name': name,
           if (gameUid != null && gameUid.isNotEmpty) 'game_uid': gameUid,
           if (role != null && role.isNotEmpty) 'role': role,
-          'user_id': userId,
+          if (userId != null) 'user_id': userId,
         },
       );
       appLogger.d('Add player response: $response');
@@ -242,7 +242,7 @@ class TeamRemoteDatasourceImpl implements TeamRemoteDatasource {
           'name': name,
           if (gameUid != null && gameUid.isNotEmpty) 'game_uid': gameUid,
           if (role != null && role.isNotEmpty) 'role': role,
-          'user_id': userId,
+          if (userId != null) 'user_id': userId,
         },
       );
       appLogger.d('Update player response: $response');

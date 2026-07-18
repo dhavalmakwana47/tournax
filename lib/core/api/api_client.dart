@@ -97,6 +97,7 @@ class ApiClient {
       final data = e.response?.data;
       final serverMessage = data?['message'] as String?;
       final statusCode = e.response!.statusCode ?? 0;
+      final isWarning = data is Map ? (data['warning'] as bool? ?? false) : false;
       // Parse per-field validation errors from Laravel 422 response
       Map<String, String> fieldErrors = const {};
       if (statusCode == 422 && data?['errors'] is Map) {
@@ -108,7 +109,12 @@ class ApiClient {
           return MapEntry(key.toString(), first);
         });
       }
-      return ApiException.fromStatusCode(statusCode, serverMessage, fieldErrors);
+      return ApiException.fromStatusCode(
+        statusCode,
+        serverMessage,
+        fieldErrors,
+        isWarning,
+      );
     }
     return switch (e.type) {
       DioExceptionType.connectionTimeout ||

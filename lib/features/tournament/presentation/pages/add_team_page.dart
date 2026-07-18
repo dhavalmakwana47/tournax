@@ -38,10 +38,6 @@ class _AddTeamPageState extends ConsumerState<AddTeamPage> {
         .read(teamControllerProvider(widget.tournament.id).notifier)
         .createTeam(_nameCtrl.text.trim());
 
-    if (!success && mounted) {
-      _formKey.currentState!.validate();
-    }
-
     if (success && mounted) context.pop();
   }
 
@@ -93,9 +89,10 @@ class _AddTeamPageState extends ConsumerState<AddTeamPage> {
               TextFormField(
                 controller: _nameCtrl,
                 style: const TextStyle(color: AppColors.textPrimary),
-                decoration: _inputDecoration('e.g. Team Alpha'),
-                validator: (v) =>
-                    Validators.required(v) ?? fieldErrors['name'],
+                decoration: _inputDecoration('e.g. Team Alpha').copyWith(
+                  errorText: fieldErrors['name'],
+                ),
+                validator: (v) => Validators.required(v),
                 textInputAction: TextInputAction.done,
                 onFieldSubmitted: (_) => _submit(),
               ),

@@ -15,6 +15,7 @@ abstract final class AppColors {
   static const Color divider = Color(0xFF2A3A4A);
   static const Color error = Color(0xFFFF4D4D);
   static const Color success = Color(0xFF00C853);
+  static const Color warning = Color(0xFFFFB300);
   static const Color googleRed = Color(0xFFDB4437);
   static const Color facebookBlue = Color(0xFF1877F2);
 }

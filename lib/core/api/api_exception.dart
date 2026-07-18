@@ -5,20 +5,27 @@ class ApiException extends Equatable implements Exception {
     required this.message,
     this.statusCode,
     this.fieldErrors = const {},
+    this.isWarning = false,
   });
 
   final String message;
   final int? statusCode;
   final Map<String, String> fieldErrors;
+  final bool isWarning;
 
   factory ApiException.fromStatusCode(
     int statusCode, [
     String? serverMessage,
     Map<String, String> fieldErrors = const {},
+    bool isWarning = false,
   ]) {
     final message = serverMessage ?? _defaultMessage(statusCode);
     return ApiException(
-        message: message, statusCode: statusCode, fieldErrors: fieldErrors);
+      message: message,
+      statusCode: statusCode,
+      fieldErrors: fieldErrors,
+      isWarning: isWarning,
+    );
   }
 
   factory ApiException.noInternet() =>
@@ -42,7 +49,7 @@ class ApiException extends Equatable implements Exception {
       };
 
   @override
-  List<Object?> get props => [message, statusCode, fieldErrors];
+  List<Object?> get props => [message, statusCode, fieldErrors, isWarning];
 
   @override
   String toString() => 'ApiException(statusCode: $statusCode, message: $message)';

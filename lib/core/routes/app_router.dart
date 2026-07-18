@@ -24,6 +24,12 @@ import '../../features/tournament/presentation/pages/stage_list_page.dart';
 import '../../features/tournament/presentation/pages/create_stage_page.dart';
 import '../../features/tournament/presentation/pages/edit_stage_page.dart';
 import '../../features/tournament/presentation/pages/edit_tournament_page.dart';
+import '../../features/tournament/presentation/pages/group_list_page.dart';
+import '../../features/tournament/presentation/pages/create_group_page.dart';
+import '../../features/tournament/presentation/pages/edit_group_page.dart';
+import '../../features/tournament/presentation/pages/round_list_page.dart';
+import '../../features/tournament/presentation/pages/point_system_page.dart';
+import '../../features/tournament/presentation/pages/match_list_page.dart';
 import 'route_args.dart';
 
 abstract final class AppRoutes {
@@ -47,7 +53,13 @@ abstract final class AppRoutes {
   static const String stageList = '/tournaments/stages';
   static const String createStage = '/tournaments/stages/create';
   static const String editStage = '/tournaments/stages/edit';
+  static const String roundList = '/tournaments/rounds';
+  static const String groupList = '/tournaments/groups';
+  static const String createGroup = '/tournaments/groups/create';
+  static const String editGroup = '/tournaments/groups/edit';
   static const String editTournament = '/tournaments/edit';
+  static const String pointSystem = '/tournaments/groups/point-system';
+  static const String matchList = '/tournaments/groups/matches';
 }
 
 class AuthNotifier extends ChangeNotifier {
@@ -226,6 +238,73 @@ GoRouter buildRouter(Ref ref, String? initialToken) {
           return EditStagePage(
             tournament: args.tournament,
             stageId: args.stageId,
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.roundList,
+        name: AppRoutes.roundList,
+        builder: (context, state) {
+          final args = state.extra as RoundArgs;
+          return RoundListPage(
+            tournament: args.tournament,
+            stageId: args.stageId,
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.groupList,
+        name: AppRoutes.groupList,
+        builder: (context, state) {
+          final args = state.extra as GroupArgs;
+          return GroupListPage(
+            tournament: args.tournament,
+            roundId: args.roundId,
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.createGroup,
+        name: AppRoutes.createGroup,
+        builder: (context, state) {
+          final args = state.extra as GroupArgs;
+          return CreateGroupPage(
+            tournament: args.tournament,
+            roundId: args.roundId,
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.editGroup,
+        name: AppRoutes.editGroup,
+        builder: (context, state) {
+          final args = state.extra as EditGroupArgs;
+          return EditGroupPage(
+            tournament: args.tournament,
+            roundId: args.roundId,
+            groupId: args.groupId,
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.pointSystem,
+        name: AppRoutes.pointSystem,
+        builder: (context, state) {
+          final args = state.extra as PointSystemArgs;
+          return PointSystemPage(
+            tournament: args.tournament,
+            groupId: args.groupId,
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.matchList,
+        name: AppRoutes.matchList,
+        builder: (context, state) {
+          final args = state.extra as MatchArgs;
+          return MatchListPage(
+            tournament: args.tournament,
+            group: args.group,
           );
         },
       ),

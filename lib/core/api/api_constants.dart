@@ -1,5 +1,5 @@
 abstract final class ApiConstants {
-  static const String baseUrl = 'http://10.137.118.115:8000/api/v1';
+  static const String baseUrl = 'http://10.167.110.115:8000/api/v1';
   static const Duration connectTimeout = Duration(seconds: 15);
   static const Duration receiveTimeout = Duration(seconds: 15);
   static const Duration sendTimeout = Duration(seconds: 15);
@@ -30,8 +30,10 @@ abstract final class ApiConstants {
       '/tournaments/$tournamentId/teams/$teamId/players';
 
   static String tournamentTeamPlayer(
-          int tournamentId, int teamId, int playerId) =>
-      '/tournaments/$tournamentId/teams/$teamId/players/$playerId';
+    int tournamentId,
+    int teamId,
+    int playerId,
+  ) => '/tournaments/$tournamentId/teams/$teamId/players/$playerId';
 
   static const String playersSearch = '/players/search';
 
@@ -40,4 +42,18 @@ abstract final class ApiConstants {
   static const String stagesShow = '/stages/show';
   static const String stagesUpdate = '/stages/update';
   static const String stagesDelete = '/stages/delete';
+
+  static const String rounds = '/rounds';
+  static const String roundsList = '/rounds/list';
+  static const String roundsShow = '/rounds/show';
+  static const String roundsUpdate = '/rounds/update';
+  static const String roundsDelete = '/rounds/delete';
+
+  static const String groups = '/groups';
+  static const String groupsList = '/groups/list';
+  static const String groupsShow = '/groups/show';
+  static const String groupsUpdate = '/groups/update';
+  static const String groupsDelete = '/groups/delete';
+  static const String groupsAddTeam = '/groups/add-team';
+  static const String groupsRemoveTeam = '/groups/remove-team';
 }

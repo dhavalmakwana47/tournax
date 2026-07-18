@@ -37,7 +37,6 @@ class _EditPlayerPageState extends ConsumerState<EditPlayerPage> {
   MetaOption? _role;
   bool _prefilled = false;
   String? _resolvedRoleValue;
-  Map<String, String> _fieldErrors = const {};
   int? _userId;
   PlayerSearchResult? _initialSearchSelection;
 
@@ -82,7 +81,6 @@ class _EditPlayerPageState extends ConsumerState<EditPlayerPage> {
   }
 
   Future<void> _submit() async {
-    setState(() => _fieldErrors = const {});
     if (!_formKey.currentState!.validate()) return;
 
     final notifier =
@@ -100,20 +98,15 @@ class _EditPlayerPageState extends ConsumerState<EditPlayerPage> {
       userId: _userId,
     );
 
-    if (!mounted) return;
-
-    if (!success) {
-      _formKey.currentState!.validate();
-      return;
+    if (success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Player updated successfully.'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+      context.pop();
     }
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Player updated successfully.'),
-        backgroundColor: AppColors.success,
-      ),
-    );
-    context.pop();
   }
 
   @override
@@ -121,6 +114,7 @@ class _EditPlayerPageState extends ConsumerState<EditPlayerPage> {
     final teamState = ref.watch(teamControllerProvider(widget.tournament.id));
     final tournamentState = ref.watch(tournamentControllerProvider);
     final isLoading = teamState.updatePlayerStatus == TeamActionStatus.loading;
+    final fieldErrors = teamState.fieldErrors;
     final meta = tournamentState.meta;
     final metaLoading =
         tournamentState.metaStatus == TournamentMetaStatus.loading;
@@ -134,18 +128,15 @@ class _EditPlayerPageState extends ConsumerState<EditPlayerPage> {
     }
 
     ref.listen(teamControllerProvider(widget.tournament.id), (_, next) {
-      if (next.updatePlayerStatus == TeamActionStatus.error) {
-        if (next.fieldErrors.isNotEmpty) {
-          setState(() => _fieldErrors = next.fieldErrors);
-          _formKey.currentState!.validate();
-        } else if (next.errorMessage != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(next.errorMessage!),
-              backgroundColor: AppColors.error,
-            ),
-          );
-        }
+      if (next.updatePlayerStatus == TeamActionStatus.error &&
+          next.fieldErrors.isEmpty &&
+          next.errorMessage != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(next.errorMessage!),
+            backgroundColor: AppColors.error,
+          ),
+        );
       }
     });
 
@@ -192,9 +183,10 @@ class _EditPlayerPageState extends ConsumerState<EditPlayerPage> {
                     TextFormField(
                       controller: _nameCtrl,
                       style: const TextStyle(color: AppColors.textPrimary),
-                      decoration: _inputDecoration('e.g. John Doe'),
-                      validator: (v) =>
-                          Validators.required(v) ?? _fieldErrors['name'],
+                      decoration: _inputDecoration('e.g. John Doe').copyWith(
+                        errorText: fieldErrors['name'],
+                      ),
+                      validator: (v) => Validators.required(v),
                       textInputAction: TextInputAction.next,
                     ),
                     const SizedBox(height: AppSpacing.md),
@@ -204,8 +196,10 @@ class _EditPlayerPageState extends ConsumerState<EditPlayerPage> {
                     TextFormField(
                       controller: _gameUidCtrl,
                       style: const TextStyle(color: AppColors.textPrimary),
-                      decoration: _inputDecoration('e.g. player#1234'),
-                      validator: (_) => _fieldErrors['game_uid'],
+                      decoration: _inputDecoration('e.g. player#1234').copyWith(
+                        errorText: fieldErrors['game_uid'],
+                      ),
+                      validator: null,
                       textInputAction: TextInputAction.next,
                     ),
                     const SizedBox(height: AppSpacing.md),
@@ -220,7 +214,7 @@ class _EditPlayerPageState extends ConsumerState<EditPlayerPage> {
                         style: const TextStyle(
                             color: AppColors.textPrimary, fontSize: 14),
                         decoration: _inputDecoration('Select role').copyWith(
-                          errorText: _fieldErrors['role'],
+                          errorText: fieldErrors['role'],
                         ),
                         items: meta.playerRoles
                             .map((e) => DropdownMenuItem(
@@ -235,7 +229,7 @@ class _EditPlayerPageState extends ConsumerState<EditPlayerPage> {
                         enabled: false,
                         decoration:
                             _inputDecoration('No roles available').copyWith(
-                          errorText: _fieldErrors['role'],
+                          errorText: fieldErrors['role'],
                         ),
                       ),
                     const SizedBox(height: AppSpacing.xl),

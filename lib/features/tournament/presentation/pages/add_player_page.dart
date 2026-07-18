@@ -72,8 +72,9 @@ class _AddPlayerPageState extends ConsumerState<AddPlayerPage> {
           userId: _userId,
         );
 
-    if (!success && mounted) _formKey.currentState!.validate();
-    if (success && mounted) context.pop();
+    if (success && mounted) {
+      context.pop();
+    }
   }
 
   @override
@@ -149,9 +150,10 @@ class _AddPlayerPageState extends ConsumerState<AddPlayerPage> {
                     TextFormField(
                       controller: _nameCtrl,
                       style: const TextStyle(color: AppColors.textPrimary),
-                      decoration: _inputDecoration('e.g. John Doe'),
-                      validator: (v) =>
-                          Validators.required(v) ?? fieldErrors['name'],
+                      decoration: _inputDecoration('e.g. John Doe').copyWith(
+                        errorText: fieldErrors['name'],
+                      ),
+                      validator: (v) => Validators.required(v),
                       textInputAction: TextInputAction.next,
                     ),
                     const SizedBox(height: AppSpacing.md),
@@ -160,8 +162,10 @@ class _AddPlayerPageState extends ConsumerState<AddPlayerPage> {
                     TextFormField(
                       controller: _gameUidCtrl,
                       style: const TextStyle(color: AppColors.textPrimary),
-                      decoration: _inputDecoration('e.g. player#1234'),
-                      validator: (_) => fieldErrors['game_uid'],
+                      decoration: _inputDecoration('e.g. player#1234').copyWith(
+                        errorText: fieldErrors['game_uid'],
+                      ),
+                      validator: null,
                       textInputAction: TextInputAction.next,
                     ),
                     const SizedBox(height: AppSpacing.md),
@@ -174,8 +178,10 @@ class _AddPlayerPageState extends ConsumerState<AddPlayerPage> {
                         style: const TextStyle(
                             color: AppColors.textPrimary, fontSize: 14),
                         decoration: _inputDecoration('Select role').copyWith(
+                          errorMaxLines: 3,
                           errorText: fieldErrors['role'],
                         ),
+                        validator: null,
                         items: meta.playerRoles
                             .map((e) => DropdownMenuItem(
                                   value: e,
@@ -228,6 +234,7 @@ class _AddPlayerPageState extends ConsumerState<AddPlayerPage> {
   InputDecoration _inputDecoration(String hint) => InputDecoration(
         hintText: hint,
         hintStyle: AppTextStyles.bodyMedium,
+        errorMaxLines: 3,
         filled: true,
         fillColor: AppColors.inputFill,
         contentPadding: const EdgeInsets.symmetric(

@@ -159,6 +159,13 @@ class _StageListPageState extends ConsumerState<StageListPage> {
             itemCount: state.stages.length,
             itemBuilder: (_, i) => _StageCard(
               stage: state.stages[i],
+              onViewRounds: () => context.pushNamed(
+                AppRoutes.roundList,
+                extra: RoundArgs(
+                  tournament: widget.tournament,
+                  stageId: state.stages[i].id,
+                ),
+              ),
               onEdit: () => context.pushNamed(
                 AppRoutes.editStage,
                 extra: EditStageArgs(
@@ -177,11 +184,13 @@ class _StageListPageState extends ConsumerState<StageListPage> {
 class _StageCard extends StatelessWidget {
   const _StageCard({
     required this.stage,
+    required this.onViewRounds,
     required this.onEdit,
     required this.onDelete,
   });
 
   final StageEntity stage;
+  final VoidCallback onViewRounds;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
@@ -262,6 +271,7 @@ class _StageCard extends StatelessWidget {
       position: position,
       color: AppColors.surface,
       items: const [
+        PopupMenuItem(value: 'rounds', child: Text('View Rounds')),
         PopupMenuItem(value: 'edit', child: Text('Edit Stage')),
         PopupMenuItem(
           value: 'delete',
@@ -270,6 +280,7 @@ class _StageCard extends StatelessWidget {
         ),
       ],
     ).then((value) {
+      if (value == 'rounds') onViewRounds();
       if (value == 'edit') onEdit();
       if (value == 'delete') onDelete();
     });
