@@ -1,4 +1,5 @@
 import '../entities/match_entity.dart';
+import '../entities/match_result_entity.dart';
 
 abstract interface class MatchRepository {
   Future<List<MatchEntity>> getMatches(int groupId);
@@ -32,4 +33,10 @@ abstract interface class MatchRepository {
     required int matchId,
     required int teamId,
   });
+  Future<void> submitMatchResults({
+    required int matchId,
+    required List<TeamResultEntity> results,
+  });
+  Future<List<TeamResultEntity>> getMatchResults(int matchId);
+  Future<void> deleteMatchResults(int matchId);
 }

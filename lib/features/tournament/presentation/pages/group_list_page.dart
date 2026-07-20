@@ -313,6 +313,19 @@ class _GroupListPageState extends ConsumerState<GroupListPage> {
           ],
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.emoji_events_outlined, color: AppColors.primary),
+            tooltip: 'Round Standings',
+            onPressed: () => context.pushNamed(
+              AppRoutes.leaderboard,
+              extra: LeaderboardArgs(
+                tournament: widget.tournament,
+                type: LeaderboardType.round,
+                id: widget.roundId,
+                name: 'Round',
+              ),
+            ),
+          ),
           Padding(
             padding: const EdgeInsets.only(right: AppSpacing.md),
             child: FilledButton.icon(
@@ -378,6 +391,15 @@ class _GroupListPageState extends ConsumerState<GroupListPage> {
               onAddTeam: () => _showAddTeamDialog(state.groups[i]),
               onRemoveTeam: (teamId, teamName) =>
                   _removeTeamFromGroup(state.groups[i], teamId, teamName),
+              onShowLeaderboard: () => context.pushNamed(
+                AppRoutes.leaderboard,
+                extra: LeaderboardArgs(
+                  tournament: widget.tournament,
+                  type: LeaderboardType.group,
+                  id: state.groups[i].id,
+                  name: state.groups[i].name,
+                ),
+              ),
               onConfigurePoints: () => context.pushNamed(
                 AppRoutes.pointSystem,
                 extra: PointSystemArgs(
@@ -406,6 +428,7 @@ class _GroupCard extends StatelessWidget {
     required this.onDelete,
     required this.onAddTeam,
     required this.onRemoveTeam,
+    required this.onShowLeaderboard,
     required this.onConfigurePoints,
     required this.onManageMatches,
   });
@@ -415,6 +438,7 @@ class _GroupCard extends StatelessWidget {
   final VoidCallback onDelete;
   final VoidCallback onAddTeam;
   final Function(int teamId, String teamName) onRemoveTeam;
+  final VoidCallback onShowLeaderboard;
   final VoidCallback onConfigurePoints;
   final VoidCallback onManageMatches;
 
@@ -572,6 +596,7 @@ class _GroupCard extends StatelessWidget {
       position: position,
       color: AppColors.surface,
       items: const [
+        PopupMenuItem(value: 'leaderboard', child: Text('View Group Standings')),
         PopupMenuItem(value: 'matches', child: Text('Manage Matches')),
         PopupMenuItem(value: 'points', child: Text('Configure Points')),
         PopupMenuItem(value: 'edit', child: Text('Edit Group')),
@@ -581,6 +606,7 @@ class _GroupCard extends StatelessWidget {
         ),
       ],
     ).then((value) {
+      if (value == 'leaderboard') onShowLeaderboard();
       if (value == 'matches') onManageMatches();
       if (value == 'points') onConfigurePoints();
       if (value == 'edit') onEdit();

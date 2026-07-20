@@ -1,5 +1,7 @@
 import '../../../../core/api/api_client.dart';
+import '../../../../core/api/api_constants.dart';
 import '../models/match_model.dart';
+import '../models/match_result_model.dart';
 
 abstract interface class MatchRemoteDatasource {
   Future<List<MatchModel>> getMatches(int groupId);
@@ -33,6 +35,12 @@ abstract interface class MatchRemoteDatasource {
     required int matchId,
     required int teamId,
   });
+  Future<void> submitMatchResults({
+    required int matchId,
+    required List<Map<String, dynamic>> results,
+  });
+  Future<List<TeamResultModel>> getMatchResults(int matchId);
+  Future<void> deleteMatchResults(int matchId);
 }
 
 class MatchRemoteDatasourceImpl implements MatchRemoteDatasource {
@@ -140,5 +148,38 @@ class MatchRemoteDatasourceImpl implements MatchRemoteDatasource {
       },
     );
     return MatchModel.fromJson(response['data'] as Map<String, dynamic>);
+  }
+
+  @override
+  Future<void> submitMatchResults({
+    required int matchId,
+    required List<Map<String, dynamic>> results,
+  }) async {
+    await _apiClient.post(
+      ApiConstants.matchesResultsStore,
+      data: {
+        'match_id': matchId,
+        'results': results,
+      },
+    );
+  }
+
+  @override
+  Future<List<TeamResultModel>> getMatchResults(int matchId) async {
+    final response = await _apiClient.post(
+      ApiConstants.matchesResultsShow,
+      data: {'match_id': matchId},
+    );
+    final data = response['data'] as List<dynamic>?;
+    if (data == null) return [];
+    return data.map((e) => TeamResultModel.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  @override
+  Future<void> deleteMatchResults(int matchId) async {
+    await _apiClient.post(
+      ApiConstants.matchesResultsDelete,
+      data: {'match_id': matchId},
+    );
   }
 }

@@ -86,6 +86,17 @@ import '../../features/tournament/domain/usecases/update_match_usecase.dart';
 import '../../features/tournament/domain/usecases/delete_match_usecase.dart';
 import '../../features/tournament/domain/usecases/add_match_team_usecase.dart';
 import '../../features/tournament/domain/usecases/remove_match_team_usecase.dart';
+import '../../features/tournament/domain/usecases/submit_match_results_usecase.dart';
+import '../../features/tournament/domain/usecases/get_match_results_usecase.dart';
+import '../../features/tournament/domain/usecases/delete_match_results_usecase.dart';
+import '../../features/tournament/data/datasource/leaderboard_remote_datasource.dart';
+import '../../features/tournament/data/repositories/leaderboard_repository_impl.dart';
+import '../../features/tournament/domain/repositories/leaderboard_repository.dart';
+import '../../features/tournament/domain/usecases/get_group_leaderboard_usecase.dart';
+import '../../features/tournament/domain/usecases/get_round_leaderboard_usecase.dart';
+import '../../features/tournament/domain/usecases/get_stage_leaderboard_usecase.dart';
+import '../../features/tournament/domain/usecases/get_tournament_leaderboard_usecase.dart';
+import '../../features/tournament/domain/usecases/get_match_leaderboard_usecase.dart';
 
 // --- Infrastructure ---
 
@@ -444,4 +455,49 @@ final addMatchTeamUseCaseProvider = Provider<AddMatchTeamUseCase>(
 
 final removeMatchTeamUseCaseProvider = Provider<RemoveMatchTeamUseCase>(
   (ref) => RemoveMatchTeamUseCase(ref.read(matchRepositoryProvider)),
+);
+
+final submitMatchResultsUseCaseProvider = Provider<SubmitMatchResultsUseCase>(
+  (ref) => SubmitMatchResultsUseCase(ref.read(matchRepositoryProvider)),
+);
+
+final getMatchResultsUseCaseProvider = Provider<GetMatchResultsUseCase>(
+  (ref) => GetMatchResultsUseCase(ref.read(matchRepositoryProvider)),
+);
+
+final deleteMatchResultsUseCaseProvider = Provider<DeleteMatchResultsUseCase>(
+  (ref) => DeleteMatchResultsUseCase(ref.read(matchRepositoryProvider)),
+);
+
+// --- Leaderboard ---
+
+final leaderboardRemoteDatasourceProvider = Provider<LeaderboardRemoteDatasource>(
+  (ref) => LeaderboardRemoteDatasourceImpl(ref.read(apiClientProvider)),
+);
+
+final leaderboardRepositoryProvider = Provider<LeaderboardRepository>(
+  (ref) => LeaderboardRepositoryImpl(
+    remoteDatasource: ref.read(leaderboardRemoteDatasourceProvider),
+    networkInfo: ref.read(networkInfoProvider),
+  ),
+);
+
+final getGroupLeaderboardUseCaseProvider = Provider<GetGroupLeaderboardUseCase>(
+  (ref) => GetGroupLeaderboardUseCase(ref.read(leaderboardRepositoryProvider)),
+);
+
+final getRoundLeaderboardUseCaseProvider = Provider<GetRoundLeaderboardUseCase>(
+  (ref) => GetRoundLeaderboardUseCase(ref.read(leaderboardRepositoryProvider)),
+);
+
+final getStageLeaderboardUseCaseProvider = Provider<GetStageLeaderboardUseCase>(
+  (ref) => GetStageLeaderboardUseCase(ref.read(leaderboardRepositoryProvider)),
+);
+
+final getTournamentLeaderboardUseCaseProvider = Provider<GetTournamentLeaderboardUseCase>(
+  (ref) => GetTournamentLeaderboardUseCase(ref.read(leaderboardRepositoryProvider)),
+);
+
+final getMatchLeaderboardUseCaseProvider = Provider<GetMatchLeaderboardUseCase>(
+  (ref) => GetMatchLeaderboardUseCase(ref.read(leaderboardRepositoryProvider)),
 );

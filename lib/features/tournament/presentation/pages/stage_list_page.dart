@@ -104,6 +104,19 @@ class _StageListPageState extends ConsumerState<StageListPage> {
           ],
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.emoji_events_outlined, color: AppColors.primary),
+            tooltip: 'Tournament Standings',
+            onPressed: () => context.pushNamed(
+              AppRoutes.leaderboard,
+              extra: LeaderboardArgs(
+                tournament: widget.tournament,
+                type: LeaderboardType.tournament,
+                id: widget.tournament.id,
+                name: widget.tournament.name,
+              ),
+            ),
+          ),
           Padding(
             padding: const EdgeInsets.only(right: AppSpacing.md),
             child: FilledButton.icon(
@@ -159,6 +172,15 @@ class _StageListPageState extends ConsumerState<StageListPage> {
             itemCount: state.stages.length,
             itemBuilder: (_, i) => _StageCard(
               stage: state.stages[i],
+              onViewLeaderboard: () => context.pushNamed(
+                AppRoutes.leaderboard,
+                extra: LeaderboardArgs(
+                  tournament: widget.tournament,
+                  type: LeaderboardType.stage,
+                  id: state.stages[i].id,
+                  name: state.stages[i].name,
+                ),
+              ),
               onViewRounds: () => context.pushNamed(
                 AppRoutes.roundList,
                 extra: RoundArgs(
@@ -184,12 +206,14 @@ class _StageListPageState extends ConsumerState<StageListPage> {
 class _StageCard extends StatelessWidget {
   const _StageCard({
     required this.stage,
+    required this.onViewLeaderboard,
     required this.onViewRounds,
     required this.onEdit,
     required this.onDelete,
   });
 
   final StageEntity stage;
+  final VoidCallback onViewLeaderboard;
   final VoidCallback onViewRounds;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
@@ -271,6 +295,7 @@ class _StageCard extends StatelessWidget {
       position: position,
       color: AppColors.surface,
       items: const [
+        PopupMenuItem(value: 'leaderboard', child: Text('View Stage Standings')),
         PopupMenuItem(value: 'rounds', child: Text('View Rounds')),
         PopupMenuItem(value: 'edit', child: Text('Edit Stage')),
         PopupMenuItem(
@@ -280,6 +305,7 @@ class _StageCard extends StatelessWidget {
         ),
       ],
     ).then((value) {
+      if (value == 'leaderboard') onViewLeaderboard();
       if (value == 'rounds') onViewRounds();
       if (value == 'edit') onEdit();
       if (value == 'delete') onDelete();

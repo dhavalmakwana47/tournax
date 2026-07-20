@@ -11,6 +11,9 @@ import '../../domain/entities/group_entity.dart';
 import '../../domain/entities/match_entity.dart';
 import '../../domain/entities/tournament_entity.dart';
 import '../controller/match_controller.dart';
+import 'match_results_dialog.dart';
+import '../../../../core/routes/app_router.dart';
+import '../../../../core/routes/route_args.dart';
 
 class MatchListPage extends ConsumerStatefulWidget {
   const MatchListPage({
@@ -98,6 +101,18 @@ class _MatchListPageState extends ConsumerState<MatchListPage> {
         );
       }
     }
+  }
+
+  void _showResultsDialog(MatchEntity match) {
+    showDialog(
+      context: context,
+      builder: (ctx) => MatchResultsDialog(
+        match: match,
+        onSuccess: () {
+          ref.read(matchControllerProvider(widget.group.id).notifier).loadMatches();
+        },
+      ),
+    );
   }
 
   void _showAddTeamDialog(MatchEntity match) {
@@ -335,33 +350,84 @@ class _MatchListPageState extends ConsumerState<MatchListPage> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
                         'Teams (${match.teams.length})',
                         style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.bold),
                       ),
-                      Row(
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.edit_outlined, size: 20, color: AppColors.textSecondary),
-                            onPressed: () => _showMatchDialog(match: match),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.delete_outline, size: 20, color: AppColors.error),
-                            onPressed: () => _deleteMatch(match),
-                          ),
-                          const SizedBox(width: AppSpacing.sm),
-                          TextButton.icon(
-                            onPressed: () => _showAddTeamDialog(match),
-                            icon: const Icon(Icons.add, size: 16),
-                            label: const Text('Add Team'),
-                            style: TextButton.styleFrom(
-                              foregroundColor: AppColors.primary,
-                              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(
+                        child: Wrap(
+                          alignment: WrapAlignment.end,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          spacing: 4,
+                          runSpacing: 4,
+                          children: [
+                            IconButton(
+                              constraints: const BoxConstraints(),
+                              padding: const EdgeInsets.all(4),
+                              icon: const Icon(Icons.edit_outlined, size: 18, color: AppColors.textSecondary),
+                              onPressed: () => _showMatchDialog(match: match),
+                              tooltip: 'Edit Match',
                             ),
-                          ),
-                        ],
+                            IconButton(
+                              constraints: const BoxConstraints(),
+                              padding: const EdgeInsets.all(4),
+                              icon: const Icon(Icons.delete_outline, size: 18, color: AppColors.error),
+                              onPressed: () => _deleteMatch(match),
+                              tooltip: 'Delete Match',
+                            ),
+                            if (match.status == 'completed')
+                              IconButton(
+                                constraints: const BoxConstraints(),
+                                padding: const EdgeInsets.all(4),
+                                icon: const Icon(Icons.leaderboard_rounded, size: 18, color: AppColors.warning),
+                                onPressed: () => context.pushNamed(
+                                  AppRoutes.leaderboard,
+                                  extra: LeaderboardArgs(
+                                    tournament: widget.tournament,
+                                    type: LeaderboardType.match,
+                                    id: match.id,
+                                    name: match.name ?? 'Match ${match.matchNumber}',
+                                  ),
+                                ),
+                                tooltip: 'View Standings',
+                              ),
+                            TextButton.icon(
+                              onPressed: () => _showResultsDialog(match),
+                              icon: Icon(
+                                match.status == 'completed'
+                                    ? Icons.emoji_events_rounded
+                                    : Icons.scoreboard_outlined,
+                                size: 14,
+                              ),
+                              label: Text(
+                                match.status == 'completed' ? 'Results' : 'Submit',
+                                style: const TextStyle(fontSize: 11),
+                              ),
+                              style: TextButton.styleFrom(
+                                foregroundColor: match.status == 'completed' ? AppColors.success : AppColors.primary,
+                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                            ),
+                            TextButton.icon(
+                              onPressed: () => _showAddTeamDialog(match),
+                              icon: const Icon(Icons.add, size: 14),
+                              label: const Text(
+                                'Add Team',
+                                style: TextStyle(fontSize: 11),
+                              ),
+                              style: TextButton.styleFrom(
+                                foregroundColor: AppColors.primary,
+                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),

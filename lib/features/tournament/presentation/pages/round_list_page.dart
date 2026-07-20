@@ -273,6 +273,15 @@ class _RoundListPageState extends ConsumerState<RoundListPage> {
             itemCount: state.rounds.length,
             itemBuilder: (_, i) => _RoundCard(
               round: state.rounds[i],
+              onShowLeaderboard: () => context.pushNamed(
+                AppRoutes.leaderboard,
+                extra: LeaderboardArgs(
+                  tournament: widget.tournament,
+                  type: LeaderboardType.round,
+                  id: state.rounds[i].id,
+                  name: state.rounds[i].name,
+                ),
+              ),
               onDelete: () => _confirmDelete(state.rounds[i]),
               onManageGroups: () => context.pushNamed(
                 AppRoutes.groupList,
@@ -288,11 +297,13 @@ class _RoundListPageState extends ConsumerState<RoundListPage> {
 class _RoundCard extends StatelessWidget {
   const _RoundCard({
     required this.round,
+    required this.onShowLeaderboard,
     required this.onDelete,
     required this.onManageGroups,
   });
 
   final RoundEntity round;
+  final VoidCallback onShowLeaderboard;
   final VoidCallback onDelete;
   final VoidCallback onManageGroups;
 
@@ -340,6 +351,11 @@ class _RoundCard extends StatelessWidget {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
+              IconButton(
+                onPressed: onShowLeaderboard,
+                icon: const Icon(Icons.emoji_events_outlined, size: 20, color: AppColors.warning),
+                tooltip: 'Round Standings',
+              ),
               IconButton(
                 onPressed: onManageGroups,
                 icon: const Icon(Icons.grid_view_rounded, size: 20, color: AppColors.primary),

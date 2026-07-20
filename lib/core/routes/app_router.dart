@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../features/splash/presentation/pages/splash_page.dart';
 import '../../features/authentication/presentation/pages/login_page.dart';
 import '../../features/authentication/presentation/pages/register_page.dart';
 import '../../features/authentication/presentation/pages/otp_verification_page.dart';
@@ -30,9 +31,11 @@ import '../../features/tournament/presentation/pages/edit_group_page.dart';
 import '../../features/tournament/presentation/pages/round_list_page.dart';
 import '../../features/tournament/presentation/pages/point_system_page.dart';
 import '../../features/tournament/presentation/pages/match_list_page.dart';
+import '../../features/tournament/presentation/pages/leaderboard_page.dart';
 import 'route_args.dart';
 
 abstract final class AppRoutes {
+  static const String splash = '/splash';
   static const String login = '/login';
   static const String register = '/register';
   static const String otpVerification = '/otp-verification';
@@ -60,6 +63,7 @@ abstract final class AppRoutes {
   static const String editTournament = '/tournaments/edit';
   static const String pointSystem = '/tournaments/groups/point-system';
   static const String matchList = '/tournaments/groups/matches';
+  static const String leaderboard = '/tournaments/leaderboard';
 }
 
 class AuthNotifier extends ChangeNotifier {
@@ -77,6 +81,7 @@ class AuthNotifier extends ChangeNotifier {
 late final AuthNotifier authNotifier;
 
 final _publicRoutes = {
+  AppRoutes.splash,
   AppRoutes.login,
   AppRoutes.register,
   AppRoutes.otpVerification,
@@ -89,15 +94,30 @@ GoRouter buildRouter(Ref ref, String? initialToken) {
   authNotifier = AuthNotifier(initialToken);
 
   return GoRouter(
-    initialLocation: AppRoutes.login,
+    initialLocation: AppRoutes.splash,
     refreshListenable: authNotifier,
     redirect: (context, state) {
+      // Never redirect away from splash — it navigates itself
+      if (state.matchedLocation == AppRoutes.splash) return null;
       final isPublic = _publicRoutes.contains(state.matchedLocation);
       if (authNotifier.isAuthenticated && isPublic) return AppRoutes.home;
       if (!authNotifier.isAuthenticated && !isPublic) return AppRoutes.login;
       return null;
     },
     routes: [
+      GoRoute(
+        path: AppRoutes.splash,
+        name: AppRoutes.splash,
+        builder: (context, state) => SplashPage(
+          onComplete: () {
+            if (authNotifier.isAuthenticated) {
+              context.go(AppRoutes.home);
+            } else {
+              context.go(AppRoutes.login);
+            }
+          },
+        ),
+      ),
       GoRoute(
         path: AppRoutes.login,
         name: AppRoutes.login,
@@ -307,6 +327,13 @@ GoRouter buildRouter(Ref ref, String? initialToken) {
             group: args.group,
           );
         },
+      ),
+      GoRoute(
+        path: AppRoutes.leaderboard,
+        name: AppRoutes.leaderboard,
+        builder: (context, state) => LeaderboardPage(
+          args: state.extra as LeaderboardArgs,
+        ),
       ),
       GoRoute(
         path: AppRoutes.editTournament,

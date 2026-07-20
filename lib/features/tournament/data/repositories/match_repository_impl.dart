@@ -1,7 +1,9 @@
 import '../../../../core/network/network_info.dart';
 import '../../domain/entities/match_entity.dart';
+import '../../domain/entities/match_result_entity.dart';
 import '../../domain/repositories/match_repository.dart';
 import '../datasource/match_remote_datasource.dart';
+import '../models/match_result_model.dart';
 
 class MatchRepositoryImpl implements MatchRepository {
   MatchRepositoryImpl({
@@ -99,5 +101,47 @@ class MatchRepositoryImpl implements MatchRepository {
       teamId: teamId,
     );
     return model.toEntity();
+  }
+
+  @override
+  Future<void> submitMatchResults({
+    required int matchId,
+    required List<TeamResultEntity> results,
+  }) async {
+    final models = results.map((e) => TeamResultModel(
+      matchId: e.matchId,
+      teamId: e.teamId,
+      rank: e.rank,
+      bonusPoints: e.bonusPoints,
+      penaltyPoints: e.penaltyPoints,
+      kills: e.kills,
+      survivalTime: e.survivalTime,
+      players: e.players.map((p) => PlayerResultModel(
+        playerId: p.playerId,
+        kills: p.kills,
+        assists: p.assists,
+        damage: p.damage,
+        headshots: p.headshots,
+        revives: p.revives,
+        healing: p.healing,
+        survivalTime: p.survivalTime,
+        finishes: p.finishes,
+      )).toList(),
+    ));
+    await remoteDatasource.submitMatchResults(
+      matchId: matchId,
+      results: models.map((m) => m.toJson()).toList(),
+    );
+  }
+
+  @override
+  Future<List<TeamResultEntity>> getMatchResults(int matchId) async {
+    final list = await remoteDatasource.getMatchResults(matchId);
+    return list.map((e) => e.toEntity()).toList();
+  }
+
+  @override
+  Future<void> deleteMatchResults(int matchId) async {
+    await remoteDatasource.deleteMatchResults(matchId);
   }
 }

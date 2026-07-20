@@ -33,18 +33,45 @@ class _TournamentListPageState extends ConsumerState<TournamentListPage> {
         Padding(
           padding: const EdgeInsets.fromLTRB(
               AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, AppSpacing.md),
-          child: SizedBox(
+          child: Container(
             width: double.infinity,
-            child: FilledButton.icon(
-              onPressed: () => context.pushNamed(AppRoutes.createTournament),
-              icon: const Icon(Icons.add_rounded),
-              label: const Text('Create Tournament'),
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: AppColors.textPrimary,
-                padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppRadius.md),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [AppColors.primary, AppColors.accent],
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+              ),
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primary.withValues(alpha: 0.3),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () => context.pushNamed(AppRoutes.createTournament),
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.add_rounded, color: AppColors.textPrimary),
+                      const SizedBox(width: AppSpacing.xs),
+                      Text(
+                        'CREATE TOURNAMENT',
+                        style: AppTextStyles.labelLarge.copyWith(
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.0,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

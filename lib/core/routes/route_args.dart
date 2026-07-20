@@ -1,7 +1,10 @@
+import 'package:equatable/equatable.dart';
 import '../../features/tournament/domain/entities/player_entity.dart';
 import '../../features/tournament/domain/entities/team_entity.dart';
 import '../../features/tournament/domain/entities/tournament_entity.dart';
 import '../../features/tournament/domain/entities/group_entity.dart';
+
+
 
 class AddPlayerArgs {
   const AddPlayerArgs({required this.tournament, required this.team});
@@ -87,4 +90,22 @@ class MatchArgs {
   });
   final TournamentEntity tournament;
   final GroupEntity group;
+}
+
+enum LeaderboardType { group, round, stage, tournament, match }
+
+class LeaderboardArgs extends Equatable {
+  const LeaderboardArgs({
+    required this.tournament,
+    required this.type,
+    required this.id,
+    required this.name,
+  });
+  final TournamentEntity tournament;
+  final LeaderboardType type;
+  final int id;
+  final String name;
+
+  @override
+  List<Object?> get props => [tournament, type, id, name];
 }
