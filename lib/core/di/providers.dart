@@ -69,6 +69,8 @@ import '../../features/tournament/data/repositories/round_repository_impl.dart';
 import '../../features/tournament/domain/repositories/round_repository.dart';
 import '../../features/tournament/domain/usecases/get_rounds_usecase.dart';
 import '../../features/tournament/domain/usecases/create_round_usecase.dart';
+import '../../features/tournament/domain/usecases/show_round_usecase.dart';
+import '../../features/tournament/domain/usecases/update_round_usecase.dart';
 import '../../features/tournament/domain/usecases/delete_round_usecase.dart';
 import '../../features/tournament/data/datasource/point_system_remote_datasource.dart';
 import '../../features/tournament/data/repositories/point_system_repository_impl.dart';
@@ -389,6 +391,14 @@ final createRoundUseCaseProvider = Provider<CreateRoundUseCase>(
 
 final deleteRoundUseCaseProvider = Provider<DeleteRoundUseCase>(
   (ref) => DeleteRoundUseCase(ref.read(roundRepositoryProvider)),
+);
+
+final showRoundUseCaseProvider = Provider<ShowRoundUseCase>(
+  (ref) => ShowRoundUseCase(ref.read(roundRepositoryProvider)),
+);
+
+final updateRoundUseCaseProvider = Provider<UpdateRoundUseCase>(
+  (ref) => UpdateRoundUseCase(ref.read(roundRepositoryProvider)),
 );
 
 // --- Point System ---

@@ -8,5 +8,13 @@ abstract interface class RoundRepository {
     int? roundNumber,
     int? numberOfGroups,
   });
+  Future<RoundEntity> showRound(int roundId);
+  Future<RoundEntity> updateRound({
+    required int roundId,
+    required String name,
+    int? roundNumber,
+    int? numberOfGroups,
+    required String status,
+  });
   Future<void> deleteRound(int roundId);
 }

@@ -57,6 +57,17 @@ class RoundArgs {
   final int stageId;
 }
 
+class EditRoundArgs {
+  const EditRoundArgs({
+    required this.tournament,
+    required this.stageId,
+    required this.roundId,
+  });
+  final TournamentEntity tournament;
+  final int stageId;
+  final int roundId;
+}
+
 class GroupArgs {
   const GroupArgs({required this.tournament, required this.roundId});
   final TournamentEntity tournament;

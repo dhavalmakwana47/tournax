@@ -29,6 +29,7 @@ import '../../features/tournament/presentation/pages/group_list_page.dart';
 import '../../features/tournament/presentation/pages/create_group_page.dart';
 import '../../features/tournament/presentation/pages/edit_group_page.dart';
 import '../../features/tournament/presentation/pages/round_list_page.dart';
+import '../../features/tournament/presentation/pages/edit_round_page.dart';
 import '../../features/tournament/presentation/pages/point_system_page.dart';
 import '../../features/tournament/presentation/pages/match_list_page.dart';
 import '../../features/tournament/presentation/pages/leaderboard_page.dart';
@@ -57,6 +58,7 @@ abstract final class AppRoutes {
   static const String createStage = '/tournaments/stages/create';
   static const String editStage = '/tournaments/stages/edit';
   static const String roundList = '/tournaments/rounds';
+  static const String editRound = '/tournaments/rounds/edit';
   static const String groupList = '/tournaments/groups';
   static const String createGroup = '/tournaments/groups/create';
   static const String editGroup = '/tournaments/groups/edit';
@@ -269,6 +271,18 @@ GoRouter buildRouter(Ref ref, String? initialToken) {
           return RoundListPage(
             tournament: args.tournament,
             stageId: args.stageId,
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.editRound,
+        name: AppRoutes.editRound,
+        builder: (context, state) {
+          final args = state.extra as EditRoundArgs;
+          return EditRoundPage(
+            tournament: args.tournament,
+            stageId: args.stageId,
+            roundId: args.roundId,
           );
         },
       ),

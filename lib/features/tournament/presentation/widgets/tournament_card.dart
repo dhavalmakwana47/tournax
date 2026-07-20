@@ -159,8 +159,11 @@ class TournamentCard extends StatelessWidget {
                       const SizedBox(height: AppSpacing.sm),
 
                       // Action buttons
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
+                      Wrap(
+                        spacing: AppSpacing.xs,
+                        runSpacing: AppSpacing.xs,
+                        alignment: WrapAlignment.end,
+                        crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
                           _ActionButton(
                             icon: Icons.edit_outlined,
@@ -171,7 +174,6 @@ class TournamentCard extends StatelessWidget {
                               extra: EditTournamentArgs(tournamentId: tournament.id),
                             ),
                           ),
-                          const SizedBox(width: AppSpacing.xs),
                           _ActionButton(
                             icon: Icons.emoji_events_outlined,
                             label: 'Standings',
@@ -186,7 +188,6 @@ class TournamentCard extends StatelessWidget {
                               ),
                             ),
                           ),
-                          const SizedBox(width: AppSpacing.xs),
                           _ActionButton(
                             icon: Icons.account_tree_rounded,
                             label: 'Stages',
@@ -196,7 +197,6 @@ class TournamentCard extends StatelessWidget {
                               extra: StageArgs(tournament: tournament),
                             ),
                           ),
-                          const SizedBox(width: AppSpacing.xs),
                           _ActionButton(
                             icon: Icons.groups_rounded,
                             label: 'Teams',

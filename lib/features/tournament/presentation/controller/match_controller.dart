@@ -203,7 +203,11 @@ class MatchController extends FamilyNotifier<MatchState, int> {
       return true;
     } on ApiException catch (e) {
       appLogger.e('Add team to match failed', error: e);
-      state = state.copyWith(teamActionStatus: MatchActionStatus.error, errorMessage: e.message);
+      state = state.copyWith(
+        teamActionStatus: MatchActionStatus.error,
+        errorMessage: e.fieldErrors.isEmpty ? e.message : null,
+        fieldErrors: e.fieldErrors,
+      );
       return false;
     } catch (e) {
       appLogger.e('Unexpected add team to match error', error: e);

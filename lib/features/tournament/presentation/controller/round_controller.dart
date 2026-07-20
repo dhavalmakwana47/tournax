@@ -6,6 +6,8 @@ import '../../../../core/utils/app_logger.dart';
 import '../../domain/entities/round_entity.dart';
 import '../../domain/usecases/get_rounds_usecase.dart';
 import '../../domain/usecases/create_round_usecase.dart';
+import '../../domain/usecases/show_round_usecase.dart';
+import '../../domain/usecases/update_round_usecase.dart';
 import '../../domain/usecases/delete_round_usecase.dart';
 
 enum RoundListStatus { initial, loading, success, empty, error }
@@ -15,6 +17,7 @@ class RoundState extends Equatable {
   const RoundState({
     this.listStatus = RoundListStatus.initial,
     this.createStatus = RoundActionStatus.idle,
+    this.updateStatus = RoundActionStatus.idle,
     this.deleteStatus = RoundActionStatus.idle,
     this.rounds = const [],
     this.errorMessage,
@@ -23,6 +26,7 @@ class RoundState extends Equatable {
 
   final RoundListStatus listStatus;
   final RoundActionStatus createStatus;
+  final RoundActionStatus updateStatus;
   final RoundActionStatus deleteStatus;
   final List<RoundEntity> rounds;
   final String? errorMessage;
@@ -31,6 +35,7 @@ class RoundState extends Equatable {
   RoundState copyWith({
     RoundListStatus? listStatus,
     RoundActionStatus? createStatus,
+    RoundActionStatus? updateStatus,
     RoundActionStatus? deleteStatus,
     List<RoundEntity>? rounds,
     String? errorMessage,
@@ -40,6 +45,7 @@ class RoundState extends Equatable {
       RoundState(
         listStatus: listStatus ?? this.listStatus,
         createStatus: createStatus ?? this.createStatus,
+        updateStatus: updateStatus ?? this.updateStatus,
         deleteStatus: deleteStatus ?? this.deleteStatus,
         rounds: rounds ?? this.rounds,
         errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
@@ -47,7 +53,7 @@ class RoundState extends Equatable {
       );
 
   @override
-  List<Object?> get props => [listStatus, createStatus, deleteStatus, rounds, errorMessage, fieldErrors];
+  List<Object?> get props => [listStatus, createStatus, updateStatus, deleteStatus, rounds, errorMessage, fieldErrors];
 }
 
 class RoundController extends FamilyNotifier<RoundState, int> {
@@ -56,6 +62,8 @@ class RoundController extends FamilyNotifier<RoundState, int> {
 
   GetRoundsUseCase get _getRounds => ref.read(getRoundsUseCaseProvider);
   CreateRoundUseCase get _createRound => ref.read(createRoundUseCaseProvider);
+  ShowRoundUseCase get _showRound => ref.read(showRoundUseCaseProvider);
+  UpdateRoundUseCase get _updateRound => ref.read(updateRoundUseCaseProvider);
   DeleteRoundUseCase get _deleteRound => ref.read(deleteRoundUseCaseProvider);
 
   Future<void> fetchRounds() async {
@@ -113,6 +121,70 @@ class RoundController extends FamilyNotifier<RoundState, int> {
     }
   }
 
+  Future<RoundEntity?> showRound(int roundId) async {
+    try {
+      return await _showRound(roundId);
+    } on ApiException catch (e) {
+      appLogger.e('Show round failed', error: e);
+      return null;
+    } catch (e) {
+      appLogger.e('Unexpected show round error', error: e);
+      return null;
+    }
+  }
+
+  Future<bool> updateRound({
+    required int roundId,
+    required String name,
+    int? roundNumber,
+    int? numberOfGroups,
+    required String status,
+  }) async {
+    state = state.copyWith(updateStatus: RoundActionStatus.loading, clearError: true);
+    try {
+      await _updateRound(
+        roundId: roundId,
+        name: name,
+        roundNumber: roundNumber,
+        numberOfGroups: numberOfGroups,
+        status: status,
+      );
+      final updated = state.rounds.map((r) {
+        if (r.id != roundId) return r;
+        return RoundEntity(
+          id: r.id,
+          stageId: r.stageId,
+          name: name,
+          roundNumber: roundNumber ?? r.roundNumber,
+          numberOfGroups: numberOfGroups ?? r.numberOfGroups,
+          status: status,
+          createdAt: r.createdAt,
+        );
+      }).toList();
+      state = state.copyWith(
+        updateStatus: RoundActionStatus.success,
+        rounds: updated,
+        listStatus: RoundListStatus.success,
+      );
+      return true;
+    } on ApiException catch (e) {
+      appLogger.e('Update round failed', error: e);
+      state = state.copyWith(
+        updateStatus: RoundActionStatus.error,
+        errorMessage: e.fieldErrors.isEmpty ? e.message : null,
+        fieldErrors: e.fieldErrors,
+      );
+      return false;
+    } catch (e) {
+      appLogger.e('Unexpected update round error', error: e);
+      state = state.copyWith(
+        updateStatus: RoundActionStatus.error,
+        errorMessage: 'Failed to update round.',
+      );
+      return false;
+    }
+  }
+
   Future<bool> deleteRound(int roundId) async {
     state = state.copyWith(deleteStatus: RoundActionStatus.loading, clearError: true);
     try {
@@ -136,6 +208,7 @@ class RoundController extends FamilyNotifier<RoundState, int> {
   }
 
   void resetCreateStatus() => state = state.copyWith(createStatus: RoundActionStatus.idle, clearError: true);
+  void resetUpdateStatus() => state = state.copyWith(updateStatus: RoundActionStatus.idle, clearError: true);
   void resetDeleteStatus() => state = state.copyWith(deleteStatus: RoundActionStatus.idle, clearError: true);
 }
 

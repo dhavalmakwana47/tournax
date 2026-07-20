@@ -12,6 +12,14 @@ abstract interface class RoundRemoteDatasource {
     int? roundNumber,
     int? numberOfGroups,
   });
+  Future<RoundModel> showRound(int roundId);
+  Future<RoundModel> updateRound({
+    required int roundId,
+    required String name,
+    int? roundNumber,
+    int? numberOfGroups,
+    required String status,
+  });
   Future<void> deleteRound(int roundId);
 }
 
@@ -66,6 +74,56 @@ class RoundRemoteDatasourceImpl implements RoundRemoteDatasource {
       rethrow;
     } catch (e, st) {
       appLogger.e('Create round error', error: e, stackTrace: st);
+      throw ApiException.unexpected();
+    }
+  }
+
+  @override
+  Future<RoundModel> showRound(int roundId) async {
+    try {
+      final response = await _apiClient.post(
+        ApiConstants.roundsShow,
+        data: {'round_id': roundId},
+      );
+      appLogger.d('Show round response: $response');
+      final data = response['data'] as Map<String, dynamic>?;
+      if (data == null) throw ApiException.unexpected();
+      return RoundModel.fromJson(data);
+    } on ApiException {
+      rethrow;
+    } catch (e, st) {
+      appLogger.e('Show round error', error: e, stackTrace: st);
+      throw ApiException.unexpected();
+    }
+  }
+
+  @override
+  Future<RoundModel> updateRound({
+    required int roundId,
+    required String name,
+    int? roundNumber,
+    int? numberOfGroups,
+    required String status,
+  }) async {
+    try {
+      final response = await _apiClient.post(
+        ApiConstants.roundsUpdate,
+        data: {
+          'round_id': roundId,
+          'name': name,
+          if (roundNumber != null) 'round_number': roundNumber,
+          if (numberOfGroups != null) 'number_of_groups': numberOfGroups,
+          'status': status,
+        },
+      );
+      appLogger.d('Update round response: $response');
+      final data = response['data'] as Map<String, dynamic>?;
+      if (data == null) throw ApiException.unexpected();
+      return RoundModel.fromJson(data);
+    } on ApiException {
+      rethrow;
+    } catch (e, st) {
+      appLogger.e('Update round error', error: e, stackTrace: st);
       throw ApiException.unexpected();
     }
   }

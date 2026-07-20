@@ -787,6 +787,7 @@ class _AddTeamToMatchDialogState extends ConsumerState<_AddTeamToMatchDialog> {
   Widget build(BuildContext context) {
     final state = ref.watch(matchControllerProvider(widget.group.id));
     final isSaving = state.teamActionStatus == MatchActionStatus.loading;
+    final errors = state.fieldErrors;
 
     // Filter group teams to exclude those already added to the match
     final matchTeamIds = widget.match.teams.map((t) => t.id).toSet();
@@ -816,7 +817,9 @@ class _AddTeamToMatchDialogState extends ConsumerState<_AddTeamToMatchDialog> {
                   value: _selectedTeamId,
                   style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textPrimary),
                   dropdownColor: AppColors.surface,
-                  decoration: _inputDecoration('Select Team'),
+                  decoration: _inputDecoration('Select Team').copyWith(
+                    errorText: errors['team_id'],
+                  ),
                   items: availableTeams
                       .map((team) => DropdownMenuItem<int>(
                             value: team.id,
@@ -832,13 +835,17 @@ class _AddTeamToMatchDialogState extends ConsumerState<_AddTeamToMatchDialog> {
                   style: const TextStyle(color: AppColors.textPrimary),
                   keyboardType: TextInputType.number,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  decoration: _inputDecoration('Slot Number (optional)'),
+                  decoration: _inputDecoration('Slot Number (optional)').copyWith(
+                    errorText: errors['slot'],
+                  ),
                 ),
                 const SizedBox(height: AppSpacing.md),
                 TextFormField(
                   controller: _laneCtrl,
                   style: const TextStyle(color: AppColors.textPrimary),
-                  decoration: _inputDecoration('Lane/Drop Point (optional)'),
+                  decoration: _inputDecoration('Lane/Drop Point (optional)').copyWith(
+                    errorText: errors['lane'],
+                  ),
                 ),
               ],
             ],

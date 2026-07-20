@@ -38,6 +38,32 @@ class RoundRepositoryImpl implements RoundRepository {
   }
 
   @override
+  Future<RoundEntity> showRound(int roundId) async {
+    if (!await networkInfo.isConnected) throw ApiException.noInternet();
+    final model = await remoteDatasource.showRound(roundId);
+    return model.toEntity();
+  }
+
+  @override
+  Future<RoundEntity> updateRound({
+    required int roundId,
+    required String name,
+    int? roundNumber,
+    int? numberOfGroups,
+    required String status,
+  }) async {
+    if (!await networkInfo.isConnected) throw ApiException.noInternet();
+    final model = await remoteDatasource.updateRound(
+      roundId: roundId,
+      name: name,
+      roundNumber: roundNumber,
+      numberOfGroups: numberOfGroups,
+      status: status,
+    );
+    return model.toEntity();
+  }
+
+  @override
   Future<void> deleteRound(int roundId) async {
     if (!await networkInfo.isConnected) throw ApiException.noInternet();
     await remoteDatasource.deleteRound(roundId);
