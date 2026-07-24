@@ -34,6 +34,7 @@ import '../../features/tournament/presentation/pages/edit_round_page.dart';
 import '../../features/tournament/presentation/pages/point_system_page.dart';
 import '../../features/tournament/presentation/pages/match_list_page.dart';
 import '../../features/tournament/presentation/pages/leaderboard_page.dart';
+import '../../features/tournament/presentation/pages/group_team_list_page.dart';
 import '../../features/poster/presentation/pages/poster_generator_page.dart';
 import 'route_args.dart';
 
@@ -68,6 +69,7 @@ abstract final class AppRoutes {
   static const String pointSystem = '/tournaments/groups/point-system';
   static const String matchList = '/tournaments/groups/matches';
   static const String leaderboard = '/tournaments/leaderboard';
+  static const String groupTeamList = '/tournaments/groups/teams';
   static const String posterGenerator = '/tournaments/matches/poster';
 }
 
@@ -341,6 +343,18 @@ GoRouter buildRouter(Ref ref, String? initialToken) {
           final args = state.extra as MatchArgs;
           return MatchListPage(
             tournament: args.tournament,
+            group: args.group,
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.groupTeamList,
+        name: AppRoutes.groupTeamList,
+        builder: (context, state) {
+          final args = state.extra as GroupTeamListArgs;
+          return GroupTeamListPage(
+            tournament: args.tournament,
+            roundId: args.roundId,
             group: args.group,
           );
         },

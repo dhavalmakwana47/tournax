@@ -41,6 +41,10 @@ class _GroupListPageState extends ConsumerState<GroupListPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: AppColors.cardBorder),
+        ),
         title: const Text('Delete Group', style: AppTextStyles.titleMedium),
         content: Text(
           'Are you sure you want to delete "${group.name}"? This action cannot be undone.',
@@ -55,7 +59,7 @@ class _GroupListPageState extends ConsumerState<GroupListPage> {
             onPressed: () => Navigator.of(ctx).pop(true),
             style: FilledButton.styleFrom(
               backgroundColor: AppColors.error,
-              foregroundColor: AppColors.textPrimary,
+              foregroundColor: Colors.white,
             ),
             child: const Text('Delete'),
           ),
@@ -110,6 +114,10 @@ class _GroupListPageState extends ConsumerState<GroupListPage> {
         context: context,
         builder: (ctx) => AlertDialog(
           backgroundColor: AppColors.surface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: const BorderSide(color: AppColors.cardBorder),
+          ),
           title: const Text('Add Team to Group', style: AppTextStyles.titleMedium),
           content: const Text(
             'All registered tournament teams are already in this group.',
@@ -134,7 +142,18 @@ class _GroupListPageState extends ConsumerState<GroupListPage> {
       builder: (ctx) => StatefulBuilder(
         builder: (context, setStateDialog) => AlertDialog(
           backgroundColor: AppColors.surface,
-          title: const Text('Add Team to Group', style: AppTextStyles.titleMedium),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: const BorderSide(color: AppColors.cardBorder),
+          ),
+          title: const Text(
+            'Add Team to Group',
+            style: TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -184,7 +203,7 @@ class _GroupListPageState extends ConsumerState<GroupListPage> {
               },
               style: FilledButton.styleFrom(
                 backgroundColor: AppColors.primary,
-                foregroundColor: AppColors.textPrimary,
+                foregroundColor: Colors.white,
               ),
               child: const Text('Add'),
             ),
@@ -227,6 +246,10 @@ class _GroupListPageState extends ConsumerState<GroupListPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: AppColors.cardBorder),
+        ),
         title: const Text('Remove Team', style: AppTextStyles.titleMedium),
         content: Text(
           'Are you sure you want to remove "$teamName" from "${group.name}"?',
@@ -241,7 +264,7 @@ class _GroupListPageState extends ConsumerState<GroupListPage> {
             onPressed: () => Navigator.of(ctx).pop(true),
             style: FilledButton.styleFrom(
               backgroundColor: AppColors.error,
-              foregroundColor: AppColors.textPrimary,
+              foregroundColor: Colors.white,
             ),
             child: const Text('Remove'),
           ),
@@ -275,9 +298,28 @@ class _GroupListPageState extends ConsumerState<GroupListPage> {
     }
   }
 
+  void _showManageTeamsBottomSheet(GroupEntity group) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => _ManageGroupTeamsBottomSheet(
+        group: group,
+        onAddTeam: () {
+          Navigator.pop(ctx);
+          _showAddTeamDialog(group);
+        },
+        onRemoveTeam: (teamId, teamName) {
+          Navigator.pop(ctx);
+          _removeTeamFromGroup(group, teamId, teamName);
+        },
+      ),
+    );
+  }
+
   InputDecoration _dialogInputDecoration({String? hint}) => InputDecoration(
         hintText: hint,
-        hintStyle: AppTextStyles.bodyMedium,
+        hintStyle: TextStyle(color: AppColors.textSecondary.withValues(alpha: 0.6), fontSize: 13),
         filled: true,
         fillColor: AppColors.inputFill,
         contentPadding: const EdgeInsets.symmetric(
@@ -298,57 +340,77 @@ class _GroupListPageState extends ConsumerState<GroupListPage> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.surface,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: AppColors.textPrimary),
-          onPressed: () => context.pop(),
+      appBar: _buildAppBar(),
+      body: _buildBody(state),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => context.pushNamed(
+          AppRoutes.createGroup,
+          extra: GroupArgs(tournament: widget.tournament, roundId: widget.roundId),
         ),
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Groups', style: AppTextStyles.titleMedium),
-            Text(widget.tournament.name, style: AppTextStyles.bodySmall),
-          ],
+        backgroundColor: AppColors.primary,
+        elevation: 6,
+        shape: const CircleBorder(),
+        child: const Icon(
+          Icons.add_rounded,
+          color: AppColors.textPrimary,
+          size: 30,
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.emoji_events_outlined, color: AppColors.primary),
-            tooltip: 'Round Standings',
-            onPressed: () => context.pushNamed(
-              AppRoutes.leaderboard,
-              extra: LeaderboardArgs(
-                tournament: widget.tournament,
-                type: LeaderboardType.round,
-                id: widget.roundId,
-                name: 'Round',
-              ),
+      ),
+    );
+  }
+
+  AppBar _buildAppBar() {
+    return AppBar(
+      backgroundColor: AppColors.surface,
+      elevation: 0,
+      leading: IconButton(
+        icon: const Icon(
+          Icons.arrow_back_rounded,
+          color: AppColors.textPrimary,
+        ),
+        onPressed: () => context.pop(),
+      ),
+      titleSpacing: 0,
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text(
+            'Groups',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: AppColors.textPrimary,
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.only(right: AppSpacing.md),
-            child: FilledButton.icon(
-              onPressed: () => context.pushNamed(
-                AppRoutes.createGroup,
-                extra: GroupArgs(tournament: widget.tournament, roundId: widget.roundId),
-              ),
-              icon: const Icon(Icons.add_rounded, size: 18),
-              label: const Text('Add Group'),
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: AppColors.textPrimary,
-                padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.md, vertical: AppSpacing.sm),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppRadius.md),
-                ),
-              ),
+          Text(
+            widget.tournament.name,
+            style: AppTextStyles.bodySmall.copyWith(
+              color: AppColors.textSecondary,
+              fontSize: 11,
             ),
           ),
         ],
       ),
-      body: _buildBody(state),
+      actions: [
+        IconButton(
+          icon: const Icon(
+            Icons.emoji_events_outlined,
+            color: AppColors.primary,
+            size: 22,
+          ),
+          tooltip: 'Round Standings',
+          onPressed: () => context.pushNamed(
+            AppRoutes.leaderboard,
+            extra: LeaderboardArgs(
+              tournament: widget.tournament,
+              type: LeaderboardType.round,
+              id: widget.roundId,
+              name: 'Round Standings',
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -374,46 +436,140 @@ class _GroupListPageState extends ConsumerState<GroupListPage> {
           onRefresh: () => ref
               .read(groupControllerProvider(widget.roundId).notifier)
               .fetchGroups(),
-          child: ListView.builder(
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.all(AppSpacing.lg),
-            itemCount: state.groups.length,
-            itemBuilder: (_, i) => _GroupCard(
-              group: state.groups[i],
-              onEdit: () => context.pushNamed(
-                AppRoutes.editGroup,
-                extra: EditGroupArgs(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Top Quick Stats Overview Container
+                _QuickStatsOverview(
                   tournament: widget.tournament,
-                  roundId: widget.roundId,
-                  groupId: state.groups[i].id,
+                  groupsCount: state.groups.length,
+                  totalTeams: state.groups.fold(0, (acc, g) => acc + (g.teams?.length ?? 0)),
                 ),
-              ),
-              onDelete: () => _confirmDelete(state.groups[i]),
-              onAddTeam: () => _showAddTeamDialog(state.groups[i]),
-              onRemoveTeam: (teamId, teamName) =>
-                  _removeTeamFromGroup(state.groups[i], teamId, teamName),
-              onShowLeaderboard: () => context.pushNamed(
-                AppRoutes.leaderboard,
-                extra: LeaderboardArgs(
-                  tournament: widget.tournament,
-                  type: LeaderboardType.group,
-                  id: state.groups[i].id,
-                  name: state.groups[i].name,
+                const SizedBox(height: AppSpacing.lg),
+
+                // Tournament Groups Section Header Row
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Tournament Groups',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    InkWell(
+                      onTap: () => context.pushNamed(
+                        AppRoutes.createGroup,
+                        extra: GroupArgs(
+                          tournament: widget.tournament,
+                          roundId: widget.roundId,
+                        ),
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [AppColors.primary, Color(0xFFFF8C00)],
+                            begin: Alignment.centerLeft,
+                            end: Alignment.centerRight,
+                          ),
+                          borderRadius: BorderRadius.circular(8),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.primary.withValues(alpha: 0.3),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.add_rounded,
+                              color: Colors.white,
+                              size: 16,
+                            ),
+                            SizedBox(width: 4),
+                            Text(
+                              'Add Group',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              onConfigurePoints: () => context.pushNamed(
-                AppRoutes.pointSystem,
-                extra: PointSystemArgs(
-                  tournament: widget.tournament,
-                  groupId: state.groups[i].id,
+                const SizedBox(height: AppSpacing.md),
+
+                // Groups List
+                ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: state.groups.length,
+                  itemBuilder: (context, index) {
+                    final group = state.groups[index];
+                    return _GroupCard(
+                      index: index,
+                      group: group,
+                      onEdit: () => context.pushNamed(
+                        AppRoutes.editGroup,
+                        extra: EditGroupArgs(
+                          tournament: widget.tournament,
+                          roundId: widget.roundId,
+                          groupId: group.id,
+                        ),
+                      ),
+                      onDelete: () => _confirmDelete(group),
+                      onManageTeams: () => context.pushNamed(
+                        AppRoutes.groupTeamList,
+                        extra: GroupTeamListArgs(
+                          tournament: widget.tournament,
+                          roundId: widget.roundId,
+                          group: group,
+                        ),
+                      ),
+                      onShowLeaderboard: () => context.pushNamed(
+                        AppRoutes.leaderboard,
+                        extra: LeaderboardArgs(
+                          tournament: widget.tournament,
+                          type: LeaderboardType.group,
+                          id: group.id,
+                          name: group.name,
+                        ),
+                      ),
+                      onConfigurePoints: () => context.pushNamed(
+                        AppRoutes.pointSystem,
+                        extra: PointSystemArgs(
+                          tournament: widget.tournament,
+                          groupId: group.id,
+                        ),
+                      ),
+                      onManageMatches: () => context.pushNamed(
+                        AppRoutes.matchList,
+                        extra: MatchArgs(
+                          tournament: widget.tournament,
+                          group: group,
+                        ),
+                      ),
+                    );
+                  },
                 ),
-              ),
-              onManageMatches: () => context.pushNamed(
-                AppRoutes.matchList,
-                extra: MatchArgs(
-                  tournament: widget.tournament,
-                  group: state.groups[i],
-                ),
-              ),
+              ],
             ),
           ),
         ),
@@ -421,23 +577,135 @@ class _GroupListPageState extends ConsumerState<GroupListPage> {
   }
 }
 
+class _QuickStatsOverview extends StatelessWidget {
+  const _QuickStatsOverview({
+    required this.tournament,
+    required this.groupsCount,
+    required this.totalTeams,
+  });
+
+  final TournamentEntity tournament;
+  final int groupsCount;
+  final int totalTeams;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: AppColors.cardBackground,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.cardBorder, width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.2),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _StatItem(
+            icon: Icons.grid_view_rounded,
+            iconBg: const Color(0xFF6C5CE7),
+            value: '$groupsCount',
+            label: 'Total Groups',
+          ),
+          Container(width: 1, height: 36, color: AppColors.divider),
+          _StatItem(
+            icon: Icons.groups_rounded,
+            iconBg: const Color(0xFF00CEC9),
+            value: '$totalTeams',
+            label: 'Total Teams',
+          ),
+          Container(width: 1, height: 36, color: AppColors.divider),
+          _StatItem(
+            icon: Icons.flag_rounded,
+            iconBg: AppColors.upcomingStatus,
+            value: tournament.status.toUpperCase(),
+            label: 'Status',
+            isStatus: true,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatItem extends StatelessWidget {
+  const _StatItem({
+    required this.icon,
+    required this.iconBg,
+    required this.value,
+    required this.label,
+    this.isStatus = false,
+  });
+
+  final IconData icon;
+  final Color iconBg;
+  final String value;
+  final String label;
+  final bool isStatus;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: iconBg.withValues(alpha: 0.15),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, color: iconBg, size: 16),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          value,
+          style: TextStyle(
+            color: isStatus ? AppColors.upcomingStatus : AppColors.textPrimary,
+            fontSize: isStatus ? 13 : 15,
+            fontWeight: FontWeight.w800,
+            letterSpacing: isStatus ? 0.5 : 0,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: const TextStyle(
+            color: AppColors.textSecondary,
+            fontSize: 10,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _GroupCard extends StatelessWidget {
   const _GroupCard({
+    required this.index,
     required this.group,
     required this.onEdit,
     required this.onDelete,
-    required this.onAddTeam,
-    required this.onRemoveTeam,
+    required this.onManageTeams,
     required this.onShowLeaderboard,
     required this.onConfigurePoints,
     required this.onManageMatches,
   });
 
+  final int index;
   final GroupEntity group;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
-  final VoidCallback onAddTeam;
-  final Function(int teamId, String teamName) onRemoveTeam;
+  final VoidCallback onManageTeams;
   final VoidCallback onShowLeaderboard;
   final VoidCallback onConfigurePoints;
   final VoidCallback onManageMatches;
@@ -445,203 +713,582 @@ class _GroupCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final teams = group.teams ?? [];
+    final orderNum = group.displayOrder > 0 ? group.displayOrder : index + 1;
+    final statusLower = group.status.toLowerCase();
+    final statusColor = switch (statusLower) {
+      'active' || 'in_progress' => AppColors.primary,
+      'completed' => AppColors.upcomingStatus,
+      _ => AppColors.draftStatus,
+    };
+    final statusLabel = group.status.toUpperCase();
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: AppSpacing.md),
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: AppColors.cardBackground,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: AppColors.divider),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.cardBackground,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.cardBorder, width: 1),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.25),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(14),
+          child: Stack(
             children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(AppRadius.md),
-                ),
-                child: const Icon(Icons.grid_view_rounded, color: AppColors.primary, size: 20),
+              Positioned(
+                left: 0,
+                top: 0,
+                bottom: 0,
+                width: 4,
+                child: Container(color: statusColor),
               ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
+              Padding(
+                padding: const EdgeInsets.all(12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(group.name, style: AppTextStyles.titleMedium),
-                    const SizedBox(height: 2),
-                    Wrap(
-                      spacing: AppSpacing.sm,
-                      runSpacing: AppSpacing.xs,
-                      crossAxisAlignment: WrapCrossAlignment.center,
+                    // Top Section: Order Circle + Name + Status Badge + Popup Menu
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        _StatusBadge(status: group.status),
-                        Text('Order: ${group.displayOrder}', style: AppTextStyles.bodySmall),
+                        // Circular Order Number
+                        Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: statusColor.withValues(alpha: 0.12),
+                            border: Border.all(
+                              color: statusColor.withValues(alpha: 0.8),
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Center(
+                            child: Text(
+                              '$orderNum',
+                              style: TextStyle(
+                                color: statusColor,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+
+                        // Title Column: Group Name
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                group.name,
+                                style: const TextStyle(
+                                  color: AppColors.textPrimary,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 3),
+                              Row(
+                                children: [
+                                  const Icon(
+                                    Icons.groups_rounded,
+                                    size: 12,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '${teams.length} Teams Assigned',
+                                    style: const TextStyle(
+                                      color: AppColors.textSecondary,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        // Right Status Badge & Popup Menu Column
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: statusColor.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(
+                                  color: statusColor.withValues(alpha: 0.3),
+                                ),
+                              ),
+                              child: Text(
+                                statusLabel,
+                                style: TextStyle(
+                                  color: statusColor,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ),
+                            PopupMenuButton<String>(
+                              icon: const Icon(
+                                Icons.more_vert_rounded,
+                                size: 18,
+                                color: AppColors.textSecondary,
+                              ),
+                              color: AppColors.surface,
+                              elevation: 8,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                side: const BorderSide(
+                                  color: AppColors.cardBorder,
+                                ),
+                              ),
+                              onSelected: (val) {
+                                if (val == 'leaderboard') onShowLeaderboard();
+                                if (val == 'points') onConfigurePoints();
+                                if (val == 'edit') onEdit();
+                                if (val == 'delete') onDelete();
+                              },
+                              itemBuilder: (context) => [
+                                const PopupMenuItem(
+                                  value: 'leaderboard',
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.emoji_events_outlined,
+                                        size: 16,
+                                        color: AppColors.primary,
+                                      ),
+                                      SizedBox(width: 8),
+                                      Text(
+                                        'View Standings',
+                                        style: TextStyle(fontSize: 13),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const PopupMenuItem(
+                                  value: 'points',
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.settings_outlined,
+                                        size: 16,
+                                        color: AppColors.primary,
+                                      ),
+                                      SizedBox(width: 8),
+                                      Text(
+                                        'Configure Points',
+                                        style: TextStyle(fontSize: 13),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const PopupMenuItem(
+                                  value: 'edit',
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.edit_outlined,
+                                        size: 16,
+                                        color: AppColors.textPrimary,
+                                      ),
+                                      SizedBox(width: 8),
+                                      Text(
+                                        'Edit Group',
+                                        style: TextStyle(fontSize: 13),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const PopupMenuDivider(height: 1),
+                                const PopupMenuItem(
+                                  value: 'delete',
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.delete_outline_rounded,
+                                        size: 16,
+                                        color: AppColors.error,
+                                      ),
+                                      SizedBox(width: 8),
+                                      Text(
+                                        'Delete Group',
+                                        style: TextStyle(
+                                          color: AppColors.error,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+
+                    const Divider(color: AppColors.divider, height: 1),
+                    const SizedBox(height: 10),
+
+                    // Action Buttons Row: Manage Teams & Manage Matches
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: AppColors.inputFill,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: AppColors.cardBorder,
+                                width: 1,
+                              ),
+                            ),
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                onTap: onManageTeams,
+                                borderRadius: BorderRadius.circular(10),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 8),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Icon(
+                                        Icons.people_alt_rounded,
+                                        color: AppColors.primary,
+                                        size: 16,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        'Teams (${teams.length})',
+                                        style: const TextStyle(
+                                          color: AppColors.textPrimary,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [AppColors.primary, Color(0xFFFF8C00)],
+                                begin: Alignment.centerLeft,
+                                end: Alignment.centerRight,
+                              ),
+                              borderRadius: BorderRadius.circular(10),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppColors.primary.withValues(alpha: 0.35),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                onTap: onManageMatches,
+                                borderRadius: BorderRadius.circular(10),
+                                child: const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 8),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        'Matches',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                      SizedBox(width: 4),
+                                      Icon(
+                                        Icons.chevron_right_rounded,
+                                        color: Colors.white,
+                                        size: 18,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ],
                 ),
               ),
-              IconButton(
-                onPressed: () => _showMenu(context),
-                icon: const Icon(Icons.more_vert_rounded, size: 20, color: AppColors.textSecondary),
-                tooltip: 'More options',
-              ),
             ],
           ),
-          const Divider(height: 24, color: AppColors.divider),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Teams (${teams.length})',
-                style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.bold),
-              ),
-              TextButton.icon(
-                onPressed: onAddTeam,
-                icon: const Icon(Icons.add, size: 16),
-                label: const Text('Add Team', style: TextStyle(fontSize: 12)),
-                style: TextButton.styleFrom(
-                  foregroundColor: AppColors.primary,
-                  padding: EdgeInsets.zero,
-                  minimumSize: Size.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          if (teams.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-              child: Text(
-                'No teams assigned to this group yet.',
-                style: AppTextStyles.bodySmall.copyWith(fontStyle: FontStyle.italic),
-              ),
-            )
-          else
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: teams.length,
-              itemBuilder: (context, idx) {
-                final team = teams[idx];
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4.0),
-                  child: Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 12,
-                        backgroundColor: AppColors.inputFill,
-                        child: team.logo != null
-                            ? Image.network(team.logo!, errorBuilder: (_, __, ___) => _teamInitial(team.name))
-                            : _teamInitial(team.name),
-                      ),
-                      const SizedBox(width: AppSpacing.sm),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              team.name,
-                              style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textPrimary),
-                            ),
-                            if (team.seed != null)
-                              Text(
-                                'Seed: #${team.seed}',
-                                style: AppTextStyles.bodySmall.copyWith(fontSize: 10),
-                              ),
-                          ],
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: () => onRemoveTeam(team.id, team.name),
-                        icon: const Icon(Icons.close, size: 16, color: AppColors.error),
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                        tooltip: 'Remove team',
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _teamInitial(String name) => Text(
-        name.isNotEmpty ? name[0].toUpperCase() : 'T',
-        style: const TextStyle(color: AppColors.primary, fontSize: 10, fontWeight: FontWeight.bold),
-      );
-
-  void _showMenu(BuildContext context) {
-    final box = context.findRenderObject() as RenderBox?;
-    final overlay = Navigator.of(context).overlay!.context.findRenderObject() as RenderBox;
-    final position = RelativeRect.fromRect(
-      Rect.fromPoints(
-        box!.localToGlobal(box.size.topRight(Offset.zero), ancestor: overlay),
-        box.localToGlobal(box.size.bottomRight(Offset.zero), ancestor: overlay),
-      ),
-      Offset.zero & overlay.size,
-    );
-    showMenu<String>(
-      context: context,
-      position: position,
-      color: AppColors.surface,
-      items: const [
-        PopupMenuItem(value: 'leaderboard', child: Text('View Group Standings')),
-        PopupMenuItem(value: 'matches', child: Text('Manage Matches')),
-        PopupMenuItem(value: 'points', child: Text('Configure Points')),
-        PopupMenuItem(value: 'edit', child: Text('Edit Group')),
-        PopupMenuItem(
-          value: 'delete',
-          child: Text('Delete Group', style: TextStyle(color: AppColors.error)),
         ),
-      ],
-    ).then((value) {
-      if (value == 'leaderboard') onShowLeaderboard();
-      if (value == 'matches') onManageMatches();
-      if (value == 'points') onConfigurePoints();
-      if (value == 'edit') onEdit();
-      if (value == 'delete') onDelete();
-    });
+      ),
+    );
   }
 }
 
-class _StatusBadge extends StatelessWidget {
-  const _StatusBadge({required this.status});
+class _ManageGroupTeamsBottomSheet extends StatelessWidget {
+  const _ManageGroupTeamsBottomSheet({
+    required this.group,
+    required this.onAddTeam,
+    required this.onRemoveTeam,
+  });
 
-  final String status;
+  final GroupEntity group;
+  final VoidCallback onAddTeam;
+  final Function(int teamId, String teamName) onRemoveTeam;
+
+  Widget _teamInitial(String name) => Text(
+        name.isNotEmpty ? name[0].toUpperCase() : 'T',
+        style: const TextStyle(
+          color: AppColors.primary,
+          fontSize: 11,
+          fontWeight: FontWeight.bold,
+        ),
+      );
 
   @override
   Widget build(BuildContext context) {
-    final color = switch (status.toLowerCase()) {
-      'active' => AppColors.success,
-      'completed' => AppColors.primary,
-      _ => AppColors.textSecondary,
-    };
+    final teams = group.teams ?? [];
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 2),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(AppRadius.full),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
-      ),
-      child: Text(
-        status.toUpperCase(),
-        style: AppTextStyles.bodySmall.copyWith(
-          color: color,
-          fontWeight: FontWeight.w700,
-          fontSize: 9,
+      constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.75),
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        border: Border(
+          top: BorderSide(color: AppColors.cardBorder, width: 1.5),
+          left: BorderSide(color: AppColors.cardBorder, width: 1),
+          right: BorderSide(color: AppColors.cardBorder, width: 1),
         ),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Top Drag Handle Indicator
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.cardBorder,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Header Row: Group Name & Close Button
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${group.name} - Assigned Teams',
+                    style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Total ${teams.length} teams assigned to this group',
+                    style: const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+              IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.close_rounded, color: AppColors.textSecondary),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const Divider(color: AppColors.divider, height: 1),
+          const SizedBox(height: 12),
+
+          // Scrollable Assigned Teams List
+          Flexible(
+            child: teams.isEmpty
+                ? Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 24),
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          Icon(
+                            Icons.groups_outlined,
+                            size: 40,
+                            color: AppColors.textSecondary,
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            'No teams assigned to this group yet.',
+                            style: TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 13,
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: teams.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                    itemBuilder: (ctx, idx) {
+                      final team = teams[idx];
+                      return Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.cardBackground,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: AppColors.cardBorder,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            CircleAvatar(
+                              radius: 14,
+                              backgroundColor: AppColors.surface,
+                              child: team.logo != null
+                                  ? Image.network(
+                                      team.logo!,
+                                      errorBuilder: (_, __, ___) => _teamInitial(team.name),
+                                    )
+                                  : _teamInitial(team.name),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    team.name,
+                                    style: const TextStyle(
+                                      color: AppColors.textPrimary,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  if (team.seed != null)
+                                    Text(
+                                      'Seed: #${team.seed}',
+                                      style: const TextStyle(
+                                        color: AppColors.textSecondary,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: () => onRemoveTeam(team.id, team.name),
+                              icon: const Icon(
+                                Icons.remove_circle_outline_rounded,
+                                color: AppColors.error,
+                                size: 18,
+                              ),
+                              tooltip: 'Remove Team',
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+          ),
+          const SizedBox(height: 16),
+
+          // Bottom Action Button: Add Team to Group
+          SizedBox(
+            width: double.infinity,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [AppColors.primary, Color(0xFFFF8C00)],
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                ),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.35),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: onAddTeam,
+                  borderRadius: BorderRadius.circular(12),
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 12),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.add_rounded, color: Colors.white, size: 20),
+                        SizedBox(width: 6),
+                        Text(
+                          'Add Team to Group',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          SizedBox(height: MediaQuery.of(context).padding.bottom + 8),
+        ],
       ),
     );
   }
@@ -655,25 +1302,85 @@ class _EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.grid_view_rounded, size: 64, color: AppColors.textSecondary),
-          const SizedBox(height: AppSpacing.md),
-          const Text('No groups yet', style: AppTextStyles.headlineMedium),
-          const SizedBox(height: AppSpacing.sm),
-          const Text('Add the first group to get started.', style: AppTextStyles.bodyMedium),
-          const SizedBox(height: AppSpacing.lg),
-          FilledButton.icon(
-            onPressed: onAdd,
-            icon: const Icon(Icons.add_rounded),
-            label: const Text('Add Group'),
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: AppColors.textPrimary,
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.xl),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: AppColors.cardBackground,
+                shape: BoxShape.circle,
+                border: Border.all(color: AppColors.cardBorder),
+              ),
+              child: const Icon(
+                Icons.grid_view_rounded,
+                size: 48,
+                color: AppColors.primary,
+              ),
             ),
-          ),
-        ],
+            const SizedBox(height: AppSpacing.lg),
+            Text(
+              'No Groups Added Yet',
+              style: AppTextStyles.headlineMedium.copyWith(
+                color: AppColors.textPrimary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              'Create groups to organize teams and schedule matches.',
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: AppColors.textSecondary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: AppSpacing.xl),
+            Container(
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [AppColors.primary, Color(0xFFFF8C00)],
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                ),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.35),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: onAdd,
+                  borderRadius: BorderRadius.circular(12),
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.add_rounded, color: Colors.white, size: 20),
+                        SizedBox(width: 6),
+                        Text(
+                          'Add First Group',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -689,21 +1396,26 @@ class _ErrorState extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.lg),
+        padding: const EdgeInsets.all(AppSpacing.xl),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             const Icon(Icons.error_outline_rounded, size: 48, color: AppColors.error),
             const SizedBox(height: AppSpacing.md),
-            Text(message, style: AppTextStyles.bodyMedium, textAlign: TextAlign.center),
+            Text(
+              message,
+              style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: AppSpacing.lg),
-            FilledButton(
+            ElevatedButton.icon(
               onPressed: onRetry,
-              style: FilledButton.styleFrom(
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('Retry'),
+              style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
-                foregroundColor: AppColors.textPrimary,
+                foregroundColor: Colors.white,
               ),
-              child: const Text('Retry'),
             ),
           ],
         ),

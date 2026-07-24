@@ -103,6 +103,17 @@ class MatchArgs {
   final GroupEntity group;
 }
 
+class GroupTeamListArgs {
+  const GroupTeamListArgs({
+    required this.tournament,
+    required this.roundId,
+    required this.group,
+  });
+  final TournamentEntity tournament;
+  final int roundId;
+  final GroupEntity group;
+}
+
 enum LeaderboardType { group, round, stage, tournament, match }
 
 class LeaderboardArgs extends Equatable {
