@@ -13,6 +13,7 @@ import '../../features/profile/domain/entities/profile_entity.dart';
 import '../../features/profile/presentation/pages/edit_profile_page.dart';
 import '../../features/profile/presentation/pages/settings_page.dart';
 import '../../features/tournament/domain/entities/tournament_entity.dart';
+import '../../features/tournament/domain/entities/match_entity.dart';
 import '../../features/tournament/presentation/pages/tournament_list_page.dart';
 import '../../features/tournament/presentation/pages/create_tournament_page.dart';
 import '../../features/tournament/presentation/pages/team_list_page.dart';
@@ -33,6 +34,7 @@ import '../../features/tournament/presentation/pages/edit_round_page.dart';
 import '../../features/tournament/presentation/pages/point_system_page.dart';
 import '../../features/tournament/presentation/pages/match_list_page.dart';
 import '../../features/tournament/presentation/pages/leaderboard_page.dart';
+import '../../features/poster/presentation/pages/poster_generator_page.dart';
 import 'route_args.dart';
 
 abstract final class AppRoutes {
@@ -66,6 +68,7 @@ abstract final class AppRoutes {
   static const String pointSystem = '/tournaments/groups/point-system';
   static const String matchList = '/tournaments/groups/matches';
   static const String leaderboard = '/tournaments/leaderboard';
+  static const String posterGenerator = '/tournaments/matches/poster';
 }
 
 class AuthNotifier extends ChangeNotifier {
@@ -354,6 +357,13 @@ GoRouter buildRouter(Ref ref, String? initialToken) {
         name: AppRoutes.editTournament,
         builder: (context, state) => EditTournamentPage(
           tournamentId: (state.extra as EditTournamentArgs).tournamentId,
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.posterGenerator,
+        name: AppRoutes.posterGenerator,
+        builder: (context, state) => PosterGeneratorPage(
+          match: state.extra as MatchEntity,
         ),
       ),
     ],

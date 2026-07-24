@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import '../../../../core/constants/app_assets.dart';
+import '../../../../core/routes/app_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
-import '../../../../core/constants/app_assets.dart';
-import '../widgets/app_sidebar.dart';
+import '../../../profile/presentation/pages/profile_page.dart';
 import '../../../tournament/presentation/pages/tournament_list_page.dart';
 
 class HomePage extends StatefulWidget {
@@ -14,27 +16,26 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  SidebarItem _selected = SidebarItem.home;
+  int _currentIndex = 0;
 
-  static const _titles = {
-    SidebarItem.home: 'Home',
-    SidebarItem.tournaments: 'Tournaments',
-    SidebarItem.teams: 'Teams',
-    SidebarItem.players: 'Players',
-  };
-
-  static const _pages = [
-    _HomeContent(),
+  static const List<Widget> _pages = [
     TournamentListPage(),
-    _PlaceholderContent(icon: Icons.groups_rounded, label: 'Teams'),
-    _PlaceholderContent(icon: Icons.person_rounded, label: 'Players'),
-  ];
-
-  static const _order = [
-    SidebarItem.home,
-    SidebarItem.tournaments,
-    SidebarItem.teams,
-    SidebarItem.players,
+    _PlaceholderView(
+      icon: Icons.groups_rounded,
+      title: 'Teams Management',
+      subtitle: 'Manage teams, rosters, and player profiles.',
+    ),
+    _PlaceholderView(
+      icon: Icons.sports_esports_rounded,
+      title: 'Matches & Fixtures',
+      subtitle: 'View upcoming, live, and completed matches.',
+    ),
+    _PlaceholderView(
+      icon: Icons.equalizer_rounded,
+      title: 'Global Standings',
+      subtitle: 'Track leaderboard positions and rankings.',
+    ),
+    ProfilePage(),
   ];
 
   @override
@@ -42,14 +43,24 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: _buildAppBar(),
-      drawer: AppSidebar(
-        selected: _selected,
-        onSelect: (item) => setState(() => _selected = item),
-      ),
       body: IndexedStack(
-        index: _order.indexOf(_selected),
+        index: _currentIndex,
         children: _pages,
       ),
+      floatingActionButton: _currentIndex == 0
+          ? FloatingActionButton(
+              onPressed: () => context.pushNamed(AppRoutes.createTournament),
+              backgroundColor: AppColors.primary,
+              elevation: 6,
+              shape: const CircleBorder(),
+              child: const Icon(
+                Icons.add_rounded,
+                color: AppColors.textPrimary,
+                size: 30,
+              ),
+            )
+          : null,
+      bottomNavigationBar: _buildBottomNavigationBar(),
     );
   }
 
@@ -57,102 +68,147 @@ class _HomePageState extends State<HomePage> {
     return AppBar(
       backgroundColor: AppColors.surface,
       elevation: 0,
-      leading: Builder(
-        builder: (context) => IconButton(
-          icon: const Icon(Icons.menu_rounded, color: AppColors.textPrimary),
-          onPressed: () => Scaffold.of(context).openDrawer(),
-        ),
+      automaticallyImplyLeading: false, // Removes hamburger / back menu completely
+      titleSpacing: AppSpacing.lg,
+      title: Row(
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            padding: const EdgeInsets.all(2),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Image.asset(
+              AppAssets.logo,
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => const Icon(
+                Icons.sports_esports_rounded,
+                color: AppColors.primary,
+                size: 28,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'TOURNAX',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.textPrimary,
+                  letterSpacing: 1.2,
+                ),
+              ),
+              Text(
+                'COMPETE. RANK. CONQUER',
+                style: TextStyle(
+                  fontSize: 8,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textSecondary.withValues(alpha: 0.7),
+                  letterSpacing: 0.8,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
-      title: Text(_titles[_selected]!, style: AppTextStyles.titleMedium),
       actions: [
-        IconButton(
-          icon: const Icon(Icons.notifications_outlined, color: AppColors.textSecondary),
-          onPressed: () {},
+        Stack(
+          alignment: Alignment.topRight,
+          children: [
+            IconButton(
+              icon: const Icon(
+                Icons.notifications_outlined,
+                color: AppColors.textPrimary,
+                size: 24,
+              ),
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Notifications')),
+                );
+              },
+            ),
+            Positioned(
+              right: 8,
+              top: 8,
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: const BoxDecoration(
+                  color: AppColors.primary,
+                  shape: BoxShape.circle,
+                ),
+                constraints: const BoxConstraints(
+                  minWidth: 16,
+                  minHeight: 16,
+                ),
+                child: const Text(
+                  '3',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w900,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+          ],
         ),
         const SizedBox(width: AppSpacing.sm),
       ],
     );
   }
-}
 
-class _HomeContent extends StatelessWidget {
-  const _HomeContent();
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const _WelcomeBanner(),
-          const SizedBox(height: AppSpacing.xl),
-          const Text('Quick Stats', style: AppTextStyles.headlineMedium),
-          const SizedBox(height: AppSpacing.md),
-          const _StatsRow(),
-        ],
-      ),
-    );
-  }
-}
-
-class _WelcomeBanner extends StatelessWidget {
-  const _WelcomeBanner();
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildBottomNavigationBar() {
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AppColors.primary,
-            AppColors.primary.withValues(alpha: 0.7),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        border: Border(
+          top: BorderSide(color: AppColors.divider, width: 1),
         ),
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.3),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Welcome to TournaX 🏆',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.xs),
-                Text(
-                  'Manage tournaments, teams and players.',
-                  style: AppTextStyles.bodyMedium.copyWith(
-                    color: AppColors.textPrimary.withValues(alpha: 0.8),
-                  ),
-                ),
-              ],
-            ),
+      child: BottomNavigationBar(
+        currentIndex: _currentIndex,
+        onTap: (index) => setState(() => _currentIndex = index),
+        type: BottomNavigationBarType.fixed,
+        backgroundColor: AppColors.surface,
+        selectedItemColor: AppColors.primary,
+        unselectedItemColor: AppColors.textSecondary,
+        selectedFontSize: 11,
+        unselectedFontSize: 11,
+        selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700),
+        unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500),
+        elevation: 0,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.emoji_events_rounded),
+            activeIcon: Icon(Icons.emoji_events_rounded, color: AppColors.primary),
+            label: 'Tournaments',
           ),
-          SizedBox(
-            width: 64,
-            height: 64,
-            child: Image.asset(
-              AppAssets.logo,
-              fit: BoxFit.contain,
-            ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.groups_rounded),
+            activeIcon: Icon(Icons.groups_rounded, color: AppColors.primary),
+            label: 'Teams',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.sports_esports_rounded),
+            activeIcon: Icon(Icons.sports_esports_rounded, color: AppColors.primary),
+            label: 'Matches',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.bar_chart_rounded),
+            activeIcon: Icon(Icons.bar_chart_rounded, color: AppColors.primary),
+            label: 'Standings',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_rounded),
+            activeIcon: Icon(Icons.person_rounded, color: AppColors.primary),
+            label: 'Profile',
           ),
         ],
       ),
@@ -160,83 +216,52 @@ class _WelcomeBanner extends StatelessWidget {
   }
 }
 
-class _StatsRow extends StatelessWidget {
-  const _StatsRow();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Row(
-      children: [
-        Expanded(child: _StatCard(label: 'Teams', value: '0', icon: Icons.groups_rounded)),
-        SizedBox(width: AppSpacing.md),
-        Expanded(child: _StatCard(label: 'Players', value: '0', icon: Icons.person_rounded)),
-        SizedBox(width: AppSpacing.md),
-        Expanded(
-            child: _StatCard(
-                label: 'Tournaments', value: '0', icon: Icons.emoji_events_rounded)),
-      ],
-    );
-  }
-}
-
-class _StatCard extends StatelessWidget {
-  const _StatCard({
-    required this.label,
-    required this.value,
+class _PlaceholderView extends StatelessWidget {
+  const _PlaceholderView({
     required this.icon,
+    required this.title,
+    required this.subtitle,
   });
 
-  final String label;
-  final String value;
   final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: AppColors.cardBackground,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: AppColors.divider),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: AppColors.primary, size: 24),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.w800,
-              color: AppColors.textPrimary,
-            ),
-          ),
-          Text(label, style: AppTextStyles.bodySmall),
-        ],
-      ),
-    );
-  }
-}
-
-class _PlaceholderContent extends StatelessWidget {
-  const _PlaceholderContent({required this.icon, required this.label});
-
-  final IconData icon;
-  final String label;
+  final String title;
+  final String subtitle;
 
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 64, color: AppColors.textSecondary),
-          const SizedBox(height: AppSpacing.md),
-          Text(label, style: AppTextStyles.headlineMedium),
-          const SizedBox(height: AppSpacing.sm),
-          Text('Coming soon', style: AppTextStyles.bodyMedium),
-        ],
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.xl),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: AppColors.cardBackground,
+                shape: BoxShape.circle,
+                border: Border.all(color: AppColors.cardBorder),
+              ),
+              child: Icon(icon, size: 48, color: AppColors.primary),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            Text(
+              title,
+              style: AppTextStyles.headlineMedium.copyWith(
+                color: AppColors.textPrimary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              subtitle,
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: AppColors.textSecondary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
     );
   }

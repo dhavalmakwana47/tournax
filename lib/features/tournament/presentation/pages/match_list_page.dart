@@ -426,6 +426,23 @@ class _MatchListPageState extends ConsumerState<MatchListPage> {
                                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                               ),
                             ),
+                            TextButton.icon(
+                              onPressed: () => context.pushNamed(
+                                AppRoutes.posterGenerator,
+                                extra: match,
+                              ),
+                              icon: const Icon(Icons.photo_filter_rounded, size: 14),
+                              label: const Text(
+                                'Generate Slot List',
+                                style: TextStyle(fontSize: 11),
+                              ),
+                              style: TextButton.styleFrom(
+                                foregroundColor: AppColors.primary,
+                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -471,7 +488,7 @@ class _MatchListPageState extends ConsumerState<MatchListPage> {
                                   borderRadius: BorderRadius.circular(AppRadius.sm),
                                 ),
                                 child: Text(
-                                  team.slot != null ? 'Slot ${team.slot}' : 'TBD',
+                                  team.slot != null ? '#${team.slot}' : 'TBD',
                                   style: AppTextStyles.bodySmall.copyWith(
                                     color: AppColors.textPrimary,
                                     fontWeight: FontWeight.bold,
