@@ -3,6 +3,7 @@ import '../../features/tournament/domain/entities/player_entity.dart';
 import '../../features/tournament/domain/entities/team_entity.dart';
 import '../../features/tournament/domain/entities/tournament_entity.dart';
 import '../../features/tournament/domain/entities/group_entity.dart';
+import '../../features/tournament/domain/entities/match_entity.dart';
 
 
 
@@ -112,6 +113,17 @@ class GroupTeamListArgs {
   final TournamentEntity tournament;
   final int roundId;
   final GroupEntity group;
+}
+
+class MatchTeamListArgs {
+  const MatchTeamListArgs({
+    required this.tournament,
+    required this.group,
+    required this.match,
+  });
+  final TournamentEntity tournament;
+  final GroupEntity group;
+  final MatchEntity match;
 }
 
 enum LeaderboardType { group, round, stage, tournament, match }
