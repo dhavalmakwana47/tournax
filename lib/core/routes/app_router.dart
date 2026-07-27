@@ -36,7 +36,6 @@ import '../../features/tournament/presentation/pages/match_list_page.dart';
 import '../../features/tournament/presentation/pages/leaderboard_page.dart';
 import '../../features/tournament/presentation/pages/group_team_list_page.dart';
 import '../../features/tournament/presentation/pages/match_team_list_page.dart';
-import '../../features/poster/presentation/pages/poster_generator_page.dart';
 import 'route_args.dart';
 
 abstract final class AppRoutes {
@@ -72,7 +71,6 @@ abstract final class AppRoutes {
   static const String leaderboard = '/tournaments/leaderboard';
   static const String groupTeamList = '/tournaments/groups/teams';
   static const String matchTeamList = '/tournaments/groups/matches/teams';
-  static const String posterGenerator = '/tournaments/matches/poster';
 }
 
 class AuthNotifier extends ChangeNotifier {
@@ -103,11 +101,9 @@ GoRouter buildRouter(Ref ref, String? initialToken) {
   authNotifier = AuthNotifier(initialToken);
 
   return GoRouter(
-    initialLocation: AppRoutes.splash,
+    initialLocation: authNotifier.isAuthenticated ? AppRoutes.home : AppRoutes.login,
     refreshListenable: authNotifier,
     redirect: (context, state) {
-      // Never redirect away from splash — it navigates itself
-      if (state.matchedLocation == AppRoutes.splash) return null;
       final isPublic = _publicRoutes.contains(state.matchedLocation);
       if (authNotifier.isAuthenticated && isPublic) return AppRoutes.home;
       if (!authNotifier.isAuthenticated && !isPublic) return AppRoutes.login;
@@ -385,13 +381,6 @@ GoRouter buildRouter(Ref ref, String? initialToken) {
         name: AppRoutes.editTournament,
         builder: (context, state) => EditTournamentPage(
           tournamentId: (state.extra as EditTournamentArgs).tournamentId,
-        ),
-      ),
-      GoRoute(
-        path: AppRoutes.posterGenerator,
-        name: AppRoutes.posterGenerator,
-        builder: (context, state) => PosterGeneratorPage(
-          match: state.extra as MatchEntity,
         ),
       ),
     ],

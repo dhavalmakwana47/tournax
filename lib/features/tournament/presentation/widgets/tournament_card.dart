@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:share_plus/share_plus.dart';
 import '../../../../core/routes/app_router.dart';
 import '../../../../core/routes/route_args.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -121,6 +120,12 @@ class TournamentCard extends StatelessWidget {
         context.pushNamed(
           AppRoutes.editTournament,
           extra: EditTournamentArgs(tournamentId: tournament.id),
+        );
+        break;
+      case TournamentAction.addTeams:
+        context.pushNamed(
+          AppRoutes.teamList,
+          extra: tournament,
         );
         break;
       case TournamentAction.leaderboard:

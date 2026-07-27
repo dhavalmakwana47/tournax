@@ -802,29 +802,6 @@ class _MatchCard extends StatelessWidget {
                           ),
                         ),
                       ),
-                      const SizedBox(width: 8),
-
-                      // Poster Generator Icon Action
-                      InkWell(
-                        onTap: () => context.pushNamed(
-                          AppRoutes.posterGenerator,
-                          extra: match,
-                        ),
-                        borderRadius: BorderRadius.circular(10),
-                        child: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: AppColors.surface,
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: AppColors.cardBorder),
-                          ),
-                          child: const Icon(
-                            Icons.photo_filter_rounded,
-                            color: AppColors.upcomingStatus,
-                            size: 18,
-                          ),
-                        ),
-                      ),
                     ],
                   ),
                 ],

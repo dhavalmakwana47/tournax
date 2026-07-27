@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 
-enum TournamentAction { edit, leaderboard }
+enum TournamentAction { edit, leaderboard, addTeams }
 
 class TournamentPopupMenu extends StatelessWidget {
   const TournamentPopupMenu({
@@ -33,6 +33,11 @@ class TournamentPopupMenu extends StatelessWidget {
           label: 'Edit',
         ),
         _buildItem(
+          value: TournamentAction.addTeams,
+          icon: Icons.groups_2_outlined,
+          label: 'Add Teams',
+        ),
+        _buildItem(
           value: TournamentAction.leaderboard,
           icon: Icons.emoji_events_outlined,
           label: 'Leaderboard',
@@ -40,6 +45,7 @@ class TournamentPopupMenu extends StatelessWidget {
       ],
     );
   }
+
 
   PopupMenuItem<TournamentAction> _buildItem({
     required TournamentAction value,

@@ -28,7 +28,10 @@ class MatchTeamMemberModel {
         shortName: json['short_name'] as String?,
         logo: json['logo'] as String?,
         country: json['country'] as String?,
-        slot: (json['slot'] as num?)?.toInt(),
+        slot: (json['slot'] as num?)?.toInt() ??
+            (json['pivot'] is Map ? (json['pivot']['slot'] as num?)?.toInt() : null) ??
+            (json['slot_number'] as num?)?.toInt() ??
+            (json['pivot'] is Map ? (json['pivot']['slot_number'] as num?)?.toInt() : null),
         lane: json['lane'] as String?,
         status: json['status'] as String? ?? 'confirmed',
       );
