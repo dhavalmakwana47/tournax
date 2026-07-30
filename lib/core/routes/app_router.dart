@@ -36,6 +36,7 @@ import '../../features/tournament/presentation/pages/match_list_page.dart';
 import '../../features/tournament/presentation/pages/leaderboard_page.dart';
 import '../../features/tournament/presentation/pages/group_team_list_page.dart';
 import '../../features/tournament/presentation/pages/match_team_list_page.dart';
+import '../../features/template_renderer/presentation/pages/slot_list_generator_page.dart';
 import 'route_args.dart';
 
 abstract final class AppRoutes {
@@ -71,6 +72,7 @@ abstract final class AppRoutes {
   static const String leaderboard = '/tournaments/leaderboard';
   static const String groupTeamList = '/tournaments/groups/teams';
   static const String matchTeamList = '/tournaments/groups/matches/teams';
+  static const String slotListGenerator = '/tournaments/groups/matches/slot-list-generator';
 }
 
 class AuthNotifier extends ChangeNotifier {
@@ -363,6 +365,18 @@ GoRouter buildRouter(Ref ref, String? initialToken) {
         builder: (context, state) {
           final args = state.extra as MatchTeamListArgs;
           return MatchTeamListPage(
+            tournament: args.tournament,
+            group: args.group,
+            match: args.match,
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.slotListGenerator,
+        name: AppRoutes.slotListGenerator,
+        builder: (context, state) {
+          final args = state.extra as SlotListGeneratorArgs;
+          return SlotListGeneratorPage(
             tournament: args.tournament,
             group: args.group,
             match: args.match,

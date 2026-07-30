@@ -199,44 +199,83 @@ class _MatchListPageState extends ConsumerState<MatchListPage> {
                             color: AppColors.textPrimary,
                           ),
                         ),
-                        InkWell(
-                          onTap: () => _showMatchDialog(),
-                          borderRadius: BorderRadius.circular(8),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [AppColors.primary, Color(0xFFFF8C00)],
-                                begin: Alignment.centerLeft,
-                                end: Alignment.centerRight,
-                              ),
-                              borderRadius: BorderRadius.circular(8),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: AppColors.primary.withValues(alpha: 0.3),
-                                  blurRadius: 6,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: const Row(
-                              children: [
-                                Icon(Icons.add_rounded, color: Colors.white, size: 16),
-                                SizedBox(width: 4),
-                                Text(
-                                  'Add Match',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w700,
+                        Row(
+                          children: [
+                            if (state.matches.isNotEmpty)
+                              InkWell(
+                                onTap: () => context.pushNamed(
+                                  AppRoutes.slotListGenerator,
+                                  extra: SlotListGeneratorArgs(
+                                    tournament: widget.tournament,
+                                    group: widget.group,
+                                    match: state.matches.first,
                                   ),
                                 ),
-                              ],
+                                borderRadius: BorderRadius.circular(8),
+                                child: Container(
+                                  margin: const EdgeInsets.only(right: 8),
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.surface,
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: AppColors.primary),
+                                  ),
+                                  child: const Row(
+                                    children: [
+                                      Icon(Icons.dashboard_customize_rounded, color: AppColors.primary, size: 14),
+                                      SizedBox(width: 4),
+                                      Text(
+                                        'Slot List',
+                                        style: TextStyle(
+                                          color: AppColors.primary,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            InkWell(
+                              onTap: () => _showMatchDialog(),
+                              borderRadius: BorderRadius.circular(8),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    colors: [AppColors.primary, Color(0xFFFF8C00)],
+                                    begin: Alignment.centerLeft,
+                                    end: Alignment.centerRight,
+                                  ),
+                                  borderRadius: BorderRadius.circular(8),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: AppColors.primary.withValues(alpha: 0.3),
+                                      blurRadius: 6,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: const Row(
+                                  children: [
+                                    Icon(Icons.add_rounded, color: Colors.white, size: 16),
+                                    SizedBox(width: 4),
+                                    Text(
+                                      'Add Match',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
-                          ),
+                          ],
                         ),
                       ],
                     ),
@@ -623,6 +662,16 @@ class _MatchCard extends StatelessWidget {
                               ),
                             ),
                             onSelected: (val) {
+                              if (val == 'slot_list') {
+                                context.pushNamed(
+                                  AppRoutes.slotListGenerator,
+                                  extra: SlotListGeneratorArgs(
+                                    tournament: tournament,
+                                    group: group,
+                                    match: match,
+                                  ),
+                                );
+                              }
                               if (val == 'standings') {
                                 context.pushNamed(
                                   AppRoutes.leaderboard,
@@ -638,6 +687,23 @@ class _MatchCard extends StatelessWidget {
                               if (val == 'delete') onDelete();
                             },
                             itemBuilder: (context) => [
+                              const PopupMenuItem(
+                                value: 'slot_list',
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.dashboard_customize_outlined,
+                                      size: 16,
+                                      color: AppColors.primary,
+                                    ),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      'Generate Slot List',
+                                      style: TextStyle(fontSize: 13),
+                                    ),
+                                  ],
+                                ),
+                              ),
                               const PopupMenuItem(
                                 value: 'standings',
                                 child: Row(

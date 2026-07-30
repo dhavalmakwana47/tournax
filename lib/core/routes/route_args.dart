@@ -143,3 +143,15 @@ class LeaderboardArgs extends Equatable {
   @override
   List<Object?> get props => [tournament, type, id, name];
 }
+
+class SlotListGeneratorArgs {
+  const SlotListGeneratorArgs({
+    required this.tournament,
+    required this.group,
+    required this.match,
+  });
+  final TournamentEntity tournament;
+  final GroupEntity group;
+  final MatchEntity match;
+}
+

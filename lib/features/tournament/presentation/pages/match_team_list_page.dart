@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import '../../../../core/routes/app_router.dart';
 import '../../../../core/routes/route_args.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -145,6 +146,26 @@ class _MatchTeamListPageState extends ConsumerState<MatchTeamListPage> {
             ),
           ],
         ),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: TextButton.icon(
+              onPressed: () => context.pushNamed(
+                AppRoutes.slotListGenerator,
+                extra: SlotListGeneratorArgs(
+                  tournament: widget.tournament,
+                  group: widget.group,
+                  match: currentMatch,
+                ),
+              ),
+              icon: const Icon(Icons.dashboard_customize_rounded, color: AppColors.primary, size: 18),
+              label: const Text(
+                'Generate Slot List',
+                style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 12),
+              ),
+            ),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showAddTeamDialog(currentMatch),

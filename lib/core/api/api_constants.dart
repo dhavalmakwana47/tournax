@@ -67,4 +67,6 @@ abstract final class ApiConstants {
   static const String matchesResultsStore = '/matches/results';
   static const String matchesResultsShow = '/matches/results/show';
   static const String matchesResultsDelete = '/matches/results/delete';
+
+  static const String templates = '/templates';
 }
