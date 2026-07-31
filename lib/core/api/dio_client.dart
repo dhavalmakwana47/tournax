@@ -44,6 +44,12 @@ class _AuthInterceptor extends Interceptor {
     appLogger.d('[AUTH] token=${token != null ? "present" : "null"} for ${options.uri}');
     if (token != null && token.isNotEmpty) {
       options.headers['Authorization'] = 'Bearer $token';
+      options.headers['x-api-key'] = token;
+      options.headers['X-API-KEY'] = token;
+    }
+    if (ApiConstants.apiKey.isNotEmpty) {
+      options.headers[ApiConstants.apiKeyHeader] = ApiConstants.apiKey;
+      options.headers['X-API-KEY'] = ApiConstants.apiKey;
     }
     handler.next(options);
   }

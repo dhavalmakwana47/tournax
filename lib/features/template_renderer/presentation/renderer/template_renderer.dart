@@ -41,6 +41,54 @@ class TemplateRenderer extends StatelessWidget {
     final sortedLayers = List<LayerModel>.from(template.layers)
       ..sort((a, b) => a.zIndex.compareTo(b.zIndex));
 
+    // Map sequential generic tags ({{team_name}}, {{slot}}) to 1st, 2nd, 3rd... slot entries
+    int teamOccurrence = 0;
+    int slotOccurrence = 0;
+    final Map<String, Map<String, String>> layerSpecificVars = {};
+
+    for (final layer in sortedLayers) {
+      if (!layer.isVisible) continue;
+
+      final key = layer.variableKey ?? '';
+      final text = layer.text;
+
+      final isGenericTeam = key == '{{team_name}}' ||
+          key == 'team_name' ||
+          key == '{{team}}' ||
+          key == 'team' ||
+          text.contains('{{team_name}}') ||
+          text.contains('{{team}}');
+
+      final isGenericSlot = key == '{{slot}}' ||
+          key == 'slot' ||
+          text.contains('{{slot}}');
+
+      if (isGenericTeam || isGenericSlot) {
+        final Map<String, String> customVars = Map<String, String>.from(activeVars);
+
+        if (isGenericTeam) {
+          teamOccurrence++;
+          final teamVal = activeVars['{{team_$teamOccurrence}}'] ??
+              activeVars['{{team_name_$teamOccurrence}}'];
+          if (teamVal != null) {
+            customVars['{{team_name}}'] = teamVal;
+            customVars['team_name'] = teamVal;
+            customVars['{{team}}'] = teamVal;
+            customVars['team'] = teamVal;
+          }
+        }
+
+        if (isGenericSlot) {
+          slotOccurrence++;
+          final slotVal = activeVars['{{slot_$slotOccurrence}}'] ?? '$slotOccurrence';
+          customVars['{{slot}}'] = slotVal;
+          customVars['slot'] = slotVal;
+        }
+
+        layerSpecificVars[layer.id] = customVars;
+      }
+    }
+
     Widget canvasContent = SizedBox(
       width: spec.width,
       height: spec.height,
@@ -56,10 +104,11 @@ class TemplateRenderer extends StatelessWidget {
           // 2. Template Layers Stack
           ...sortedLayers.map((layer) {
             if (!layer.isVisible) return const SizedBox.shrink();
+            final varsForLayer = layerSpecificVars[layer.id] ?? activeVars;
             return Positioned(
               left: layer.x,
               top: layer.y,
-              child: _buildLayerTransformWrapper(layer, activeVars),
+              child: _buildLayerTransformWrapper(layer, varsForLayer),
             );
           }),
         ],

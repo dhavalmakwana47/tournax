@@ -5,6 +5,10 @@ abstract final class ApiConstants {
   static const Duration receiveTimeout = Duration(seconds: 15);
   static const Duration sendTimeout = Duration(seconds: 15);
 
+  /// API Key configuration for backend middleware
+  static const String apiKeyHeader = 'x-api-key';
+  static const String apiKey = 'txx_9f4KqP7mN2vX8aL5RwY1JdEc6HsB3ZnU';
+
   static const String login = '/login';
   static const String logout = '/logout';
   static const String register = '/register';

@@ -26,6 +26,7 @@ class SlotListGeneratorState {
   final int currentPageIndex;
   final int slotsPerPage;
   final int totalPages;
+  final String slotPrefix;
   final Map<int, Map<String, String>> pageVariables;
   final TournamentEntity? tournament;
   final GroupEntity? group;
@@ -39,6 +40,7 @@ class SlotListGeneratorState {
     this.currentPageIndex = 0,
     this.slotsPerPage = 12,
     this.totalPages = 1,
+    this.slotPrefix = '',
     this.pageVariables = const {},
     this.tournament,
     this.group,
@@ -58,6 +60,7 @@ class SlotListGeneratorState {
     int? currentPageIndex,
     int? slotsPerPage,
     int? totalPages,
+    String? slotPrefix,
     Map<int, Map<String, String>>? pageVariables,
     TournamentEntity? tournament,
     GroupEntity? group,
@@ -71,6 +74,7 @@ class SlotListGeneratorState {
       currentPageIndex: currentPageIndex ?? this.currentPageIndex,
       slotsPerPage: slotsPerPage ?? this.slotsPerPage,
       totalPages: totalPages ?? this.totalPages,
+      slotPrefix: slotPrefix ?? this.slotPrefix,
       pageVariables: pageVariables ?? this.pageVariables,
       tournament: tournament ?? this.tournament,
       group: group ?? this.group,
@@ -134,9 +138,17 @@ class SlotListGeneratorController extends StateNotifier<SlotListGeneratorState> 
     String? error,
   }) {
     final int slotsPerPage = _detectSlotsPerPage(template);
-    final int totalTeams = match.teams.length;
-    final int totalPages = (totalTeams > 0 && slotsPerPage > 0)
-        ? (totalTeams / slotsPerPage).ceil().clamp(1, 99)
+
+    // Calculate max slot number based on team.slot assignments or total team count
+    int maxSlotNum = match.teams.length;
+    for (final t in match.teams) {
+      if (t.slot != null && t.slot! > maxSlotNum) {
+        maxSlotNum = t.slot!;
+      }
+    }
+
+    final int totalPages = (maxSlotNum > 0 && slotsPerPage > 0)
+        ? (maxSlotNum / slotsPerPage).ceil().clamp(1, 99)
         : 1;
 
     final Map<int, Map<String, String>> pageVars = _buildAllPageVariables(
@@ -162,18 +174,31 @@ class SlotListGeneratorController extends StateNotifier<SlotListGeneratorState> 
 
   int _detectSlotsPerPage(TemplateModel template) {
     int maxSlot = 0;
+    int genericTeamCount = 0;
     final RegExp teamRegex = RegExp(r'\{\{team_?name_?(\d+)\}\}|\{\{team_(\d+)\}\}');
 
     for (final layer in template.layers) {
-      if (layer.variableKey != null && layer.variableKey!.isNotEmpty) {
-        final match = teamRegex.firstMatch(layer.variableKey!);
+      final key = layer.variableKey ?? '';
+      final text = layer.text;
+
+      if (key == '{{team_name}}' ||
+          key == 'team_name' ||
+          key == '{{team}}' ||
+          key == 'team' ||
+          text.contains('{{team_name}}') ||
+          text.contains('{{team}}')) {
+        genericTeamCount++;
+      }
+
+      if (key.isNotEmpty) {
+        final match = teamRegex.firstMatch(key);
         if (match != null) {
           final strNum = match.group(1) ?? match.group(2) ?? '';
           final num = int.tryParse(strNum);
           if (num != null && num > maxSlot) maxSlot = num;
         }
       }
-      final matches = teamRegex.allMatches(layer.text);
+      final matches = teamRegex.allMatches(text);
       for (final m in matches) {
         final strNum = m.group(1) ?? m.group(2) ?? '';
         final num = int.tryParse(strNum);
@@ -183,7 +208,9 @@ class SlotListGeneratorController extends StateNotifier<SlotListGeneratorState> 
         maxSlot++;
       }
     }
-    return maxSlot > 0 ? maxSlot : 12;
+
+    final detected = maxSlot > genericTeamCount ? maxSlot : genericTeamCount;
+    return detected > 0 ? detected : 12;
   }
 
   Map<int, Map<String, String>> _buildAllPageVariables({
@@ -195,25 +222,60 @@ class SlotListGeneratorController extends StateNotifier<SlotListGeneratorState> 
     required int totalPages,
   }) {
     final teams = match.teams;
-    final int totalTeams = teams.length;
     final Map<int, Map<String, String>> allPages = {};
 
+    // Build a map of explicitly assigned slots (slotNumber -> team)
+    final Map<int, MatchTeamMemberEntity> slotToTeamMap = {};
+    final List<MatchTeamMemberEntity> unassignedTeams = [];
+
+    for (final team in teams) {
+      if (team.slot != null && team.slot! > 0) {
+        slotToTeamMap[team.slot!] = team;
+      } else {
+        unassignedTeams.add(team);
+      }
+    }
+
+    int unassignedPointer = 0;
+
     for (int p = 0; p < totalPages; p++) {
+      final dateStr = match.scheduledAt != null && match.scheduledAt!.isNotEmpty
+          ? match.scheduledAt!.split('T').first
+          : (tournament.startDate != null && tournament.startDate!.isNotEmpty
+              ? tournament.startDate!.split('T').first
+              : 'TODAY');
+
       final Map<String, String> baseVars = {
         '{{tournament_name}}': tournament.name,
         '{{group_name}}': group.name,
         '{{match_name}}': match.name ?? 'MATCH ${match.matchNumber}',
-        '{{match_date}}': match.scheduledAt != null ? match.scheduledAt!.split('T').first : 'TODAY',
+        '{{date}}': dateStr,
+        '{{match_date}}': dateStr,
+        '{{organizer_name}}': 'TournaX Esports',
+        '{{organizer_logo}}': '',
+        '{{sponsor_logo}}': '',
         '{{page}}': 'PAGE ${p + 1}',
         '{{page_number}}': '${p + 1} / $totalPages',
       };
 
-      final int startTeamIdx = p * slotsPerPage;
+      final int startSlotNum = (p * slotsPerPage) + 1;
       for (int s = 1; s <= slotsPerPage; s++) {
-        final teamIdx = startTeamIdx + (s - 1);
-        final teamName = teamIdx < totalTeams ? teams[teamIdx].name : 'SLOT ${teamIdx + 1}';
+        final overallSlotNum = startSlotNum + (s - 1);
+
+        String teamName;
+        if (slotToTeamMap.containsKey(overallSlotNum)) {
+          teamName = slotToTeamMap[overallSlotNum]!.name;
+        } else if (unassignedPointer < unassignedTeams.length) {
+          teamName = unassignedTeams[unassignedPointer++].name;
+        } else {
+          teamName = 'SLOT $overallSlotNum';
+        }
+
+        final slotNumDisplay = '$overallSlotNum';
+
         baseVars['{{team_$s}}'] = teamName;
         baseVars['{{team_name_$s}}'] = teamName;
+        baseVars['{{slot_$s}}'] = '${state.slotPrefix}$slotNumDisplay';
       }
 
       allPages[p] = _extractTemplateVariables(template, baseVars);
@@ -286,13 +348,82 @@ class SlotListGeneratorController extends StateNotifier<SlotListGeneratorState> 
     return vars;
   }
 
+  void updateSlotPrefix(String prefix) {
+    final Map<int, Map<String, String>> updatedAllPages = {};
+
+    state.pageVariables.forEach((pIdx, pVars) {
+      final vars = Map<String, String>.from(pVars);
+      vars['{{slot_prefix}}'] = prefix;
+      vars['slot_prefix'] = prefix;
+
+      final int startTeamIdx = pIdx * state.slotsPerPage;
+      for (int s = 1; s <= state.slotsPerPage; s++) {
+        final slotNum = '${startTeamIdx + s}';
+        vars['{{slot_$s}}'] = '$prefix$slotNum';
+      }
+
+      updatedAllPages[pIdx] = vars;
+    });
+
+    state = state.copyWith(
+      slotPrefix: prefix,
+      pageVariables: updatedAllPages,
+    );
+  }
+
   void updateVariable(String key, String value) {
-    final pageVars = Map<String, String>.from(state.currentVariables);
-    pageVars[key] = value;
+    if (key == '{{slot_prefix}}' || key == 'slot_prefix') {
+      updateSlotPrefix(value);
+      return;
+    }
+
+    final isSlotSpecificKey = key.toLowerCase().contains('team_') ||
+        key.toLowerCase().contains('team1') ||
+        key.toLowerCase().contains('team2');
 
     final updatedAllPages = Map<int, Map<String, String>>.from(state.pageVariables);
-    updatedAllPages[state.currentPageIndex] = pageVars;
+
+    if (isSlotSpecificKey) {
+      // Slot team name updates apply to current page
+      final pageVars = Map<String, String>.from(state.currentVariables);
+      pageVars[key] = value;
+
+      // Sync alias keys (e.g. {{team_1}} <-> {{team_name_1}})
+      final RegExp teamRegex = RegExp(r'^\{\{team_(?:name_)?(\d+)\}\}$', caseSensitive: false);
+      final match = teamRegex.firstMatch(key);
+      if (match != null) {
+        final slotNum = match.group(1);
+        if (slotNum != null) {
+          pageVars['{{team_$slotNum}}'] = value;
+          pageVars['{{team_name_$slotNum}}'] = value;
+        }
+      }
+      updatedAllPages[state.currentPageIndex] = pageVars;
+    } else {
+      // Global graphic details (tournament_name, group_name, match_name, date, organizer, logos, etc.)
+      // Propagate across ALL pages!
+      updatedAllPages.forEach((pIdx, pVars) {
+        final vars = Map<String, String>.from(pVars);
+        vars[key] = value;
+        updatedAllPages[pIdx] = vars;
+      });
+    }
 
     state = state.copyWith(pageVariables: updatedAllPages);
+  }
+
+  void resetVariablesToDefaults() {
+    if (state.selectedTemplate != null &&
+        state.tournament != null &&
+        state.group != null &&
+        state.match != null) {
+      _setupTemplatePages(
+        template: state.selectedTemplate!,
+        templates: state.templates,
+        tournament: state.tournament!,
+        group: state.group!,
+        match: state.match!,
+      );
+    }
   }
 }
