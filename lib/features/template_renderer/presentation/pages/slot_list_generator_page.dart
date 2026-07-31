@@ -7,6 +7,8 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gal/gal.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:path_provider/path_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../tournament/domain/entities/tournament_entity.dart';
@@ -34,7 +36,9 @@ class SlotListGeneratorPage extends ConsumerStatefulWidget {
 
 class _SlotListGeneratorPageState extends ConsumerState<SlotListGeneratorPage> {
   final GlobalKey _exportBoundaryKey = GlobalKey();
+  final TransformationController _transformationController = TransformationController();
   bool _isDownloading = false;
+  bool _isSharing = false;
 
   @override
   void initState() {
@@ -51,6 +55,7 @@ class _SlotListGeneratorPageState extends ConsumerState<SlotListGeneratorPage> {
 
   @override
   void dispose() {
+    _transformationController.dispose();
     super.dispose();
   }
 
@@ -374,6 +379,50 @@ class _SlotListGeneratorPageState extends ConsumerState<SlotListGeneratorPage> {
     }
   }
 
+  Future<void> _handleShare(
+    SlotListGeneratorState state,
+    SlotListGeneratorController notifier,
+  ) async {
+    if (state.selectedTemplate == null || _isSharing) return;
+
+    setState(() => _isSharing = true);
+    try {
+      await Future.delayed(const Duration(milliseconds: 200));
+
+      final boundary =
+          _exportBoundaryKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+      if (boundary == null) throw Exception('Render boundary not initialized');
+
+      final ui.Image image = await boundary.toImage(pixelRatio: 2.0);
+      final ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      if (byteData == null) throw Exception('Failed to capture PNG byte data');
+
+      final Uint8List pngBytes = byteData.buffer.asUint8List();
+      final tempDir = await getTemporaryDirectory();
+      final String fileName =
+          'SlotList_${widget.match.id}_Page${state.currentPageIndex + 1}.png';
+      final file = File('${tempDir.path}/$fileName');
+      await file.writeAsBytes(pngBytes);
+
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        text: '${widget.tournament.name} - ${widget.group.name} Slot List Graphic',
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Share error: $e'),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSharing = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(slotListGeneratorControllerProvider);
@@ -495,19 +544,23 @@ class _SlotListGeneratorPageState extends ConsumerState<SlotListGeneratorPage> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Text(
-                          'Slot Generator',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w900,
-                            color: AppColors.textPrimary,
-                            letterSpacing: -0.3,
+                        const Flexible(
+                          child: Text(
+                            'Slot Generator',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w900,
+                              color: AppColors.textPrimary,
+                              letterSpacing: -0.3,
+                            ),
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 6),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               colors: [
@@ -541,6 +594,25 @@ class _SlotListGeneratorPageState extends ConsumerState<SlotListGeneratorPage> {
                   ],
                 ),
               ),
+              IconButton(
+                style: IconButton.styleFrom(
+                  backgroundColor: Colors.white.withValues(alpha: 0.08),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  padding: const EdgeInsets.all(8),
+                ),
+                tooltip: 'Share Graphic',
+                icon: _isSharing
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+                      )
+                    : const Icon(Icons.share_rounded, color: AppColors.textPrimary, size: 18),
+                onPressed: (_isSharing || state.selectedTemplate == null)
+                    ? null
+                    : () => _handleShare(state, notifier),
+              ),
+              const SizedBox(width: 8),
               Container(
                 height: 38,
                 decoration: BoxDecoration(
@@ -773,38 +845,67 @@ class _SlotListGeneratorPageState extends ConsumerState<SlotListGeneratorPage> {
           child: Column(
             children: [
               Expanded(
-                child: Center(
-                  child: Container(
-                    width: targetW,
-                    height: targetH,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: AppColors.primary.withValues(alpha: 0.5),
-                        width: 1.5,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.primary.withValues(alpha: 0.15),
-                          blurRadius: 20,
-                          spreadRadius: 1,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    InteractiveViewer(
+                      transformationController: _transformationController,
+                      minScale: 0.5,
+                      maxScale: 4.0,
+                      boundaryMargin: const EdgeInsets.all(40),
+                      clipBehavior: Clip.none,
+                      child: Center(
+                        child: Container(
+                          width: targetW,
+                          height: targetH,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: AppColors.primary.withValues(alpha: 0.5),
+                              width: 1.5,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.primary.withValues(alpha: 0.15),
+                                blurRadius: 20,
+                                spreadRadius: 1,
+                              ),
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.8),
+                                blurRadius: 16,
+                                spreadRadius: 4,
+                              ),
+                            ],
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: TemplateRenderer(
+                              template: state.selectedTemplate!,
+                              overrideVariables: state.currentVariables,
+                              customSize: Size(targetW, targetH),
+                            ),
+                          ),
                         ),
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.8),
-                          blurRadius: 16,
-                          spreadRadius: 4,
-                        ),
-                      ],
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
-                      child: TemplateRenderer(
-                        template: state.selectedTemplate!,
-                        overrideVariables: state.currentVariables,
-                        customSize: Size(targetW, targetH),
                       ),
                     ),
-                  ),
+                    Positioned(
+                      top: 4,
+                      right: 4,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.6),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: IconButton(
+                          tooltip: 'Reset Zoom',
+                          icon: const Icon(Icons.center_focus_strong_rounded, color: Colors.white70, size: 18),
+                          onPressed: () {
+                            _transformationController.value = Matrix4.identity();
+                          },
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 4),
