@@ -1,11 +1,11 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:gal/gal.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -13,9 +13,9 @@ import '../../../../core/theme/app_text_styles.dart';
 import '../../../tournament/domain/entities/tournament_entity.dart';
 import '../../../tournament/domain/entities/group_entity.dart';
 import '../../../tournament/domain/entities/match_entity.dart';
+import '../../domain/models/template_model.dart';
 import '../controller/slot_list_generator_controller.dart';
 import '../renderer/template_renderer.dart';
-import '../../domain/models/template_model.dart';
 
 class SlotListGeneratorPage extends ConsumerStatefulWidget {
   final TournamentEntity tournament;
@@ -34,9 +34,9 @@ class SlotListGeneratorPage extends ConsumerStatefulWidget {
 }
 
 class _SlotListGeneratorPageState extends ConsumerState<SlotListGeneratorPage> with SingleTickerProviderStateMixin {
-  final GlobalKey _exportBoundaryKey = GlobalKey();
   late final TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
+  final GlobalKey _exportBoundaryKey = GlobalKey();
   bool _isDownloading = false;
   String _searchQuery = '';
 
@@ -64,10 +64,164 @@ class _SlotListGeneratorPageState extends ConsumerState<SlotListGeneratorPage> w
     super.dispose();
   }
 
+  Future<void> _handleDownload(SlotListGeneratorState state, SlotListGeneratorController notifier) async {
+    if (state.selectedTemplate == null) return;
+    if (state.totalPages <= 1) {
+      await _downloadGraphic(state.selectedTemplate!);
+      return;
+    }
+
+    // Show options for multi-page templates
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Download Options',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'This match has ${widget.match.teams.length} teams spanning ${state.totalPages} template pages.',
+                  style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                ),
+                const SizedBox(height: 16),
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withOpacity(0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.collections_rounded, color: AppColors.primary, size: 22),
+                  ),
+                  title: Text(
+                    'Download All ${state.totalPages} Pages',
+                    style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 14),
+                  ),
+                  subtitle: const Text(
+                    'Saves Page 1, Page 2... as separate images in Phone Gallery',
+                    style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _downloadAllPages(state, notifier);
+                  },
+                ),
+                const Divider(color: AppColors.cardBorder),
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: const BoxDecoration(
+                      color: Colors.white10,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.image_rounded, color: AppColors.textPrimary, size: 22),
+                  ),
+                  title: Text(
+                    'Download Current Page (Page ${state.currentPageIndex + 1})',
+                    style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 14),
+                  ),
+                  subtitle: Text(
+                    'Only saves visible Page ${state.currentPageIndex + 1} graphic',
+                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _downloadGraphic(state.selectedTemplate!);
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _downloadAllPages(SlotListGeneratorState state, SlotListGeneratorController notifier) async {
+    setState(() => _isDownloading = true);
+    try {
+      int savedCount = 0;
+      final originalPageIndex = state.currentPageIndex;
+
+      if (!kIsWeb) {
+        final hasAccess = await Gal.hasAccess(toAlbum: true);
+        if (!hasAccess) {
+          await Gal.requestAccess(toAlbum: true);
+        }
+      }
+
+      for (int pageIdx = 0; pageIdx < state.totalPages; pageIdx++) {
+        notifier.selectPage(pageIdx);
+        await Future.delayed(const Duration(milliseconds: 250));
+
+        final boundary = _exportBoundaryKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+        if (boundary == null) continue;
+
+        final ui.Image image = await boundary.toImage(pixelRatio: 1.0);
+        final ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+        if (byteData == null) continue;
+
+        final Uint8List pngBytes = byteData.buffer.asUint8List();
+        final String fileName = 'SlotList_${widget.match.id}_Page${pageIdx + 1}_${DateTime.now().millisecondsSinceEpoch}';
+
+        if (!kIsWeb) {
+          await Gal.putImageBytes(pngBytes, name: fileName);
+        }
+        savedCount++;
+      }
+
+      // Restore original page selection
+      notifier.selectPage(originalPageIndex);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.photo_library_rounded, color: Colors.white, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Saved all $savedCount pages successfully to Phone Gallery!',
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: AppColors.success,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Export error: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isDownloading = false);
+    }
+  }
+
   Future<void> _downloadGraphic(TemplateModel template) async {
     setState(() => _isDownloading = true);
     try {
-      // Delay briefly to ensure boundary repaint is complete
       await Future.delayed(const Duration(milliseconds: 200));
 
       final boundary = _exportBoundaryKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
@@ -141,17 +295,19 @@ class _SlotListGeneratorPageState extends ConsumerState<SlotListGeneratorPage> w
           icon: const Icon(Icons.arrow_back_rounded, color: AppColors.textPrimary),
           onPressed: () => context.pop(),
         ),
-        title: const Column(
+        title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
+            const Text(
               'Slot List Generator',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
             ),
             Text(
-              'Customize layout & download graphic',
-              style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+              state.totalPages > 1
+                  ? 'Multi-Page Graphic (${state.totalPages} Pages)'
+                  : 'Customize layout & download graphic',
+              style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
             ),
           ],
         ),
@@ -161,7 +317,7 @@ class _SlotListGeneratorPageState extends ConsumerState<SlotListGeneratorPage> w
             child: FilledButton.icon(
               onPressed: (_isDownloading || state.selectedTemplate == null)
                   ? null
-                  : () => _downloadGraphic(state.selectedTemplate!),
+                  : () => _handleDownload(state, notifier),
               icon: _isDownloading
                   ? const SizedBox(
                       width: 16,
@@ -169,7 +325,7 @@ class _SlotListGeneratorPageState extends ConsumerState<SlotListGeneratorPage> w
                       child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                     )
                   : const Icon(Icons.download_rounded, size: 18),
-              label: Text(_isDownloading ? 'Saving...' : 'Download'),
+              label: Text(_isDownloading ? 'Saving...' : (state.totalPages > 1 ? 'Download (${state.totalPages}P)' : 'Download')),
               style: FilledButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -182,7 +338,7 @@ class _SlotListGeneratorPageState extends ConsumerState<SlotListGeneratorPage> w
           ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
           : Stack(
               children: [
-                // Invisible Offscreen RepaintBoundary overlay with OverflowBox (Unclipped 1080x1350 layout for full-res export)
+                // Invisible Offscreen RepaintBoundary overlay for full-res export
                 if (state.selectedTemplate != null)
                   IgnorePointer(
                     child: Opacity(
@@ -200,7 +356,7 @@ class _SlotListGeneratorPageState extends ConsumerState<SlotListGeneratorPage> w
                             height: state.selectedTemplate!.canvasSpec.height,
                             child: TemplateRenderer(
                               template: state.selectedTemplate!,
-                              overrideVariables: state.variables,
+                              overrideVariables: state.currentVariables,
                             ),
                           ),
                         ),
@@ -259,6 +415,9 @@ class _SlotListGeneratorPageState extends ConsumerState<SlotListGeneratorPage> w
                       ),
                     ),
 
+                    // Multi-Page Pagination Bar (Shown when totalPages > 1)
+                    _buildPageNavigationBar(state, notifier),
+
                     // Middle: Live Viewport Preview Container
                     Expanded(
                       flex: 5,
@@ -276,6 +435,74 @@ class _SlotListGeneratorPageState extends ConsumerState<SlotListGeneratorPage> w
                 ),
               ],
             ),
+    );
+  }
+
+  Widget _buildPageNavigationBar(SlotListGeneratorState state, SlotListGeneratorController notifier) {
+    if (state.totalPages <= 1) return const SizedBox.shrink();
+
+    final int current1Based = state.currentPageIndex + 1;
+    final int startTeam = (state.currentPageIndex * state.slotsPerPage) + 1;
+    final int endTeam = (startTeam + state.slotsPerPage - 1).clamp(1, widget.match.teams.length);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      color: const Color(0xFF131722),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: AppColors.primary.withOpacity(0.4)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.copy_rounded, size: 14, color: AppColors.primary),
+                const SizedBox(width: 4),
+                Text(
+                  'Multi-Page Graphic ($current1Based / ${state.totalPages})',
+                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primary),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Teams $startTeam-$endTeam of ${widget.match.teams.length}',
+              style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.chevron_left_rounded),
+            color: state.currentPageIndex > 0 ? AppColors.textPrimary : Colors.white24,
+            iconSize: 22,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+            onPressed: state.currentPageIndex > 0
+                ? () => notifier.selectPage(state.currentPageIndex - 1)
+                : null,
+          ),
+          Text(
+            '$current1Based / ${state.totalPages}',
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+          ),
+          IconButton(
+            icon: const Icon(Icons.chevron_right_rounded),
+            color: state.currentPageIndex < state.totalPages - 1 ? AppColors.textPrimary : Colors.white24,
+            iconSize: 22,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+            onPressed: state.currentPageIndex < state.totalPages - 1
+                ? () => notifier.selectPage(state.currentPageIndex + 1)
+                : null,
+          ),
+        ],
+      ),
     );
   }
 
@@ -326,7 +553,7 @@ class _SlotListGeneratorPageState extends ConsumerState<SlotListGeneratorPage> w
                       borderRadius: BorderRadius.circular(10),
                       child: TemplateRenderer(
                         template: state.selectedTemplate!,
-                        overrideVariables: state.variables,
+                        overrideVariables: state.currentVariables,
                         customSize: Size(targetW, targetH),
                       ),
                     ),
@@ -334,9 +561,28 @@ class _SlotListGeneratorPageState extends ConsumerState<SlotListGeneratorPage> w
                 ),
               ),
               const SizedBox(height: 4),
-              Text(
-                'Template Canvas: ${spec.width.toInt()} × ${spec.height.toInt()} (${state.selectedTemplate!.name})',
-                style: const TextStyle(fontSize: 11, color: AppColors.textSecondary, fontWeight: FontWeight.w500),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Canvas: ${spec.width.toInt()} × ${spec.height.toInt()} (${state.selectedTemplate!.name})',
+                    style: const TextStyle(fontSize: 11, color: AppColors.textSecondary, fontWeight: FontWeight.w500),
+                  ),
+                  if (state.totalPages > 1) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        'PAGE ${state.currentPageIndex + 1}/${state.totalPages}',
+                        style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.primary),
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ],
           ),
@@ -346,52 +592,67 @@ class _SlotListGeneratorPageState extends ConsumerState<SlotListGeneratorPage> w
   }
 
   Widget _buildCategorizedEditorPanel(SlotListGeneratorState state, SlotListGeneratorController notifier) {
-    final allEntries = state.variables.entries.toList();
+    final vars = state.currentVariables;
 
-    // Group 1: General Match Info (tournament, group, match, date)
-    final generalEntries = allEntries.where((e) {
-      final k = e.key.toLowerCase();
-      return k.contains('tournament') || k.contains('group') || k.contains('match') || k.contains('date') || k.contains('prize');
+    final generalEntries = vars.entries.where((e) {
+      final key = e.key.toLowerCase();
+      return !key.contains('team_') && !key.contains('team1') && !key.contains('team2');
     }).toList();
 
-    // Group 2: Team Slots (team_1 ... team_N)
-    final slotEntries = allEntries.where((e) {
-      final k = e.key.toLowerCase();
-      return !generalEntries.contains(e);
-    }).where((e) {
-      if (_searchQuery.isEmpty) return true;
-      final label = e.key.toLowerCase();
-      final val = e.value.toLowerCase();
-      return label.contains(_searchQuery) || val.contains(_searchQuery);
+    var slotEntries = vars.entries.where((e) {
+      final key = e.key.toLowerCase();
+      return key.contains('team_') || key.contains('team1') || key.contains('team2');
     }).toList();
+
+    if (_searchQuery.isNotEmpty) {
+      slotEntries = slotEntries.where((e) {
+        final label = e.key.toLowerCase();
+        final val = e.value.toLowerCase();
+        return label.contains(_searchQuery) || val.contains(_searchQuery);
+      }).toList();
+    }
 
     return Container(
       color: AppColors.surface,
       child: Column(
         children: [
-          // Tab Header
           Container(
             color: AppColors.cardBackground,
             child: TabBar(
               controller: _tabController,
               indicatorColor: AppColors.primary,
-              indicatorWeight: 3,
               labelColor: AppColors.primary,
               unselectedLabelColor: AppColors.textSecondary,
               labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
               tabs: [
-                Tab(text: 'General Info (${generalEntries.length})'),
-                Tab(text: 'Slot Teams (${slotEntries.length})'),
+                Tab(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.info_outline_rounded, size: 16),
+                      const SizedBox(width: 6),
+                      Text('General Info (${generalEntries.length})'),
+                    ],
+                  ),
+                ),
+                Tab(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.shield_outlined, size: 16),
+                      const SizedBox(width: 6),
+                      Text('Slot Teams (${slotEntries.length})'),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
-
-          // Tab Body
           Expanded(
             child: TabBarView(
               controller: _tabController,
               children: [
-                // Tab 1: General Info
+                // Tab 1: General Match Info
                 ListView.builder(
                   padding: const EdgeInsets.all(AppSpacing.md),
                   itemCount: generalEntries.length,
@@ -454,7 +715,59 @@ class _SlotListGeneratorPageState extends ConsumerState<SlotListGeneratorPage> w
   }
 
   Widget _buildFieldCard(MapEntry<String, String> entry, String? templateId, SlotListGeneratorController notifier) {
-    final labelName = entry.key
+    return _VariableFieldCardInput(
+      key: ValueKey('${templateId}_${entry.key}'),
+      variableKey: entry.key,
+      value: entry.value,
+      onChanged: (val) => notifier.updateVariable(entry.key, val),
+    );
+  }
+}
+
+class _VariableFieldCardInput extends StatefulWidget {
+  final String variableKey;
+  final String value;
+  final ValueChanged<String> onChanged;
+
+  const _VariableFieldCardInput({
+    super.key,
+    required this.variableKey,
+    required this.value,
+    required this.onChanged,
+  });
+
+  @override
+  State<_VariableFieldCardInput> createState() => _VariableFieldCardInputState();
+}
+
+class _VariableFieldCardInputState extends State<_VariableFieldCardInput> {
+  late final TextEditingController _controller;
+  final FocusNode _focusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.value);
+  }
+
+  @override
+  void didUpdateWidget(covariant _VariableFieldCardInput oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.value != widget.value && !_focusNode.hasFocus) {
+      _controller.text = widget.value;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final labelName = widget.variableKey
         .replaceAll('{{', '')
         .replaceAll('}}', '')
         .replaceAll('_', ' ')
@@ -477,7 +790,7 @@ class _SlotListGeneratorPageState extends ConsumerState<SlotListGeneratorPage> w
               const SizedBox(width: 8),
               Flexible(
                 child: Text(
-                  entry.key,
+                  widget.variableKey,
                   style: const TextStyle(fontSize: 10, color: AppColors.primary, fontWeight: FontWeight.w500),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -485,9 +798,9 @@ class _SlotListGeneratorPageState extends ConsumerState<SlotListGeneratorPage> w
             ],
           ),
           const SizedBox(height: 4),
-          TextFormField(
-            initialValue: entry.value,
-            key: ValueKey('${templateId}_${entry.key}'),
+          TextField(
+            controller: _controller,
+            focusNode: _focusNode,
             style: const TextStyle(color: AppColors.textPrimary, fontSize: 13),
             decoration: InputDecoration(
               filled: true,
@@ -502,7 +815,7 @@ class _SlotListGeneratorPageState extends ConsumerState<SlotListGeneratorPage> w
                 borderSide: const BorderSide(color: AppColors.primary),
               ),
             ),
-            onChanged: (val) => notifier.updateVariable(entry.key, val),
+            onChanged: widget.onChanged,
           ),
         ],
       ),

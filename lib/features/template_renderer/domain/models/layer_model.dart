@@ -35,6 +35,7 @@ class LayerModel {
   final ShapeType shapeType;
   final ImageFitMode imageFit;
   final String? variableKey;
+  final bool isEditable;
   final Map<String, dynamic> metadata;
 
   const LayerModel({
@@ -64,6 +65,7 @@ class LayerModel {
     this.shapeType = ShapeType.rectangle,
     this.imageFit = ImageFitMode.cover,
     this.variableKey,
+    this.isEditable = true,
     this.metadata = const {},
   });
 
@@ -94,6 +96,7 @@ class LayerModel {
     ShapeType? shapeType,
     ImageFitMode? imageFit,
     String? variableKey,
+    bool? isEditable,
     Map<String, dynamic>? metadata,
   }) {
     return LayerModel(
@@ -123,6 +126,7 @@ class LayerModel {
       shapeType: shapeType ?? this.shapeType,
       imageFit: imageFit ?? this.imageFit,
       variableKey: variableKey ?? this.variableKey,
+      isEditable: isEditable ?? this.isEditable,
       metadata: metadata ?? this.metadata,
     );
   }
@@ -155,6 +159,8 @@ class LayerModel {
       'shapeType': shapeType.index,
       'imageFit': imageFit.index,
       'variableKey': variableKey,
+      'is_editable': isEditable,
+      'isEditable': isEditable,
       'metadata': metadata,
     };
   }
@@ -221,6 +227,7 @@ class LayerModel {
       shapeType: ShapeType.fromDynamic(rawShape, ShapeType.rectangle),
       imageFit: ImageFitMode.fromDynamic(rawFit, ImageFitMode.cover),
       variableKey: (json['variableKey'] ?? json['variable_key'])?.toString(),
+      isEditable: (json['isEditable'] ?? json['is_editable']) as bool? ?? true,
       metadata: parsedMeta,
     );
   }

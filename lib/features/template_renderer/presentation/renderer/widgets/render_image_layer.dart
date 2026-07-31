@@ -23,18 +23,41 @@ class RenderImageLayer extends StatelessWidget {
     }
   }
 
+  String _resolveUrl() {
+    String finalUrl = layer.assetUrl;
+
+    final cleanName = layer.name.replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '_').toLowerCase();
+    final layerNameKey = '{{$cleanName}}';
+
+    if (variables.containsKey(layerNameKey) && variables[layerNameKey]!.isNotEmpty) {
+      return variables[layerNameKey]!;
+    }
+
+    if (layer.variableKey != null && layer.variableKey!.isNotEmpty) {
+      final rawKey = layer.variableKey!;
+      final wrappedKey = rawKey.startsWith('{{') ? rawKey : '{{$rawKey}}';
+      final cleanKey = rawKey.replaceAll('{{', '').replaceAll('}}', '');
+
+      if (variables.containsKey(wrappedKey) && variables[wrappedKey]!.isNotEmpty) {
+        return variables[wrappedKey]!;
+      } else if (variables.containsKey(rawKey) && variables[rawKey]!.isNotEmpty) {
+        return variables[rawKey]!;
+      } else if (variables.containsKey(cleanKey) && variables[cleanKey]!.isNotEmpty) {
+        return variables[cleanKey]!;
+      }
+    }
+
+    variables.forEach((k, v) {
+      finalUrl = finalUrl.replaceAll(k, v);
+    });
+
+    return finalUrl;
+  }
+
   @override
   Widget build(BuildContext context) {
     final style = layer.style;
-    String finalUrl = layer.assetUrl;
-
-    if (layer.variableKey != null && variables.containsKey(layer.variableKey)) {
-      finalUrl = variables[layer.variableKey]!;
-    } else {
-      variables.forEach((k, v) {
-        finalUrl = finalUrl.replaceAll(k, v);
-      });
-    }
+    final String finalUrl = _resolveUrl();
 
     Widget imageWidget;
     if (finalUrl.startsWith('http://') || finalUrl.startsWith('https://')) {
@@ -73,12 +96,24 @@ class RenderImageLayer extends StatelessWidget {
   }
 
   Widget _buildPlaceholder() {
+    final isTeamLogo = layer.type == LayerType.teamLogo || (layer.variableKey?.contains('team_logo') ?? false);
     return Container(
       width: layer.width,
       height: layer.height,
-      color: Colors.white10,
-      child: const Center(
-        child: Icon(Icons.image_outlined, color: Colors.white38, size: 32),
+      decoration: BoxDecoration(
+        color: isTeamLogo ? Colors.amber.withOpacity(0.12) : Colors.white10,
+        borderRadius: BorderRadius.circular(layer.style.borderRadius),
+        border: Border.all(
+          color: isTeamLogo ? Colors.amber.withOpacity(0.35) : Colors.white24,
+          width: 1,
+        ),
+      ),
+      child: Center(
+        child: Icon(
+          isTeamLogo ? Icons.shield_rounded : Icons.image_outlined,
+          color: isTeamLogo ? Colors.amber : Colors.white38,
+          size: (layer.height * 0.5).clamp(16.0, 48.0),
+        ),
       ),
     );
   }

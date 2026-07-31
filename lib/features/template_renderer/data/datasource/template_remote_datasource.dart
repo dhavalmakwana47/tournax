@@ -18,15 +18,35 @@ class TemplateRemoteDatasourceImpl implements TemplateRemoteDatasource {
       final response = await apiClient.get(ApiConstants.templates);
       if (response['success'] == true) {
         final dataList = (response['data'] is List) ? (response['data'] as List) : [];
+        final parsed = dataList
+            .whereType<Map>()
+            .map((item) => TemplateModel.fromJson(item))
+            .toList();
+        if (parsed.isNotEmpty) return parsed;
+      }
+    } catch (e) {
+      print('Fetch templates primary URL error: $e');
+    }
+
+    // Try fallback production URL if local IP server fails/times out
+    try {
+      final fallbackDio = Dio(BaseOptions(
+        baseUrl: 'https://tournax.in/api/v1',
+        connectTimeout: const Duration(seconds: 4),
+        receiveTimeout: const Duration(seconds: 4),
+      ));
+      final res = await fallbackDio.get('/templates');
+      if (res.data is Map && res.data['success'] == true) {
+        final dataList = (res.data['data'] is List) ? (res.data['data'] as List) : [];
         return dataList
             .whereType<Map>()
             .map((item) => TemplateModel.fromJson(item))
             .toList();
       }
-      return [];
-    } catch (_) {
-      // Fallback: If network error or empty server templates, return default slot list presets
-      return [];
+    } catch (fallbackError) {
+      print('Fetch templates fallback URL error: $fallbackError');
     }
+
+    return [];
   }
 }
