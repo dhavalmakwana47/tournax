@@ -334,57 +334,102 @@ class _RoundListPageState extends ConsumerState<RoundListPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      'Tournament Rounds',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.textPrimary,
+                    const Expanded(
+                      child: Text(
+                        'Rounds',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.textPrimary,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    InkWell(
-                      onTap: _showCreateRoundDialog,
-                      borderRadius: BorderRadius.circular(8),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [AppColors.primary, Color(0xFFFF8C00)],
-                            begin: Alignment.centerLeft,
-                            end: Alignment.centerRight,
-                          ),
-                          borderRadius: BorderRadius.circular(8),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.primary.withValues(alpha: 0.3),
-                              blurRadius: 6,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.add_rounded,
-                              color: Colors.white,
-                              size: 16,
-                            ),
-                            SizedBox(width: 4),
-                            Text(
-                              'Add Round',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (state.rounds.isNotEmpty) ...[
+                          IconButton(
+                            style: IconButton.styleFrom(
+                              backgroundColor: AppColors.primary.withValues(alpha: 0.15),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                side: BorderSide(
+                                  color: AppColors.primary.withValues(alpha: 0.4),
+                                ),
                               ),
+                              padding: const EdgeInsets.all(6),
+                              minimumSize: const Size(32, 32),
                             ),
-                          ],
+                            tooltip: 'Generate Leaderboard Studio',
+                            icon: const Icon(
+                              Icons.auto_awesome_rounded,
+                              color: AppColors.primary,
+                              size: 18,
+                            ),
+                            onPressed: () {
+                              final firstRound = state.rounds.first;
+                              context.pushNamed(
+                                AppRoutes.leaderboardGenerator,
+                                extra: LeaderboardGeneratorArgs(
+                                  tournament: widget.tournament,
+                                  args: LeaderboardArgs(
+                                    tournament: widget.tournament,
+                                    type: LeaderboardType.round,
+                                    id: firstRound.id,
+                                    name: firstRound.name,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                          const SizedBox(width: 8),
+                        ],
+                        InkWell(
+                          onTap: _showCreateRoundDialog,
+                          borderRadius: BorderRadius.circular(8),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [AppColors.primary, Color(0xFFFF8C00)],
+                                begin: Alignment.centerLeft,
+                                end: Alignment.centerRight,
+                              ),
+                              borderRadius: BorderRadius.circular(8),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppColors.primary.withValues(alpha: 0.3),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.add_rounded,
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
+                                SizedBox(width: 4),
+                                Text(
+                                  'Add Round',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
-                      ),
+                      ],
                     ),
                   ],
                 ),
@@ -407,6 +452,18 @@ class _RoundListPageState extends ConsumerState<RoundListPage> {
                           type: LeaderboardType.round,
                           id: round.id,
                           name: round.name,
+                        ),
+                      ),
+                      onGenerateLeaderboard: () => context.pushNamed(
+                        AppRoutes.leaderboardGenerator,
+                        extra: LeaderboardGeneratorArgs(
+                          tournament: widget.tournament,
+                          args: LeaderboardArgs(
+                            tournament: widget.tournament,
+                            type: LeaderboardType.round,
+                            id: round.id,
+                            name: round.name,
+                          ),
                         ),
                       ),
                       onDelete: () => _confirmDelete(round),
@@ -553,6 +610,7 @@ class _RoundCard extends StatelessWidget {
     required this.index,
     required this.round,
     required this.onShowLeaderboard,
+    required this.onGenerateLeaderboard,
     required this.onEdit,
     required this.onDelete,
     required this.onManageGroups,
@@ -561,6 +619,7 @@ class _RoundCard extends StatelessWidget {
   final int index;
   final RoundEntity round;
   final VoidCallback onShowLeaderboard;
+  final VoidCallback onGenerateLeaderboard;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
   final VoidCallback onManageGroups;
@@ -730,6 +789,7 @@ class _RoundCard extends StatelessWidget {
                                   ),
                                   onSelected: (val) {
                                     if (val == 'leaderboard') onShowLeaderboard();
+                                    if (val == 'generate_leaderboard') onGenerateLeaderboard();
                                     if (val == 'edit') onEdit();
                                     if (val == 'delete') onDelete();
                                   },
@@ -747,6 +807,23 @@ class _RoundCard extends StatelessWidget {
                                           Text(
                                             'View Standings',
                                             style: TextStyle(fontSize: 13),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const PopupMenuItem(
+                                      value: 'generate_leaderboard',
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            Icons.auto_awesome_rounded,
+                                            size: 16,
+                                            color: Color(0xFFFF8C00),
+                                          ),
+                                          SizedBox(width: 8),
+                                          Text(
+                                            'Generate Leaderboard',
+                                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
                                           ),
                                         ],
                                       ),

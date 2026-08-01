@@ -92,27 +92,19 @@ class _StageListPageState extends ConsumerState<StageListPage> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: _buildAppBar(),
-      body: Column(
-        children: [
-          Expanded(child: _buildBody(state)),
-          _buildBottomActionBar(),
-        ],
-      ),
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 70.0),
-        child: FloatingActionButton(
-          onPressed: () => context.pushNamed(
-            AppRoutes.createStage,
-            extra: StageArgs(tournament: widget.tournament),
-          ),
-          backgroundColor: AppColors.primary,
-          elevation: 6,
-          shape: const CircleBorder(),
-          child: const Icon(
-            Icons.add_rounded,
-            color: AppColors.textPrimary,
-            size: 30,
-          ),
+      body: _buildBody(state),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => context.pushNamed(
+          AppRoutes.createStage,
+          extra: StageArgs(tournament: widget.tournament),
+        ),
+        backgroundColor: AppColors.primary,
+        elevation: 6,
+        shape: const CircleBorder(),
+        child: const Icon(
+          Icons.add_rounded,
+          color: AppColors.textPrimary,
+          size: 30,
         ),
       ),
     );
@@ -152,6 +144,26 @@ class _StageListPageState extends ConsumerState<StageListPage> {
         ],
       ),
       actions: [
+        IconButton(
+          icon: const Icon(
+            Icons.auto_awesome_rounded,
+            color: AppColors.primary,
+            size: 20,
+          ),
+          tooltip: 'Generate Leaderboard Studio',
+          onPressed: () => context.pushNamed(
+            AppRoutes.leaderboardGenerator,
+            extra: LeaderboardGeneratorArgs(
+              tournament: widget.tournament,
+              args: LeaderboardArgs(
+                tournament: widget.tournament,
+                type: LeaderboardType.tournament,
+                id: widget.tournament.id,
+                name: widget.tournament.name,
+              ),
+            ),
+          ),
+        ),
         IconButton(
           icon: const Icon(
             Icons.emoji_events_outlined,
@@ -221,16 +233,57 @@ class _StageListPageState extends ConsumerState<StageListPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      'Tournament Stages',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.textPrimary,
+                    const Expanded(
+                      child: Text(
+                        'Stages',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.textPrimary,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
+                        if (state.stages.isNotEmpty) ...[
+                          IconButton(
+                            style: IconButton.styleFrom(
+                              backgroundColor: AppColors.primary.withValues(alpha: 0.15),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                side: BorderSide(
+                                  color: AppColors.primary.withValues(alpha: 0.4),
+                                ),
+                              ),
+                              padding: const EdgeInsets.all(6),
+                              minimumSize: const Size(32, 32),
+                            ),
+                            tooltip: 'Generate Leaderboard Studio',
+                            icon: const Icon(
+                              Icons.auto_awesome_rounded,
+                              color: AppColors.primary,
+                              size: 18,
+                            ),
+                            onPressed: () {
+                              final firstStage = state.stages.first;
+                              context.pushNamed(
+                                AppRoutes.leaderboardGenerator,
+                                extra: LeaderboardGeneratorArgs(
+                                  tournament: widget.tournament,
+                                  args: LeaderboardArgs(
+                                    tournament: widget.tournament,
+                                    type: LeaderboardType.stage,
+                                    id: firstStage.id,
+                                    name: firstStage.name,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                          const SizedBox(width: 8),
+                        ],
                         InkWell(
                           onTap: () {
                             ScaffoldMessenger.of(context).showSnackBar(
@@ -346,6 +399,18 @@ class _StageListPageState extends ConsumerState<StageListPage> {
                           name: stage.name,
                         ),
                       ),
+                      onGenerateLeaderboard: () => context.pushNamed(
+                        AppRoutes.leaderboardGenerator,
+                        extra: LeaderboardGeneratorArgs(
+                          tournament: widget.tournament,
+                          args: LeaderboardArgs(
+                            tournament: widget.tournament,
+                            type: LeaderboardType.stage,
+                            id: stage.id,
+                            name: stage.name,
+                          ),
+                        ),
+                      ),
                       onViewRounds: () => context.pushNamed(
                         AppRoutes.roundList,
                         extra: RoundArgs(
@@ -369,106 +434,6 @@ class _StageListPageState extends ConsumerState<StageListPage> {
           ),
         ),
     };
-  }
-
-  Widget _buildBottomActionBar() {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        border: Border(
-          top: BorderSide(color: AppColors.divider, width: 1),
-        ),
-      ),
-      child: SafeArea(
-        top: false,
-        child: Row(
-          children: [
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Stage Flow view')),
-                  );
-                },
-                icon: const Icon(
-                  Icons.schema_rounded,
-                  size: 18,
-                  color: AppColors.textPrimary,
-                ),
-                label: const Text(
-                  'Stage Flow',
-                  style: TextStyle(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13,
-                  ),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.cardBackground,
-                  foregroundColor: AppColors.textPrimary,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    side: const BorderSide(color: AppColors.cardBorder),
-                  ),
-                  elevation: 0,
-                ),
-              ),
-            ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [AppColors.primary, Color(0xFFFF8C00)],
-                    begin: Alignment.centerLeft,
-                    end: Alignment.centerRight,
-                  ),
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primary.withValues(alpha: 0.35),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Preview Bracket')),
-                    );
-                  },
-                  icon: const Icon(
-                    Icons.alt_route_rounded,
-                    size: 18,
-                    color: Colors.white,
-                  ),
-                  label: const Text(
-                    'Preview Bracket',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 13,
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.transparent,
-                    shadowColor: Colors.transparent,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 0,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }
 
@@ -621,6 +586,7 @@ class _StageCard extends StatelessWidget {
     required this.stage,
     required this.tournament,
     required this.onViewLeaderboard,
+    required this.onGenerateLeaderboard,
     required this.onViewRounds,
     required this.onEdit,
     required this.onDelete,
@@ -630,6 +596,7 @@ class _StageCard extends StatelessWidget {
   final StageEntity stage;
   final TournamentEntity tournament;
   final VoidCallback onViewLeaderboard;
+  final VoidCallback onGenerateLeaderboard;
   final VoidCallback onViewRounds;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
@@ -846,6 +813,7 @@ class _StageCard extends StatelessWidget {
                                     ),
                                     onSelected: (val) {
                                       if (val == 'leaderboard') onViewLeaderboard();
+                                      if (val == 'generate_leaderboard') onGenerateLeaderboard();
                                       if (val == 'edit') onEdit();
                                       if (val == 'delete') onDelete();
                                     },
@@ -863,6 +831,23 @@ class _StageCard extends StatelessWidget {
                                             Text(
                                               'View Standings',
                                               style: TextStyle(fontSize: 13),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const PopupMenuItem(
+                                        value: 'generate_leaderboard',
+                                        child: Row(
+                                          children: [
+                                            Icon(
+                                              Icons.auto_awesome_rounded,
+                                              size: 16,
+                                              color: Color(0xFFFF8C00),
+                                            ),
+                                            SizedBox(width: 8),
+                                            Text(
+                                              'Generate Leaderboard',
+                                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
                                             ),
                                           ],
                                         ),

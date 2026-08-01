@@ -454,63 +454,108 @@ class _GroupListPageState extends ConsumerState<GroupListPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      'Tournament Groups',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.textPrimary,
+                    const Expanded(
+                      child: Text(
+                        'Groups',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.textPrimary,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    InkWell(
-                      onTap: () => context.pushNamed(
-                        AppRoutes.createGroup,
-                        extra: GroupArgs(
-                          tournament: widget.tournament,
-                          roundId: widget.roundId,
-                        ),
-                      ),
-                      borderRadius: BorderRadius.circular(8),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [AppColors.primary, Color(0xFFFF8C00)],
-                            begin: Alignment.centerLeft,
-                            end: Alignment.centerRight,
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (state.groups.isNotEmpty) ...[
+                          IconButton(
+                            style: IconButton.styleFrom(
+                              backgroundColor: AppColors.primary.withValues(alpha: 0.15),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                side: BorderSide(
+                                  color: AppColors.primary.withValues(alpha: 0.4),
+                                ),
+                              ),
+                              padding: const EdgeInsets.all(6),
+                              minimumSize: const Size(32, 32),
+                            ),
+                            tooltip: 'Generate Leaderboard Studio',
+                            icon: const Icon(
+                              Icons.auto_awesome_rounded,
+                              color: AppColors.primary,
+                              size: 18,
+                            ),
+                            onPressed: () {
+                              final firstGroup = state.groups.first;
+                              context.pushNamed(
+                                AppRoutes.leaderboardGenerator,
+                                extra: LeaderboardGeneratorArgs(
+                                  tournament: widget.tournament,
+                                  args: LeaderboardArgs(
+                                    tournament: widget.tournament,
+                                    type: LeaderboardType.group,
+                                    id: firstGroup.id,
+                                    name: firstGroup.name,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                          const SizedBox(width: 8),
+                        ],
+                        InkWell(
+                          onTap: () => context.pushNamed(
+                            AppRoutes.createGroup,
+                            extra: GroupArgs(
+                              tournament: widget.tournament,
+                              roundId: widget.roundId,
+                            ),
                           ),
                           borderRadius: BorderRadius.circular(8),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.primary.withValues(alpha: 0.3),
-                              blurRadius: 6,
-                              offset: const Offset(0, 2),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
                             ),
-                          ],
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.add_rounded,
-                              color: Colors.white,
-                              size: 16,
-                            ),
-                            SizedBox(width: 4),
-                            Text(
-                              'Add Group',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [AppColors.primary, Color(0xFFFF8C00)],
+                                begin: Alignment.centerLeft,
+                                end: Alignment.centerRight,
                               ),
+                              borderRadius: BorderRadius.circular(8),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppColors.primary.withValues(alpha: 0.3),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
                             ),
-                          ],
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.add_rounded,
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
+                                SizedBox(width: 4),
+                                Text(
+                                  'Add Group',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
-                      ),
+                      ],
                     ),
                   ],
                 ),
@@ -550,6 +595,18 @@ class _GroupListPageState extends ConsumerState<GroupListPage> {
                           type: LeaderboardType.group,
                           id: group.id,
                           name: group.name,
+                        ),
+                      ),
+                      onGenerateLeaderboard: () => context.pushNamed(
+                        AppRoutes.leaderboardGenerator,
+                        extra: LeaderboardGeneratorArgs(
+                          tournament: widget.tournament,
+                          args: LeaderboardArgs(
+                            tournament: widget.tournament,
+                            type: LeaderboardType.group,
+                            id: group.id,
+                            name: group.name,
+                          ),
                         ),
                       ),
                       onConfigurePoints: () => context.pushNamed(
@@ -697,6 +754,7 @@ class _GroupCard extends StatelessWidget {
     required this.onDelete,
     required this.onManageTeams,
     required this.onShowLeaderboard,
+    required this.onGenerateLeaderboard,
     required this.onConfigurePoints,
     required this.onManageMatches,
   });
@@ -707,6 +765,7 @@ class _GroupCard extends StatelessWidget {
   final VoidCallback onDelete;
   final VoidCallback onManageTeams;
   final VoidCallback onShowLeaderboard;
+  final VoidCallback onGenerateLeaderboard;
   final VoidCallback onConfigurePoints;
   final VoidCallback onManageMatches;
 
@@ -861,6 +920,7 @@ class _GroupCard extends StatelessWidget {
                               ),
                               onSelected: (val) {
                                 if (val == 'leaderboard') onShowLeaderboard();
+                                if (val == 'generate_leaderboard') onGenerateLeaderboard();
                                 if (val == 'points') onConfigurePoints();
                                 if (val == 'edit') onEdit();
                                 if (val == 'delete') onDelete();
@@ -879,6 +939,23 @@ class _GroupCard extends StatelessWidget {
                                       Text(
                                         'View Standings',
                                         style: TextStyle(fontSize: 13),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const PopupMenuItem(
+                                  value: 'generate_leaderboard',
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.auto_awesome_rounded,
+                                        size: 16,
+                                        color: Color(0xFFFF8C00),
+                                      ),
+                                      SizedBox(width: 8),
+                                      Text(
+                                        'Generate Leaderboard',
+                                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
                                       ),
                                     ],
                                   ),
