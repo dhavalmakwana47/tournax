@@ -22,7 +22,7 @@ class PaginatedTournaments {
 abstract interface class TournamentRemoteDatasource {
   Future<PaginatedTournaments> getTournaments({
     int page = 1,
-    int perPage = 5,
+    int perPage = 10,
     String? status,
   });
   Future<TournamentModel> createTournament(Map<String, dynamic> data);
@@ -36,10 +36,18 @@ class TournamentRemoteDatasourceImpl implements TournamentRemoteDatasource {
 
   final ApiClient _apiClient;
 
+  int _toInt(dynamic val, int fallback) {
+    if (val == null) return fallback;
+    if (val is int) return val;
+    if (val is num) return val.toInt();
+    if (val is String) return int.tryParse(val.trim()) ?? fallback;
+    return fallback;
+  }
+
   @override
   Future<PaginatedTournaments> getTournaments({
     int page = 1,
-    int perPage = 5,
+    int perPage = 10,
     String? status,
   }) async {
     try {
@@ -55,8 +63,8 @@ class TournamentRemoteDatasourceImpl implements TournamentRemoteDatasource {
       appLogger.d('Tournaments response: $response');
       final data = response['data'] as List<dynamic>?;
       final meta = response['meta'] as Map<String, dynamic>?;
-      final currentPage = meta?['current_page'] as int? ?? page;
-      final lastPage = meta?['last_page'] as int? ?? page;
+      final currentPage = _toInt(meta?['current_page'], page);
+      final lastPage = _toInt(meta?['last_page'], page);
       final items = data != null
           ? data
               .map((e) => TournamentModel.fromJson(e as Map<String, dynamic>))

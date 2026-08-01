@@ -38,7 +38,7 @@ class _TournamentListPageState extends ConsumerState<TournamentListPage> {
 
   void _fetchTournamentsFromApi() {
     final statusParam =
-        _selectedStatus.toLowerCase() == 'all' ? null : _selectedStatus;
+        _selectedStatus.toLowerCase() == 'all' ? null : _selectedStatus.toLowerCase();
     ref.read(tournamentControllerProvider.notifier).fetchTournaments(
           status: statusParam,
         );
@@ -59,9 +59,24 @@ class _TournamentListPageState extends ConsumerState<TournamentListPage> {
 
   void _onScroll() {
     if (!_scrollController.hasClients) return;
+    final state = ref.read(tournamentControllerProvider);
+    if (!state.hasMore || state.isLoadingMore) return;
+
     final maxScroll = _scrollController.position.maxScrollExtent;
     final currentScroll = _scrollController.position.pixels;
-    if (maxScroll - currentScroll <= 200) {
+    if (maxScroll - currentScroll <= 300 || _scrollController.position.extentAfter < 300) {
+      ref.read(tournamentControllerProvider.notifier).fetchMoreTournaments();
+    }
+  }
+
+  void _checkAutoFetchMore() {
+    if (!mounted) return;
+    final state = ref.read(tournamentControllerProvider);
+    if (state.hasMore &&
+        !state.isLoadingMore &&
+        state.listStatus == TournamentListStatus.success &&
+        _scrollController.hasClients &&
+        _scrollController.position.maxScrollExtent <= 200) {
       ref.read(tournamentControllerProvider.notifier).fetchMoreTournaments();
     }
   }
@@ -72,6 +87,13 @@ class _TournamentListPageState extends ConsumerState<TournamentListPage> {
     _searchController.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  DateTime _parseDate(String? s) {
+    if (s == null || s.trim().isEmpty) {
+      return DateTime.fromMillisecondsSinceEpoch(0);
+    }
+    return DateTime.tryParse(s.trim()) ?? DateTime.fromMillisecondsSinceEpoch(0);
   }
 
   List<TournamentEntity> _filterAndSort(List<TournamentEntity> tournaments) {
@@ -89,14 +111,30 @@ class _TournamentListPageState extends ConsumerState<TournamentListPage> {
 
     switch (_selectedSort) {
       case 'Oldest':
-        filtered.sort((a, b) => a.id.compareTo(b.id));
+        filtered.sort((a, b) {
+          final dateA = _parseDate(a.createdAt);
+          final dateB = _parseDate(b.createdAt);
+          final cmp = dateA.compareTo(dateB);
+          return cmp != 0 ? cmp : a.id.compareTo(b.id);
+        });
         break;
-      case 'Recently Updated':
-        filtered.sort((a, b) => (b.createdAt ?? '').compareTo(a.createdAt ?? ''));
+      case 'Name (A-Z)':
+        filtered.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+        break;
+      case 'Name (Z-A)':
+        filtered.sort((a, b) => b.name.toLowerCase().compareTo(a.name.toLowerCase()));
+        break;
+      case 'Start Date':
+        filtered.sort((a, b) => _parseDate(a.startDate).compareTo(_parseDate(b.startDate)));
         break;
       case 'Newest':
       default:
-        filtered.sort((a, b) => b.id.compareTo(a.id));
+        filtered.sort((a, b) {
+          final dateA = _parseDate(a.createdAt);
+          final dateB = _parseDate(b.createdAt);
+          final cmp = dateB.compareTo(dateA);
+          return cmp != 0 ? cmp : b.id.compareTo(a.id);
+        });
         break;
     }
 
@@ -106,6 +144,10 @@ class _TournamentListPageState extends ConsumerState<TournamentListPage> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(tournamentControllerProvider);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkAutoFetchMore();
+    });
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -164,140 +206,162 @@ class _TournamentListPageState extends ConsumerState<TournamentListPage> {
               .read(tournamentControllerProvider.notifier)
               .fetchTournaments(),
         ),
-      TournamentListStatus.success => _buildTournamentList(state.tournaments),
+      TournamentListStatus.success => _buildTournamentList(state),
     };
   }
 
-  Widget _buildTournamentList(List<TournamentEntity> rawTournaments) {
-    final displayedTournaments = _filterAndSort(rawTournaments);
+  Widget _buildTournamentList(TournamentState state) {
+    final displayedTournaments = _filterAndSort(state.tournaments);
 
-    return RefreshIndicator(
-      color: AppColors.primary,
-      backgroundColor: AppColors.cardBackground,
-      onRefresh: () =>
-          ref.read(tournamentControllerProvider.notifier).fetchTournaments(),
-      child: CustomScrollView(
-        controller: _scrollController,
-        physics: const AlwaysScrollableScrollPhysics(
-          parent: BouncingScrollPhysics(),
-        ),
-        slivers: [
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.lg,
-                AppSpacing.md,
-                AppSpacing.lg,
-                AppSpacing.sm,
-              ),
-              child: TournamentHeader(
-                count: displayedTournaments.length,
-                selectedSort: _selectedSort,
-                onSortChanged: (sort) => setState(() => _selectedSort = sort),
-              ),
-            ),
+    return NotificationListener<ScrollNotification>(
+      onNotification: (ScrollNotification notification) {
+        if (notification.metrics.extentAfter < 300) {
+          _onScroll();
+        }
+        return false;
+      },
+      child: RefreshIndicator(
+        color: AppColors.primary,
+        backgroundColor: AppColors.cardBackground,
+        onRefresh: () =>
+            ref.read(tournamentControllerProvider.notifier).fetchTournaments(),
+        child: CustomScrollView(
+          controller: _scrollController,
+          physics: const AlwaysScrollableScrollPhysics(
+            parent: BouncingScrollPhysics(),
           ),
-          if (displayedTournaments.isEmpty)
-            SliverFillRemaining(
-              hasScrollBody: false,
-              child: Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(AppSpacing.lg),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(AppSpacing.md),
-                        decoration: BoxDecoration(
-                          color: AppColors.surface,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: AppColors.cardBorder.withValues(alpha: 0.5),
-                          ),
-                        ),
-                        child: const Icon(
-                          Icons.search_off_rounded,
-                          size: 44,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      Text(
-                        'No matching tournaments found',
-                        style: AppTextStyles.titleMedium.copyWith(
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.xs),
-                      Text(
-                        'Try clearing search or changing the status filter.',
-                        style: AppTextStyles.bodyMedium.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: AppSpacing.lg),
-                      ElevatedButton.icon(
-                        onPressed: () {
-                          _searchController.clear();
-                          setState(() {
-                            _searchQuery = '';
-                            _selectedStatus = 'All';
-                          });
-                          _fetchTournamentsFromApi();
-                        },
-                        icon: const Icon(Icons.refresh_rounded, color: Colors.white, size: 20),
-                        label: const Text(
-                          'Reset Filters',
-                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.lg,
-                            vertical: AppSpacing.md,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(AppRadius.md),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            )
-          else
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-              sliver: SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    final tournament = displayedTournaments[index];
-                    return AnimatedOpacity(
-                      duration: Duration(milliseconds: 200 + (index * 50)),
-                      opacity: 1.0,
-                      child: TournamentCard(tournament: tournament),
-                    );
-                  },
-                  childCount: displayedTournaments.length,
-                ),
-              ),
-            ),
-          if (ref.watch(tournamentControllerProvider).isLoadingMore)
-            const SliverToBoxAdapter(
+          slivers: [
+            SliverToBoxAdapter(
               child: Padding(
-                padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
-                child: Center(
-                  child: CircularProgressIndicator(
-                    color: AppColors.primary,
-                    strokeWidth: 2.5,
-                  ),
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.lg,
+                  AppSpacing.md,
+                  AppSpacing.lg,
+                  AppSpacing.sm,
+                ),
+                child: TournamentHeader(
+                  count: displayedTournaments.length,
+                  selectedSort: _selectedSort,
+                  onSortChanged: (sort) => setState(() => _selectedSort = sort),
                 ),
               ),
             ),
-        ],
+            if (displayedTournaments.isEmpty)
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppSpacing.lg),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(AppSpacing.md),
+                          decoration: BoxDecoration(
+                            color: AppColors.surface,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: AppColors.cardBorder.withValues(alpha: 0.5),
+                            ),
+                          ),
+                          child: const Icon(
+                            Icons.search_off_rounded,
+                            size: 44,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                        Text(
+                          'No matching tournaments found',
+                          style: AppTextStyles.titleMedium.copyWith(
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.xs),
+                        Text(
+                          'Try clearing search or changing the status filter.',
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: AppSpacing.lg),
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() {
+                              _searchQuery = '';
+                              _selectedStatus = 'All';
+                            });
+                            _fetchTournamentsFromApi();
+                          },
+                          icon: const Icon(Icons.refresh_rounded, color: Colors.white, size: 20),
+                          label: const Text(
+                            'Reset Filters',
+                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.lg,
+                              vertical: AppSpacing.md,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(AppRadius.md),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              )
+            else
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final tournament = displayedTournaments[index];
+                      return AnimatedOpacity(
+                        duration: Duration(milliseconds: 200 + (index * 50)),
+                        opacity: 1.0,
+                        child: TournamentCard(tournament: tournament),
+                      );
+                    },
+                    childCount: displayedTournaments.length,
+                  ),
+                ),
+              ),
+            if (state.isLoadingMore)
+              const SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      color: AppColors.primary,
+                      strokeWidth: 2.5,
+                    ),
+                  ),
+                ),
+              )
+            else if (!state.hasMore && displayedTournaments.isNotEmpty)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
+                  child: Center(
+                    child: Text(
+                      'No more tournaments',
+                      style: AppTextStyles.bodySmall.copyWith(
+                        color: AppColors.textSecondary.withValues(alpha: 0.7),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -356,6 +420,7 @@ class _TournamentListPageState extends ConsumerState<TournamentListPage> {
   }
 
   void _showFilterBottomSheet(BuildContext context) {
+    final state = ref.read(tournamentControllerProvider);
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.surface,
@@ -386,8 +451,9 @@ class _TournamentListPageState extends ConsumerState<TournamentListPage> {
             const SizedBox(height: AppSpacing.sm),
             TournamentStatusFilterRow(
               selectedStatus: _selectedStatus,
+              statusOptions: state.meta?.statuses,
               onStatusSelected: (status) {
-                setState(() => _selectedStatus = status);
+                _onStatusSelected(status);
                 Navigator.pop(context);
               },
             ),

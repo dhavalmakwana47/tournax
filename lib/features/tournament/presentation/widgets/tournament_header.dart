@@ -17,7 +17,9 @@ class TournamentHeader extends StatelessWidget {
   static const List<String> _sortOptions = [
     'Newest',
     'Oldest',
-    'Recently Updated',
+    'Name (A-Z)',
+    'Name (Z-A)',
+    'Start Date',
   ];
 
   @override

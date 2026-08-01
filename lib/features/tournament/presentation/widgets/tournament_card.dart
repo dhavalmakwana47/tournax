@@ -19,10 +19,14 @@ class TournamentCard extends StatelessWidget {
 
   // Curated esports game artwork URLs based on tournament ID / title / mode
   static const List<String> _bannerImages = [
-    'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=800&q=80', // PUBG / Shooter art
-    'https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=800&q=80', // Desert Showdown
-    'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?auto=format&fit=crop&w=800&q=80', // Frozen Clash
-    'https://images.unsplash.com/photo-1518609878373-06d740f60d8b?auto=format&fit=crop&w=800&q=80', // Champions Trophy
+    'http://10.151.118.115:8000/tournament_bg/bgmi_notext_1.png', // Champions Trophy
+    'http://10.151.118.115:8000/tournament_bg/bgmi_notext_2.png', // Champions Trophy
+    'http://10.151.118.115:8000/tournament_bg/bgmi_notext_3.png', // Champions Trophy
+    'http://10.151.118.115:8000/tournament_bg/bgmi_notext_4.png', // Champions Trophy
+    'http://10.151.118.115:8000/tournament_bg/bgmi_notext_5.png', // Champions Trophy
+    'http://10.151.118.115:8000/tournament_bg/bgmi_notext_6.png', // Champions Trophy
+    'http://10.151.118.115:8000/tournament_bg/bgmi_notext_7.png', // Champions Trophy
+    'http://10.151.118.115:8000/tournament_bg/bgmi_notext_8.png', // Champions Trophy
   ];
 
   String get _bannerUrl {

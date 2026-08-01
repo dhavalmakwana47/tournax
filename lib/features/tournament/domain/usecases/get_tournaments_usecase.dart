@@ -8,7 +8,7 @@ class GetTournamentsUseCase {
 
   Future<PaginatedResult<TournamentEntity>> call({
     int page = 1,
-    int perPage = 5,
+    int perPage = 10,
     String? status,
   }) =>
       _repository.getTournaments(page: page, perPage: perPage, status: status);

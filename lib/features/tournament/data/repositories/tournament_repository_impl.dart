@@ -18,7 +18,7 @@ class TournamentRepositoryImpl implements TournamentRepository {
   @override
   Future<PaginatedResult<TournamentEntity>> getTournaments({
     int page = 1,
-    int perPage = 5,
+    int perPage = 10,
     String? status,
   }) async {
     if (!await networkInfo.isConnected) throw ApiException.noInternet();

@@ -18,7 +18,7 @@ class PaginatedResult<T> {
 abstract interface class TournamentRepository {
   Future<PaginatedResult<TournamentEntity>> getTournaments({
     int page = 1,
-    int perPage = 5,
+    int perPage = 10,
     String? status,
   });
   Future<TournamentEntity> createTournament({

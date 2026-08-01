@@ -63,6 +63,7 @@ class TournamentState extends Equatable {
     List<TournamentEntity>? tournaments,
     TournamentMetaEntity? meta,
     String? activeStatus,
+    bool clearStatus = false,
     String? errorMessage,
     Map<String, String>? fieldErrors,
     int? currentPage,
@@ -77,7 +78,7 @@ class TournamentState extends Equatable {
         updateStatus: updateStatus ?? this.updateStatus,
         tournaments: tournaments ?? this.tournaments,
         meta: meta ?? this.meta,
-        activeStatus: activeStatus ?? this.activeStatus,
+        activeStatus: clearStatus ? null : (activeStatus ?? this.activeStatus),
         errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
         fieldErrors: clearError ? const {} : fieldErrors ?? this.fieldErrors,
         currentPage: currentPage ?? this.currentPage,
@@ -144,7 +145,7 @@ class TournamentController extends Notifier<TournamentState> {
     }
   }
 
-  Future<void> fetchTournaments({int perPage = 5, String? status}) async {
+  Future<void> fetchTournaments({int perPage = 10, String? status}) async {
     state = state.copyWith(
       listStatus: TournamentListStatus.loading,
       clearError: true,
@@ -152,6 +153,7 @@ class TournamentController extends Notifier<TournamentState> {
       hasMore: true,
       isLoadingMore: false,
       activeStatus: status,
+      clearStatus: status == null,
     );
     try {
       final res = await _getUseCase(page: 1, perPage: perPage, status: status);
@@ -162,6 +164,8 @@ class TournamentController extends Notifier<TournamentState> {
         tournaments: res.items,
         currentPage: res.currentPage,
         hasMore: res.hasMore,
+        activeStatus: status,
+        clearStatus: status == null,
       );
     } on ApiException catch (e) {
       appLogger.e('Fetch tournaments failed', error: e);
@@ -178,7 +182,7 @@ class TournamentController extends Notifier<TournamentState> {
     }
   }
 
-  Future<void> fetchMoreTournaments({int perPage = 5}) async {
+  Future<void> fetchMoreTournaments({int perPage = 10}) async {
     if (state.isLoadingMore ||
         !state.hasMore ||
         state.listStatus == TournamentListStatus.loading) {
@@ -192,13 +196,24 @@ class TournamentController extends Notifier<TournamentState> {
         perPage: perPage,
         status: state.activeStatus,
       );
+
+      if (res.items.isEmpty) {
+        state = state.copyWith(
+          hasMore: false,
+          isLoadingMore: false,
+        );
+        return;
+      }
+
       final existingIds = state.tournaments.map((t) => t.id).toSet();
       final newItems = res.items.where((t) => !existingIds.contains(t.id)).toList();
+
+      final hasMore = res.hasMore && newItems.isNotEmpty;
 
       state = state.copyWith(
         tournaments: [...state.tournaments, ...newItems],
         currentPage: res.currentPage,
-        hasMore: res.hasMore,
+        hasMore: hasMore,
         isLoadingMore: false,
       );
     } catch (e) {
