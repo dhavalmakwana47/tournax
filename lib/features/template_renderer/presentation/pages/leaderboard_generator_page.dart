@@ -362,7 +362,10 @@ class _LeaderboardGeneratorPageState extends ConsumerState<LeaderboardGeneratorP
           ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
           : Column(
               children: [
-                // Top Page Switcher
+                // Horizontal Studio Template Selector Dock
+                _buildTemplateSelectorDock(state, notifier),
+
+                // Top Page Switcher (if multi-page)
                 if (state.totalPages > 1)
                   Container(
                     width: double.infinity,
@@ -402,8 +405,9 @@ class _LeaderboardGeneratorPageState extends ConsumerState<LeaderboardGeneratorP
                     ),
                   ),
 
-                // Main Interactive Canvas Preview Area
+                // Main Interactive Canvas Preview Area (Top Half)
                 Expanded(
+                  flex: 5,
                   child: InteractiveViewer(
                     transformationController: _transformationController,
                     minScale: 0.3,
@@ -439,8 +443,20 @@ class _LeaderboardGeneratorPageState extends ConsumerState<LeaderboardGeneratorP
                   ),
                 ),
 
-                // Horizontal Studio Template Selector Dock
-                _buildTemplateSelectorDock(state, notifier),
+                Container(
+                  height: 1,
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Colors.transparent, AppColors.cardBorder, Colors.transparent],
+                    ),
+                  ),
+                ),
+
+                // Graphic Details & Tag Replace Editor Panel (Bottom Half)
+                Expanded(
+                  flex: 5,
+                  child: _buildCategorizedEditorPanel(state, notifier),
+                ),
               ],
             ),
     );
@@ -744,6 +760,92 @@ class _LeaderboardGeneratorPageState extends ConsumerState<LeaderboardGeneratorP
     }
   }
 
+  Widget _buildCategorizedEditorPanel(
+    LeaderboardGeneratorState state,
+    LeaderboardGeneratorController notifier,
+  ) {
+    final vars = state.currentVariables;
+
+    const allowedKeysOrder = [
+      '{{tournament_name}}',
+      '{{group_name}}',
+      '{{match_name}}',
+      '{{date}}',
+      '{{organizer_name}}',
+      '{{organizer_logo}}',
+      '{{sponsor_logo}}',
+    ];
+
+    final generalEntries = <MapEntry<String, String>>[];
+    for (final key in allowedKeysOrder) {
+      generalEntries.add(MapEntry(key, vars[key] ?? ''));
+    }
+
+    return Container(
+      color: const Color(0xFF0F1420),
+      child: Column(
+        children: [
+          // Studio Editor Header
+          Container(
+            height: 44,
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            decoration: const BoxDecoration(
+              color: Color(0xFF131A2A),
+              border: Border(
+                bottom: BorderSide(color: Color(0xFF1E283C), width: 1),
+              ),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.tune_rounded, size: 16, color: AppColors.primary),
+                const SizedBox(width: 8),
+                Text(
+                  'Graphic Details (${generalEntries.length})',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const Spacer(),
+                IconButton(
+                  tooltip: 'Reset defaults',
+                  icon: const Icon(Icons.restart_alt_rounded, color: AppColors.textSecondary, size: 20),
+                  onPressed: () => notifier.resetVariablesToDefaults(),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.all(14),
+              children: generalEntries.map(
+                (entry) => _buildGeneralFieldCard(
+                  entry,
+                  state.selectedTemplate?.id,
+                  notifier,
+                ),
+              ).toList(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGeneralFieldCard(
+    MapEntry<String, String> entry,
+    String? templateId,
+    LeaderboardGeneratorController notifier,
+  ) {
+    return _VariableFieldCardInput(
+      key: ValueKey('${templateId}_${entry.key}'),
+      variableKey: entry.key,
+      value: entry.value,
+      onChanged: (val) => notifier.updateVariable(entry.key, val),
+    );
+  }
+
   Future<Uint8List?> _captureCanvasBytes() async {
     try {
       final boundary = _exportBoundaryKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
@@ -756,5 +858,138 @@ class _LeaderboardGeneratorPageState extends ConsumerState<LeaderboardGeneratorP
       debugPrint('Error capturing canvas bytes: $e');
       return null;
     }
+  }
+}
+
+class _VariableFieldCardInput extends StatefulWidget {
+  final String variableKey;
+  final String value;
+  final ValueChanged<String> onChanged;
+
+  const _VariableFieldCardInput({
+    super.key,
+    required this.variableKey,
+    required this.value,
+    required this.onChanged,
+  });
+
+  @override
+  State<_VariableFieldCardInput> createState() => _VariableFieldCardInputState();
+}
+
+class _VariableFieldCardInputState extends State<_VariableFieldCardInput> {
+  late final TextEditingController _controller;
+  final FocusNode _focusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.value);
+  }
+
+  @override
+  void didUpdateWidget(covariant _VariableFieldCardInput oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.value != widget.value && !_focusNode.hasFocus) {
+      _controller.text = widget.value;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  String _cleanLabel(String key) {
+    String clean = key.replaceAll('{{', '').replaceAll('}}', '');
+    clean = clean.replaceAll('_', ' ');
+    return clean.toUpperCase();
+  }
+
+  IconData _getIconForKey(String key) {
+    final clean = key.toLowerCase();
+    if (clean.contains('tournament')) return Icons.emoji_events_outlined;
+    if (clean.contains('title') || clean.contains('header')) return Icons.title_rounded;
+    if (clean.contains('group')) return Icons.groups_outlined;
+    if (clean.contains('date')) return Icons.calendar_today_rounded;
+    if (clean.contains('organizer')) return Icons.business_center_outlined;
+    if (clean.contains('sponsor') || clean.contains('logo')) return Icons.verified_outlined;
+    return Icons.text_fields_rounded;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final label = _cleanLabel(widget.variableKey);
+    final icon = _getIconForKey(widget.variableKey);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFF131A2A),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFF1E283C)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, size: 16, color: AppColors.primary),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textSecondary,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                TextField(
+                  controller: _controller,
+                  focusNode: _focusNode,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                  decoration: InputDecoration(
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 4),
+                    border: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    hintText: 'Enter $label...',
+                    hintStyle: const TextStyle(color: Colors.white24, fontSize: 12),
+                  ),
+                  onChanged: widget.onChanged,
+                ),
+              ],
+            ),
+          ),
+          if (_controller.text.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.close_rounded, size: 16, color: Colors.white30),
+              onPressed: () {
+                _controller.clear();
+                widget.onChanged('');
+              },
+            ),
+        ],
+      ),
+    );
   }
 }

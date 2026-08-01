@@ -332,6 +332,18 @@ class LeaderboardGeneratorController extends StateNotifier<LeaderboardGeneratorS
     state = state.copyWith(pageVariables: updatedPages);
   }
 
+  void resetVariablesToDefaults() {
+    if (state.selectedTemplate != null && state.tournament != null && state.args != null) {
+      _setupTemplatePages(
+        template: state.selectedTemplate!,
+        templates: state.templates,
+        tournament: state.tournament!,
+        args: state.args!,
+        items: state.items,
+      );
+    }
+  }
+
   Map<String, String> _extractTemplateVariables(TemplateModel template, Map<String, String> base) {
     final Map<String, String> result = Map<String, String>.from(base);
     template.globalVariables.forEach((k, v) {

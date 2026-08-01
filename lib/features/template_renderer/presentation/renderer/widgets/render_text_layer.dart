@@ -172,21 +172,31 @@ class RenderTextLayer extends StatelessWidget {
       textStyle = textStyle.copyWith(decoration: TextDecoration.underline);
     }
 
-    if (style.shadowColorHex != 0x00000000 && style.shadowBlurRadius > 0) {
+    final bool isUnconfiguredDefaultShadow = (style.shadowColorHex == 0x40000000 || style.shadowColorHex == 0x44000000) &&
+        style.shadowDx == 0.0 &&
+        style.shadowDy == 4.0 &&
+        style.shadowBlurRadius >= 8.0;
+
+    final bool hasActiveShadow = style.shadowColorHex != 0x00000000 &&
+        style.shadowColorHex != 0x40000000 &&
+        style.shadowColorHex != 0x44000000 &&
+        style.shadowBlurRadius > 0;
+
+    if (!isUnconfiguredDefaultShadow && hasActiveShadow) {
       Color shadowColor = parseColor(style.shadowColorHex);
-      // Soften high-alpha dark shadows to prevent pitch-black circular blobs behind text
-      if (shadowColor.a > 0.4) {
-        shadowColor = shadowColor.withValues(alpha: 0.35);
+      if (shadowColor.a > 0.0) {
+        final double safeBlur = style.shadowBlurRadius.clamp(0.0, 2.0);
+        final double safeDy = style.shadowDy == 0.0 ? 1.5 : style.shadowDy;
+        textStyle = textStyle.copyWith(
+          shadows: [
+            Shadow(
+              color: shadowColor.withValues(alpha: shadowColor.a > 0.35 ? 0.25 : shadowColor.a),
+              offset: Offset(style.shadowDx, safeDy),
+              blurRadius: safeBlur,
+            ),
+          ],
+        );
       }
-      textStyle = textStyle.copyWith(
-        shadows: [
-          Shadow(
-            color: shadowColor,
-            offset: Offset(style.shadowDx, style.shadowDy),
-            blurRadius: style.shadowBlurRadius.clamp(0.0, 12.0),
-          ),
-        ],
-      );
     }
 
     return textStyle;
