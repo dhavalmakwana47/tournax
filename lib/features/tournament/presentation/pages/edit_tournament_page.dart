@@ -34,6 +34,7 @@ class _EditTournamentPageState extends ConsumerState<EditTournamentPage> {
   MetaOption? _mode;
   MetaOption? _tournamentType;
   MetaOption? _leaderboardType;
+  MetaOption? _status;
   bool _checkInEnabled = false;
   bool _allowSubstitute = false;
   bool _autoQualify = false;
@@ -117,6 +118,8 @@ class _EditTournamentPageState extends ConsumerState<EditTournamentPage> {
       }
       _leaderboardType ??=
           meta.leaderboardTypes.isNotEmpty ? meta.leaderboardTypes.first : null;
+      _status = _findOption(meta.statuses, tournament.status) ??
+          (meta.statuses.isNotEmpty ? meta.statuses.first : null);
     }
 
     setState(() => _prefilled = true);
@@ -124,7 +127,8 @@ class _EditTournamentPageState extends ConsumerState<EditTournamentPage> {
 
   MetaOption? _findOption(List<MetaOption> options, String value) {
     try {
-      return options.firstWhere((o) => o.value == value);
+      final valLower = value.trim().toLowerCase();
+      return options.firstWhere((o) => o.value.trim().toLowerCase() == valLower);
     } catch (_) {
       return null;
     }
@@ -250,6 +254,10 @@ class _EditTournamentPageState extends ConsumerState<EditTournamentPage> {
     if (_leaderboardType != null &&
         _leaderboardType!.value != (o.leaderboardType ?? '')) {
       payload['leaderboard_type'] = _leaderboardType!.value;
+    }
+
+    if (_status != null && _status!.value != o.status) {
+      payload['status'] = _status!.value;
     }
 
     final rules = _rulesCtrl.text.trim();
@@ -402,6 +410,20 @@ class _EditTournamentPageState extends ConsumerState<EditTournamentPage> {
                       ),
                     ),
                   const SizedBox(height: AppSpacing.md),
+                  if (meta != null && _status != null)
+                    _FormField(
+                      label: 'Status',
+                      child: _DropdownField<MetaOption>(
+                        value: _status!,
+                        items: meta.statuses,
+                        errorText: fieldErrors['status'],
+                        onChanged: (v) {
+                          setState(() => _status = v);
+                          _clearFieldError('status');
+                        },
+                      ),
+                    ),
+                  const SizedBox(height: AppSpacing.md),
                   Row(
                     children: [
                       Expanded(
@@ -468,7 +490,7 @@ class _EditTournamentPageState extends ConsumerState<EditTournamentPage> {
                                   size: 18),
                               errorText: fieldErrors['start_date'],
                             ),
-                            validator: Validators.futureDateTime,
+                            validator: Validators.requiredDateTime,
                             onTap: () => _pickDateTime(_startDateCtrl),
                           ),
                         ),

@@ -16,10 +16,23 @@ class TournamentRepositoryImpl implements TournamentRepository {
   final NetworkInfo networkInfo;
 
   @override
-  Future<List<TournamentEntity>> getTournaments() async {
+  Future<PaginatedResult<TournamentEntity>> getTournaments({
+    int page = 1,
+    int perPage = 5,
+    String? status,
+  }) async {
     if (!await networkInfo.isConnected) throw ApiException.noInternet();
-    final models = await remoteDatasource.getTournaments();
-    return models.map(_toEntity).toList();
+    final res = await remoteDatasource.getTournaments(
+      page: page,
+      perPage: perPage,
+      status: status,
+    );
+    return PaginatedResult<TournamentEntity>(
+      items: res.items.map(_toEntity).toList(),
+      hasMore: res.hasMore,
+      currentPage: res.currentPage,
+      lastPage: res.lastPage,
+    );
   }
 
   @override
@@ -39,6 +52,7 @@ class TournamentRepositoryImpl implements TournamentRepository {
     bool autoQualify = false,
     String? leaderboardType,
     String? rules,
+    String? status,
   }) async {
     if (!await networkInfo.isConnected) throw ApiException.noInternet();
     final data = <String, dynamic>{
@@ -58,6 +72,7 @@ class TournamentRepositoryImpl implements TournamentRepository {
       'auto_qualify': autoQualify,
       if (leaderboardType != null) 'leaderboard_type': leaderboardType,
       if (rules != null && rules.isNotEmpty) 'rules': rules,
+      if (status != null) 'status': status,
     };
     final model = await remoteDatasource.createTournament(data);
     return _toEntity(model);

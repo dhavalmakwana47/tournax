@@ -77,13 +77,14 @@ abstract final class Validators {
     return null;
   }
 
-  static String? futureDateTime(String? value) {
+  static String? requiredDateTime(String? value) {
     if (value == null || value.trim().isEmpty) return 'Start date is required.';
     final dt = DateTime.tryParse(value.trim());
     if (dt == null) return 'Invalid date format.';
-    if (!dt.isAfter(DateTime.now())) return 'Must be a future date and time.';
     return null;
   }
+
+  static String? futureDateTime(String? value) => requiredDateTime(value);
 
   static String? Function(String?) endDateAfterStart(String startValue) {
     return (String? value) {

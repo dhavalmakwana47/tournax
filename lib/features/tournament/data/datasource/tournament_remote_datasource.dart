@@ -5,8 +5,26 @@ import '../../../../core/utils/app_logger.dart';
 import '../models/tournament_meta_model.dart';
 import '../models/tournament_model.dart';
 
+class PaginatedTournaments {
+  const PaginatedTournaments({
+    required this.items,
+    required this.hasMore,
+    required this.currentPage,
+    required this.lastPage,
+  });
+
+  final List<TournamentModel> items;
+  final bool hasMore;
+  final int currentPage;
+  final int lastPage;
+}
+
 abstract interface class TournamentRemoteDatasource {
-  Future<List<TournamentModel>> getTournaments({int perPage = 15});
+  Future<PaginatedTournaments> getTournaments({
+    int page = 1,
+    int perPage = 5,
+    String? status,
+  });
   Future<TournamentModel> createTournament(Map<String, dynamic> data);
   Future<TournamentMetaModel> getTournamentMeta();
   Future<TournamentModel> showTournament(int tournamentId);
@@ -19,18 +37,39 @@ class TournamentRemoteDatasourceImpl implements TournamentRemoteDatasource {
   final ApiClient _apiClient;
 
   @override
-  Future<List<TournamentModel>> getTournaments({int perPage = 15}) async {
+  Future<PaginatedTournaments> getTournaments({
+    int page = 1,
+    int perPage = 5,
+    String? status,
+  }) async {
     try {
+      final queryParams = <String, dynamic>{
+        'page': page,
+        'per_page': perPage,
+        if (status != null && status.isNotEmpty) 'status': status,
+      };
       final response = await _apiClient.get(
         ApiConstants.tournaments,
-        queryParameters: {'per_page': perPage},
+        queryParameters: queryParams,
       );
       appLogger.d('Tournaments response: $response');
       final data = response['data'] as List<dynamic>?;
-      if (data == null) return [];
-      return data
-          .map((e) => TournamentModel.fromJson(e as Map<String, dynamic>))
-          .toList();
+      final meta = response['meta'] as Map<String, dynamic>?;
+      final currentPage = meta?['current_page'] as int? ?? page;
+      final lastPage = meta?['last_page'] as int? ?? page;
+      final items = data != null
+          ? data
+              .map((e) => TournamentModel.fromJson(e as Map<String, dynamic>))
+              .toList()
+          : <TournamentModel>[];
+      final hasMore = meta != null ? currentPage < lastPage : items.length >= perPage;
+
+      return PaginatedTournaments(
+        items: items,
+        hasMore: hasMore,
+        currentPage: currentPage,
+        lastPage: lastPage,
+      );
     } on ApiException {
       rethrow;
     } catch (e, st) {

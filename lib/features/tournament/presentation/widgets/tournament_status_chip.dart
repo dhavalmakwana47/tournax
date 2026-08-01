@@ -2,35 +2,73 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../domain/entities/tournament_meta_entity.dart';
 
 class TournamentStatusFilterRow extends StatelessWidget {
   const TournamentStatusFilterRow({
     super.key,
     required this.selectedStatus,
     required this.onStatusSelected,
+    this.statusOptions,
   });
 
   final String selectedStatus;
   final ValueChanged<String> onStatusSelected;
+  final List<MetaOption>? statusOptions;
 
-  static const List<Map<String, dynamic>> _statuses = [
-    {'label': 'All', 'color': AppColors.primary},
-    {'label': 'Draft', 'color': AppColors.draftStatus},
-    {'label': 'Upcoming', 'color': AppColors.upcomingStatus},
-    {'label': 'Live', 'color': AppColors.liveStatus},
-    {'label': 'Completed', 'color': AppColors.completedStatus},
-  ];
+  Color _getStatusColor(String value) {
+    switch (value.toLowerCase()) {
+      case 'draft':
+        return AppColors.draftStatus;
+      case 'upcoming':
+        return AppColors.upcomingStatus;
+      case 'ongoing':
+      case 'live':
+      case 'active':
+      case 'in_progress':
+        return AppColors.liveStatus;
+      case 'completed':
+        return AppColors.completedStatus;
+      case 'cancelled':
+        return AppColors.error;
+      default:
+        return AppColors.primary;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final items = <Map<String, dynamic>>[
+      {'value': 'all', 'label': 'All', 'color': AppColors.primary},
+    ];
+
+    if (statusOptions != null && statusOptions!.isNotEmpty) {
+      for (final opt in statusOptions!) {
+        items.add({
+          'value': opt.value,
+          'label': opt.label,
+          'color': _getStatusColor(opt.value),
+        });
+      }
+    } else {
+      items.addAll([
+        {'value': 'draft', 'label': 'Draft', 'color': AppColors.draftStatus},
+        {'value': 'published', 'label': 'Published', 'color': AppColors.upcomingStatus},
+        {'value': 'live', 'label': 'Live', 'color': AppColors.liveStatus},
+        {'value': 'completed', 'label': 'Completed', 'color': AppColors.completedStatus},
+      ]);
+    }
+
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       physics: const BouncingScrollPhysics(),
       child: Row(
-        children: _statuses.map((statusItem) {
+        children: items.map((statusItem) {
+          final value = statusItem['value'] as String;
           final label = statusItem['label'] as String;
           final dotColor = statusItem['color'] as Color;
-          final isSelected = selectedStatus.toLowerCase() == label.toLowerCase();
+          final isSelected = selectedStatus.toLowerCase() == value.toLowerCase() ||
+              selectedStatus.toLowerCase() == label.toLowerCase();
 
           return Padding(
             padding: const EdgeInsets.only(right: AppSpacing.sm),
@@ -38,7 +76,7 @@ class TournamentStatusFilterRow extends StatelessWidget {
               label: label,
               dotColor: dotColor,
               isSelected: isSelected,
-              onTap: () => onStatusSelected(label),
+              onTap: () => onStatusSelected(value),
             ),
           );
         }).toList(),

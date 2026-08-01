@@ -31,6 +31,7 @@ class _CreateTournamentPageState extends ConsumerState<CreateTournamentPage> {
   MetaOption? _mode;
   MetaOption? _tournamentType;
   MetaOption? _leaderboardType;
+  MetaOption? _status;
   bool _checkInEnabled = false;
   bool _allowSubstitute = false;
   bool _autoQualify = false;
@@ -139,6 +140,7 @@ class _CreateTournamentPageState extends ConsumerState<CreateTournamentPage> {
           autoQualify: _autoQualify,
           leaderboardType: _leaderboardType?.value,
           rules: _rulesCtrl.text.trim().isEmpty ? null : _rulesCtrl.text.trim(),
+          status: _status?.value,
         );
 
     if (!mounted) return;
@@ -164,6 +166,7 @@ class _CreateTournamentPageState extends ConsumerState<CreateTournamentPage> {
           meta.tournamentTypes.isNotEmpty ? meta.tournamentTypes.first : null;
       _leaderboardType ??=
           meta.leaderboardTypes.isNotEmpty ? meta.leaderboardTypes.first : null;
+      _status ??= meta.statuses.isNotEmpty ? meta.statuses.first : null;
     }
 
     ref.listen(tournamentControllerProvider, (_, next) {
@@ -274,6 +277,17 @@ class _CreateTournamentPageState extends ConsumerState<CreateTournamentPage> {
                           ),
                         ),
                       const SizedBox(height: AppSpacing.md),
+                      if (meta != null && _status != null)
+                        _FormField(
+                          label: 'Status',
+                          child: _DropdownField<MetaOption>(
+                            value: _status!,
+                            items: meta.statuses,
+                            errorText: fieldErrors['status'],
+                            onChanged: (v) => setState(() => _status = v),
+                          ),
+                        ),
+                      const SizedBox(height: AppSpacing.md),
                       Row(
                         children: [
                           Expanded(
@@ -337,7 +351,7 @@ class _CreateTournamentPageState extends ConsumerState<CreateTournamentPage> {
                                       size: 18),
                                   errorText: fieldErrors['start_date'],
                                 ),
-                                validator: Validators.futureDateTime,
+                                validator: Validators.requiredDateTime,
                                 onTap: () => _pickDateTime(_startDateCtrl),
                               ),
                             ),

@@ -22,6 +22,7 @@ class CreateTournamentUseCase {
     bool autoQualify = false,
     String? leaderboardType,
     String? rules,
+    String? status,
   }) =>
       _repository.createTournament(
         name: name,
@@ -39,5 +40,6 @@ class CreateTournamentUseCase {
         autoQualify: autoQualify,
         leaderboardType: leaderboardType,
         rules: rules,
+        status: status,
       );
 }

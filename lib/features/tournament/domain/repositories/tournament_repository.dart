@@ -1,8 +1,26 @@
 import '../entities/tournament_entity.dart';
 import '../entities/tournament_meta_entity.dart';
 
+class PaginatedResult<T> {
+  const PaginatedResult({
+    required this.items,
+    required this.hasMore,
+    required this.currentPage,
+    required this.lastPage,
+  });
+
+  final List<T> items;
+  final bool hasMore;
+  final int currentPage;
+  final int lastPage;
+}
+
 abstract interface class TournamentRepository {
-  Future<List<TournamentEntity>> getTournaments();
+  Future<PaginatedResult<TournamentEntity>> getTournaments({
+    int page = 1,
+    int perPage = 5,
+    String? status,
+  });
   Future<TournamentEntity> createTournament({
     required String name,
     required String mode,
@@ -19,6 +37,7 @@ abstract interface class TournamentRepository {
     bool autoQualify,
     String? leaderboardType,
     String? rules,
+    String? status,
   });
   Future<TournamentMetaEntity> getTournamentMeta();
   Future<TournamentEntity> showTournament(int tournamentId);
