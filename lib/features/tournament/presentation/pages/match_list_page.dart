@@ -687,6 +687,20 @@ class _MatchCard extends StatelessWidget {
                                   ),
                                 );
                               }
+                              if (val == 'leaderboard_graphic') {
+                                context.pushNamed(
+                                  AppRoutes.leaderboardGenerator,
+                                  extra: LeaderboardGeneratorArgs(
+                                    tournament: tournament,
+                                    args: LeaderboardArgs(
+                                      tournament: tournament,
+                                      type: LeaderboardType.match,
+                                      id: match.id,
+                                      name: match.name ?? 'Match ${match.matchNumber}',
+                                    ),
+                                  ),
+                                );
+                              }
                               if (val == 'edit') onEdit();
                               if (val == 'delete') onDelete();
                             },
@@ -703,6 +717,23 @@ class _MatchCard extends StatelessWidget {
                                     SizedBox(width: 8),
                                     Text(
                                       'Generate Slot List',
+                                      style: TextStyle(fontSize: 13),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const PopupMenuItem(
+                                value: 'leaderboard_graphic',
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.palette_outlined,
+                                      size: 16,
+                                      color: AppColors.primary,
+                                    ),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      'Generate Leaderboard',
                                       style: TextStyle(fontSize: 13),
                                     ),
                                   ],

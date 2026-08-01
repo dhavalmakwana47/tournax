@@ -41,9 +41,15 @@ class TemplateRenderer extends StatelessWidget {
     final sortedLayers = List<LayerModel>.from(template.layers)
       ..sort((a, b) => a.zIndex.compareTo(b.zIndex));
 
-    // Map sequential generic tags ({{team_name}}, {{slot}}) to 1st, 2nd, 3rd... slot entries
+    // Map sequential generic tags ({{team_name}}, {{team_rank}}, {{slot}}, {{kills}}, {{pts}}) to 1st, 2nd, 3rd... entries
     int teamOccurrence = 0;
     int slotOccurrence = 0;
+    int rankOccurrence = 0;
+    int killsOccurrence = 0;
+    int teamPointsOccurrence = 0;
+    int pointsOccurrence = 0;
+    int matchesOccurrence = 0;
+    int winsOccurrence = 0;
     final Map<String, Map<String, String>> layerSpecificVars = {};
 
     for (final layer in sortedLayers) {
@@ -59,11 +65,71 @@ class TemplateRenderer extends StatelessWidget {
           text.contains('{{team_name}}') ||
           text.contains('{{team}}');
 
+      final isGenericRank = key == '{{team_rank}}' ||
+          key == 'team_rank' ||
+          key == '{{rank}}' ||
+          key == 'rank' ||
+          text.contains('{{team_rank}}') ||
+          text.contains('{{rank}}');
+
       final isGenericSlot = key == '{{slot}}' ||
           key == 'slot' ||
           text.contains('{{slot}}');
 
-      if (isGenericTeam || isGenericSlot) {
+      final isGenericMatches = key == '{{team_matches}}' ||
+          key == 'team_matches' ||
+          key == '{{matches}}' ||
+          key == 'matches' ||
+          text.contains('{{team_matches}}') ||
+          text.contains('{{matches}}');
+
+      final isGenericWins = key == '{{team_wins}}' ||
+          key == 'team_wins' ||
+          key == '{{team_win}}' ||
+          key == 'team_win' ||
+          key == '{{wins}}' ||
+          key == 'wins' ||
+          key == '{{win}}' ||
+          key == 'win' ||
+          key == '{{wwcd}}' ||
+          key == 'wwcd' ||
+          text.contains('{{team_wins}}') ||
+          text.contains('{{team_win}}') ||
+          text.contains('{{wins}}') ||
+          text.contains('{{win}}') ||
+          text.contains('{{wwcd}}');
+
+      final isGenericKills = key == '{{team_kills}}' ||
+          key == 'team_kills' ||
+          key == '{{kills}}' ||
+          key == 'kills' ||
+          key == '{{kill_points}}' ||
+          key == 'kill_points' ||
+          text.contains('{{team_kills}}') ||
+          text.contains('{{kills}}') ||
+          text.contains('{{kill_points}}');
+
+      final isGenericTeamPoints = key == '{{team_points}}' ||
+          key == 'team_points' ||
+          key == '{{placement_points}}' ||
+          key == 'placement_points' ||
+          text.contains('{{team_points}}') ||
+          text.contains('{{placement_points}}');
+
+      final isGenericPoints = key == '{{team_total_points}}' ||
+          key == 'team_total_points' ||
+          key == '{{total_points}}' ||
+          key == 'total_points' ||
+          key == '{{points}}' ||
+          key == 'points' ||
+          key == '{{pts}}' ||
+          key == 'pts' ||
+          text.contains('{{team_total_points}}') ||
+          text.contains('{{total_points}}') ||
+          text.contains('{{points}}') ||
+          text.contains('{{pts}}');
+
+      if (isGenericTeam || isGenericSlot || isGenericRank || isGenericKills || isGenericTeamPoints || isGenericPoints || isGenericMatches || isGenericWins) {
         final Map<String, String> customVars = Map<String, String>.from(activeVars);
 
         if (isGenericTeam) {
@@ -76,6 +142,90 @@ class TemplateRenderer extends StatelessWidget {
             customVars['{{team}}'] = teamVal;
             customVars['team'] = teamVal;
           }
+        }
+
+        if (isGenericRank) {
+          rankOccurrence++;
+          final rankVal = activeVars['{{team_rank_$rankOccurrence}}'] ??
+              activeVars['{{rank_$rankOccurrence}}'] ??
+              '#$rankOccurrence';
+          customVars['{{team_rank}}'] = rankVal;
+          customVars['team_rank'] = rankVal;
+          customVars['{{rank}}'] = rankVal;
+          customVars['rank'] = rankVal;
+        }
+
+        if (isGenericMatches) {
+          matchesOccurrence++;
+          final matchesVal = activeVars['{{team_matches_$matchesOccurrence}}'] ??
+              activeVars['{{matches_$matchesOccurrence}}'] ??
+              '1';
+          customVars['{{team_matches}}'] = matchesVal;
+          customVars['team_matches'] = matchesVal;
+          customVars['{{matches}}'] = matchesVal;
+          customVars['matches'] = matchesVal;
+        }
+
+        if (isGenericWins) {
+          winsOccurrence++;
+          final winsVal = activeVars['{{team_wins_$winsOccurrence}}'] ??
+              activeVars['{{team_win_$winsOccurrence}}'] ??
+              activeVars['{{wins_$winsOccurrence}}'] ??
+              activeVars['{{win_$winsOccurrence}}'] ??
+              activeVars['{{wwcd_$winsOccurrence}}'] ??
+              '0';
+          customVars['{{team_wins}}'] = winsVal;
+          customVars['team_wins'] = winsVal;
+          customVars['{{team_win}}'] = winsVal;
+          customVars['team_win'] = winsVal;
+          customVars['{{wins}}'] = winsVal;
+          customVars['wins'] = winsVal;
+          customVars['{{win}}'] = winsVal;
+          customVars['win'] = winsVal;
+          customVars['{{wwcd}}'] = winsVal;
+          customVars['wwcd'] = winsVal;
+        }
+
+        if (isGenericKills) {
+          killsOccurrence++;
+          final killsVal = activeVars['{{team_kills_$killsOccurrence}}'] ??
+              activeVars['{{kills_$killsOccurrence}}'] ??
+              activeVars['{{kill_points_$killsOccurrence}}'] ??
+              '0';
+          customVars['{{team_kills}}'] = killsVal;
+          customVars['team_kills'] = killsVal;
+          customVars['{{kills}}'] = killsVal;
+          customVars['kills'] = killsVal;
+          customVars['{{kill_points}}'] = killsVal;
+          customVars['kill_points'] = killsVal;
+        }
+
+        if (isGenericTeamPoints) {
+          teamPointsOccurrence++;
+          final placeVal = activeVars['{{team_points_$teamPointsOccurrence}}'] ??
+              activeVars['{{placement_points_$teamPointsOccurrence}}'] ??
+              '0';
+          customVars['{{team_points}}'] = placeVal;
+          customVars['team_points'] = placeVal;
+          customVars['{{placement_points}}'] = placeVal;
+          customVars['placement_points'] = placeVal;
+        }
+
+        if (isGenericPoints) {
+          pointsOccurrence++;
+          final ptsVal = activeVars['{{team_total_points_$pointsOccurrence}}'] ??
+              activeVars['{{total_points_$pointsOccurrence}}'] ??
+              activeVars['{{pts_$pointsOccurrence}}'] ??
+              activeVars['{{points_$pointsOccurrence}}'] ??
+              '0';
+          customVars['{{team_total_points}}'] = ptsVal;
+          customVars['team_total_points'] = ptsVal;
+          customVars['{{total_points}}'] = ptsVal;
+          customVars['total_points'] = ptsVal;
+          customVars['{{points}}'] = ptsVal;
+          customVars['points'] = ptsVal;
+          customVars['{{pts}}'] = ptsVal;
+          customVars['pts'] = ptsVal;
         }
 
         if (isGenericSlot) {

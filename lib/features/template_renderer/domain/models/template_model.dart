@@ -8,6 +8,7 @@ class TemplateModel {
   final String name;
   final String description;
   final String category;
+  final String categoryType;
   final int version;
   final String createdAt;
   final String updatedAt;
@@ -22,6 +23,7 @@ class TemplateModel {
     required this.name,
     this.description = 'TournaX Dynamic Tournament Template',
     this.category = 'Tournament Overlay',
+    this.categoryType = 'slot_list',
     this.version = 1,
     required this.createdAt,
     required this.updatedAt,
@@ -37,6 +39,7 @@ class TemplateModel {
     String? name,
     String? description,
     String? category,
+    String? categoryType,
     int? version,
     String? createdAt,
     String? updatedAt,
@@ -51,6 +54,7 @@ class TemplateModel {
       name: name ?? this.name,
       description: description ?? this.description,
       category: category ?? this.category,
+      categoryType: categoryType ?? this.categoryType,
       version: version ?? this.version,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -68,6 +72,8 @@ class TemplateModel {
       'name': name,
       'description': description,
       'category': category,
+      'category_type': categoryType,
+      'categoryType': categoryType,
       'version': version,
       'createdAt': createdAt,
       'updatedAt': updatedAt,
@@ -101,6 +107,7 @@ class TemplateModel {
     if (json['thumbnail'] != null) root['thumbnail'] = json['thumbnail'];
     if (json['created_at'] != null) root['createdAt'] = json['created_at'];
     if (json['updated_at'] != null) root['updatedAt'] = json['updated_at'];
+    if (json['category_type'] != null) root['category_type'] = json['category_type'];
 
     CanvasSpec spec = const CanvasSpec();
     final rawSpec = root['canvasSpec'] ?? root['canvas_spec'];
@@ -136,11 +143,18 @@ class TemplateModel {
       parsedMetadata = Map<String, dynamic>.from(root['metadata'] as Map);
     }
 
+    final String catType = root['category_type'] as String? ??
+        root['categoryType'] as String? ??
+        json['category_type'] as String? ??
+        json['categoryType'] as String? ??
+        'slot_list';
+
     return TemplateModel(
       id: root['id']?.toString() ?? json['id']?.toString() ?? '',
       name: root['name'] as String? ?? json['name'] as String? ?? 'Untitled Template',
       description: root['description'] as String? ?? 'TournaX Dynamic Tournament Template',
       category: root['category'] as String? ?? 'Tournament Overlay',
+      categoryType: catType,
       version: (root['version'] as num?)?.toInt() ?? 1,
       createdAt: root['createdAt'] as String? ?? json['created_at'] as String? ?? DateTime.now().toIso8601String(),
       updatedAt: root['updatedAt'] as String? ?? json['updated_at'] as String? ?? DateTime.now().toIso8601String(),

@@ -106,7 +106,7 @@ class SlotListGeneratorController extends StateNotifier<SlotListGeneratorState> 
       match: match,
     );
     try {
-      final fetched = await repo.getTemplates();
+      final fetched = await repo.getTemplates(categoryType: 'slot_list');
       final defaultTemplate = fetched.isNotEmpty ? fetched.first : repo.createDefault12SlotListTemplate();
 
       _setupTemplatePages(

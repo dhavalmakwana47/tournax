@@ -10,6 +10,8 @@ class LeaderboardItemEntity extends Equatable {
     required this.kills,
     required this.points,
     this.rank,
+    this.killPoints = 0,
+    this.placementPoints = 0,
   });
 
   final int id;
@@ -20,6 +22,8 @@ class LeaderboardItemEntity extends Equatable {
   final int kills;
   final int points;
   final int? rank;
+  final int killPoints;
+  final int placementPoints;
 
   @override
   List<Object?> get props => [
@@ -31,5 +35,7 @@ class LeaderboardItemEntity extends Equatable {
         kills,
         points,
         rank,
+        killPoints,
+        placementPoints,
       ];
 }

@@ -96,24 +96,17 @@ class RenderImageLayer extends StatelessWidget {
   }
 
   Widget _buildPlaceholder() {
+    // If layer has no image URL or asset, render nothing to avoid dark placeholder box artifacts
+    if (layer.assetUrl.isEmpty) {
+      return const SizedBox.shrink();
+    }
     final isTeamLogo = layer.type == LayerType.teamLogo || (layer.variableKey?.contains('team_logo') ?? false);
     return Container(
       width: layer.width,
       height: layer.height,
       decoration: BoxDecoration(
-        color: isTeamLogo ? Colors.amber.withOpacity(0.12) : Colors.white10,
+        color: isTeamLogo ? Colors.amber.withOpacity(0.12) : Colors.transparent,
         borderRadius: BorderRadius.circular(layer.style.borderRadius),
-        border: Border.all(
-          color: isTeamLogo ? Colors.amber.withOpacity(0.35) : Colors.white24,
-          width: 1,
-        ),
-      ),
-      child: Center(
-        child: Icon(
-          isTeamLogo ? Icons.shield_rounded : Icons.image_outlined,
-          color: isTeamLogo ? Colors.amber : Colors.white38,
-          size: (layer.height * 0.5).clamp(16.0, 48.0),
-        ),
       ),
     );
   }

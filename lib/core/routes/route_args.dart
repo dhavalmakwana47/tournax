@@ -4,6 +4,7 @@ import '../../features/tournament/domain/entities/team_entity.dart';
 import '../../features/tournament/domain/entities/tournament_entity.dart';
 import '../../features/tournament/domain/entities/group_entity.dart';
 import '../../features/tournament/domain/entities/match_entity.dart';
+import '../../features/tournament/domain/entities/leaderboard_item_entity.dart';
 
 
 
@@ -153,5 +154,16 @@ class SlotListGeneratorArgs {
   final TournamentEntity tournament;
   final GroupEntity group;
   final MatchEntity match;
+}
+
+class LeaderboardGeneratorArgs {
+  const LeaderboardGeneratorArgs({
+    required this.tournament,
+    required this.args,
+    this.items = const [],
+  });
+  final TournamentEntity tournament;
+  final LeaderboardArgs args;
+  final List<LeaderboardItemEntity> items;
 }
 

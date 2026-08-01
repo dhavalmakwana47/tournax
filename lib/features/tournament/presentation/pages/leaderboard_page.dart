@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../../../../core/routes/app_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
@@ -54,12 +56,52 @@ class _LeaderboardPageState extends ConsumerState<LeaderboardPage> {
         elevation: 0,
         title: Text(
           _getTitle(),
-          style: AppTextStyles.headlineMedium.copyWith(fontSize: 20),
+          style: AppTextStyles.headlineMedium.copyWith(fontSize: 18),
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
           onPressed: () => Navigator.of(context).pop(),
         ),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: InkWell(
+              onTap: () {
+                context.pushNamed(
+                  AppRoutes.leaderboardGenerator,
+                  extra: LeaderboardGeneratorArgs(
+                    tournament: widget.args.tournament,
+                    args: widget.args,
+                    items: state.items,
+                  ),
+                );
+              },
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.primary),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.palette_outlined, color: AppColors.primary, size: 14),
+                    SizedBox(width: 4),
+                    Text(
+                      'Generate Graphic',
+                      style: TextStyle(
+                        color: AppColors.primary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
       body: RefreshIndicator(
         onRefresh: () => ref
