@@ -7,7 +7,9 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/utils/validators.dart';
 import '../../domain/entities/tournament_entity.dart';
+import '../../domain/entities/tournament_meta_entity.dart';
 import '../controller/round_controller.dart';
+import '../controller/tournament_controller.dart';
 
 class EditRoundPage extends ConsumerStatefulWidget {
   const EditRoundPage({
@@ -30,10 +32,8 @@ class _EditRoundPageState extends ConsumerState<EditRoundPage> {
   final _nameCtrl = TextEditingController();
   final _roundNumCtrl = TextEditingController();
   final _groupNumCtrl = TextEditingController();
-  String _status = 'pending';
+  MetaOption? _roundStatusOption;
   bool _prefilled = false;
-
-  final List<String> _statusOptions = ['pending', 'active', 'completed'];
 
   @override
   void initState() {
@@ -42,12 +42,23 @@ class _EditRoundPageState extends ConsumerState<EditRoundPage> {
   }
 
   Future<void> _loadData() async {
-    final round = await ref
+    final metaFuture = () async {
+      final metaStatus = ref.read(tournamentControllerProvider).metaStatus;
+      if (metaStatus == TournamentMetaStatus.initial) {
+        await ref
+            .read(tournamentControllerProvider.notifier)
+            .fetchTournamentMeta();
+      }
+    }();
+
+    final roundFuture = ref
         .read(roundControllerProvider(widget.stageId).notifier)
         .showRound(widget.roundId);
 
+    final results = await Future.wait([metaFuture, roundFuture]);
     if (!mounted) return;
 
+    final round = results[1];
     if (round == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -59,11 +70,22 @@ class _EditRoundPageState extends ConsumerState<EditRoundPage> {
       return;
     }
 
+    final meta = ref.read(tournamentControllerProvider).meta;
+    final roundStatuses = meta?.roundStatuses ?? TournamentMetaEntity.defaultRoundStatuses;
+
     _nameCtrl.text = round.name;
     _roundNumCtrl.text = round.roundNumber.toString();
     _groupNumCtrl.text = round.numberOfGroups.toString();
+
+    MetaOption? matchedStatus;
+    try {
+      matchedStatus = roundStatuses.firstWhere((o) => o.value == round.status);
+    } catch (_) {
+      matchedStatus = roundStatuses.isNotEmpty ? roundStatuses.first : null;
+    }
+
     setState(() {
-      _status = round.status;
+      _roundStatusOption = matchedStatus;
       _prefilled = true;
     });
   }
@@ -94,7 +116,7 @@ class _EditRoundPageState extends ConsumerState<EditRoundPage> {
           name: _nameCtrl.text.trim(),
           roundNumber: roundNum,
           numberOfGroups: groupNum,
-          status: _status,
+          status: _roundStatusOption?.value ?? 'pending',
         );
 
     if (!mounted) return;
@@ -115,8 +137,11 @@ class _EditRoundPageState extends ConsumerState<EditRoundPage> {
   @override
   Widget build(BuildContext context) {
     final roundState = ref.watch(roundControllerProvider(widget.stageId));
+    final tournamentState = ref.watch(tournamentControllerProvider);
     final isLoading = roundState.updateStatus == RoundActionStatus.loading;
     final fieldErrors = roundState.fieldErrors;
+    final meta = tournamentState.meta;
+    final roundStatuses = meta?.roundStatuses ?? TournamentMetaEntity.defaultRoundStatuses;
 
     ref.listen(roundControllerProvider(widget.stageId), (_, next) {
       if (next.updateStatus == RoundActionStatus.error && next.errorMessage != null) {
@@ -198,25 +223,33 @@ class _EditRoundPageState extends ConsumerState<EditRoundPage> {
                     const SizedBox(height: AppSpacing.md),
                     const _FieldLabel(label: 'Status'),
                     const SizedBox(height: AppSpacing.xs),
-                    DropdownButtonFormField<String>(
-                      value: _status,
-                      dropdownColor: AppColors.cardBackground,
-                      style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
-                      decoration: _inputDecoration('Select status').copyWith(
-                        errorText: fieldErrors['status'],
+                    if (_roundStatusOption != null)
+                      DropdownButtonFormField<MetaOption>(
+                        initialValue: _roundStatusOption,
+                        dropdownColor: AppColors.cardBackground,
+                        style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
+                        decoration: _inputDecoration('Select status').copyWith(
+                          errorText: fieldErrors['status'],
+                        ),
+                        items: roundStatuses
+                            .map((e) => DropdownMenuItem(
+                                  value: e,
+                                  child: Text(e.label),
+                                ))
+                            .toList(),
+                        onChanged: (v) {
+                          if (v != null) {
+                            setState(() => _roundStatusOption = v);
+                          }
+                        },
+                      )
+                    else
+                      TextFormField(
+                        enabled: false,
+                        decoration: _inputDecoration('No statuses available').copyWith(
+                          errorText: fieldErrors['status'],
+                        ),
                       ),
-                      items: _statusOptions
-                          .map((s) => DropdownMenuItem(
-                                value: s,
-                                child: Text(s.toUpperCase()),
-                              ))
-                          .toList(),
-                      onChanged: (v) {
-                        if (v != null) {
-                          setState(() => _status = v);
-                        }
-                      },
-                    ),
                     const SizedBox(height: AppSpacing.xl),
                     FilledButton(
                       onPressed: isLoading ? null : _submit,

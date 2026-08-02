@@ -24,7 +24,10 @@ class RoundModel {
         stageId: (json['stage_id'] as num?)?.toInt() ?? stageId ?? 0,
         name: json['name'] as String,
         roundNumber: (json['round_number'] as num?)?.toInt() ?? 0,
-        numberOfGroups: (json['number_of_groups'] as num?)?.toInt() ?? 1,
+        numberOfGroups: (json['number_of_groups'] as num?)?.toInt() ??
+            (json['groups_count'] as num?)?.toInt() ??
+            (json['no_of_groups'] as num?)?.toInt() ??
+            1,
         status: json['status'] as String? ?? 'pending',
         createdAt: json['created_at'] as String?,
       );

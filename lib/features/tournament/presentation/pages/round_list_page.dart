@@ -9,7 +9,9 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../domain/entities/round_entity.dart';
 import '../../domain/entities/tournament_entity.dart';
+import '../../domain/entities/tournament_meta_entity.dart';
 import '../controller/round_controller.dart';
+import '../controller/tournament_controller.dart';
 
 class RoundListPage extends ConsumerStatefulWidget {
   const RoundListPage({
@@ -26,12 +28,36 @@ class RoundListPage extends ConsumerStatefulWidget {
 }
 
 class _RoundListPageState extends ConsumerState<RoundListPage> {
+  final ScrollController _scrollController = ScrollController();
+
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(roundControllerProvider(widget.stageId).notifier).fetchRounds();
     });
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final state = ref.read(roundControllerProvider(widget.stageId));
+    if (!state.hasMore || state.isLoadingMore) return;
+
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final currentScroll = _scrollController.position.pixels;
+    if (maxScroll - currentScroll <= 300 ||
+        _scrollController.position.extentAfter < 300) {
+      ref
+          .read(roundControllerProvider(widget.stageId).notifier)
+          .fetchMoreRounds();
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   Future<void> _confirmDelete(RoundEntity round) async {
@@ -97,6 +123,16 @@ class _RoundListPageState extends ConsumerState<RoundListPage> {
     final roundNumCtrl = TextEditingController();
     final groupNumCtrl = TextEditingController(text: '1');
 
+    final metaStatus = ref.read(tournamentControllerProvider).metaStatus;
+    if (metaStatus == TournamentMetaStatus.initial) {
+      await ref.read(tournamentControllerProvider.notifier).fetchTournamentMeta();
+    }
+    if (!mounted) return;
+
+    final meta = ref.read(tournamentControllerProvider).meta;
+    final roundStatuses = meta?.roundStatuses ?? TournamentMetaEntity.defaultRoundStatuses;
+    MetaOption selectedStatus = roundStatuses.first;
+
     await showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -113,11 +149,12 @@ class _RoundListPageState extends ConsumerState<RoundListPage> {
             fontWeight: FontWeight.w800,
           ),
         ),
-        content: Form(
-          key: formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+        content: SingleChildScrollView(
+          child: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const Text('Round Name', style: AppTextStyles.bodyMedium),
               const SizedBox(height: AppSpacing.sm),
@@ -147,10 +184,29 @@ class _RoundListPageState extends ConsumerState<RoundListPage> {
                 keyboardType: TextInputType.number,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               ),
+              const SizedBox(height: AppSpacing.md),
+              const Text('Status', style: AppTextStyles.bodyMedium),
+              const SizedBox(height: AppSpacing.sm),
+              DropdownButtonFormField<MetaOption>(
+                initialValue: selectedStatus,
+                dropdownColor: AppColors.cardBackground,
+                style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
+                decoration: _dialogInputDecoration(hint: 'Select status'),
+                items: roundStatuses
+                    .map((e) => DropdownMenuItem(
+                          value: e,
+                          child: Text(e.label),
+                        ))
+                    .toList(),
+                onChanged: (v) {
+                  if (v != null) selectedStatus = v;
+                },
+              ),
             ],
           ),
         ),
-        actions: [
+      ),
+      actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
             child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
@@ -162,6 +218,7 @@ class _RoundListPageState extends ConsumerState<RoundListPage> {
                   'name': nameCtrl.text.trim(),
                   'roundNumber': int.tryParse(roundNumCtrl.text),
                   'numberOfGroups': int.tryParse(groupNumCtrl.text) ?? 1,
+                  'status': selectedStatus.value,
                 });
               }
             },
@@ -182,6 +239,7 @@ class _RoundListPageState extends ConsumerState<RoundListPage> {
             name: result['name'] as String,
             roundNumber: result['roundNumber'] as int?,
             numberOfGroups: result['numberOfGroups'] as int?,
+            status: result['status'] as String?,
           );
 
       if (!mounted) return;
@@ -317,6 +375,7 @@ class _RoundListPageState extends ConsumerState<RoundListPage> {
               .read(roundControllerProvider(widget.stageId).notifier)
               .fetchRounds(),
           child: SingleChildScrollView(
+            controller: _scrollController,
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.all(AppSpacing.lg),
             child: Column(
@@ -326,7 +385,6 @@ class _RoundListPageState extends ConsumerState<RoundListPage> {
                 _QuickStatsOverview(
                   tournament: widget.tournament,
                   roundsCount: state.rounds.length,
-                  totalGroups: state.rounds.fold(0, (acc, r) => acc + r.numberOfGroups),
                 ),
                 const SizedBox(height: AppSpacing.lg),
 
@@ -439,8 +497,33 @@ class _RoundListPageState extends ConsumerState<RoundListPage> {
                 ListView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  itemCount: state.rounds.length,
+                  itemCount: state.rounds.length +
+                      ((state.isLoadingMore || (!state.hasMore && state.rounds.isNotEmpty)) ? 1 : 0),
                   itemBuilder: (context, index) {
+                    if (index == state.rounds.length) {
+                      if (state.isLoadingMore) {
+                        return const Padding(
+                          padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
+                          child: Center(
+                            child: CircularProgressIndicator(
+                              color: AppColors.primary,
+                              strokeWidth: 2.5,
+                            ),
+                          ),
+                        );
+                      }
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
+                        child: Center(
+                          child: Text(
+                            'No more rounds',
+                            style: AppTextStyles.bodySmall.copyWith(
+                              color: AppColors.textSecondary.withValues(alpha: 0.7),
+                            ),
+                          ),
+                        ),
+                      );
+                    }
                     final round = state.rounds[index];
                     return _RoundCard(
                       index: index,
@@ -497,107 +580,162 @@ class _QuickStatsOverview extends StatelessWidget {
   const _QuickStatsOverview({
     required this.tournament,
     required this.roundsCount,
-    required this.totalGroups,
   });
 
   final TournamentEntity tournament;
   final int roundsCount;
-  final int totalGroups;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: AppColors.cardBackground,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.cardBorder, width: 1),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _StatItem(
-            icon: Icons.repeat_rounded,
-            iconBg: const Color(0xFF6C5CE7),
-            value: '$roundsCount',
-            label: 'Total Rounds',
-          ),
-          Container(width: 1, height: 36, color: AppColors.divider),
-          _StatItem(
-            icon: Icons.grid_view_rounded,
-            iconBg: const Color(0xFF00CEC9),
-            value: '$totalGroups',
-            label: 'Total Groups',
-          ),
-          Container(width: 1, height: 36, color: AppColors.divider),
-          _StatItem(
-            icon: Icons.access_time_rounded,
-            iconBg: const Color(0xFF00B894),
-            value: tournament.status.toUpperCase(),
-            label: 'Status',
-            isStatus: true,
-          ),
-        ],
-      ),
-    );
-  }
-}
+    final statusLower = tournament.status.toLowerCase();
+    final (statusColor, statusLabel) = switch (statusLower) {
+      'completed' || 'finished' => (const Color(0xFF10B981), 'COMPLETED'),
+      'active' || 'in_progress' || 'ongoing' => (const Color(0xFF3B82F6), 'IN PROGRESS'),
+      'pending' => (const Color(0xFFFFB300), 'PENDING'),
+      'draft' => (const Color(0xFF8B5CF6), 'DRAFT'),
+      'published' => (const Color(0xFF00CEC9), 'PUBLISHED'),
+      _ => (AppColors.primary, tournament.status.replaceAll('_', ' ').toUpperCase()),
+    };
 
-class _StatItem extends StatelessWidget {
-  const _StatItem({
-    required this.icon,
-    required this.iconBg,
-    required this.value,
-    required this.label,
-    this.isStatus = false,
-  });
-
-  final IconData icon;
-  final Color iconBg;
-  final String value;
-  final String label;
-  final bool isStatus;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
+    return Row(
       children: [
-        Container(
-          width: 32,
-          height: 32,
-          decoration: BoxDecoration(
-            color: iconBg.withValues(alpha: 0.15),
-            shape: BoxShape.circle,
+        // Total Rounds Card
+        Expanded(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: AppColors.cardBackground,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppColors.cardBorder, width: 1),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.2),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF6C5CE7).withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.repeat_rounded,
+                    color: Color(0xFF6C5CE7),
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '$roundsCount',
+                        style: const TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      const Text(
+                        'Total Rounds',
+                        style: TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
-          child: Icon(icon, color: iconBg, size: 16),
         ),
-        const SizedBox(height: 6),
-        Text(
-          value,
-          style: TextStyle(
-            color: isStatus ? AppColors.upcomingStatus : AppColors.textPrimary,
-            fontSize: isStatus ? 13 : 15,
-            fontWeight: FontWeight.w800,
-            letterSpacing: isStatus ? 0.5 : 0,
-          ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          style: const TextStyle(
-            color: AppColors.textSecondary,
-            fontSize: 10,
-            fontWeight: FontWeight.w600,
+        const SizedBox(width: 12),
+
+        // Tournament Status Card
+        Expanded(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: AppColors.cardBackground,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppColors.cardBorder, width: 1),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.2),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: statusColor.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    Icons.sensors_rounded,
+                    color: statusColor,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: statusColor.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(color: statusColor.withValues(alpha: 0.3)),
+                        ),
+                        child: Text(
+                          statusLabel,
+                          style: TextStyle(
+                            color: statusColor,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.5,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      const Text(
+                        'Status',
+                        style: TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ],
@@ -628,12 +766,14 @@ class _RoundCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final orderNum = round.roundNumber > 0 ? round.roundNumber : index + 1;
     final statusLower = round.status.toLowerCase();
-    final statusColor = switch (statusLower) {
-      'active' || 'in_progress' => AppColors.primary,
-      'completed' => AppColors.upcomingStatus,
-      _ => AppColors.draftStatus,
+    final (statusColor, statusLabel) = switch (statusLower) {
+      'completed' || 'finished' => (const Color(0xFF10B981), 'COMPLETED'),
+      'active' || 'in_progress' || 'ongoing' => (const Color(0xFF3B82F6), 'IN PROGRESS'),
+      'pending' => (const Color(0xFFFFB300), 'PENDING'),
+      'draft' => (const Color(0xFF8B5CF6), 'DRAFT'),
+      'published' => (const Color(0xFF00CEC9), 'PUBLISHED'),
+      _ => (AppColors.primary, round.status.replaceAll('_', ' ').toUpperCase()),
     };
-    final statusLabel = round.status.toUpperCase();
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.md),

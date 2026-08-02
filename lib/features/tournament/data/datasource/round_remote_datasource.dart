@@ -4,13 +4,32 @@ import '../../../../core/api/api_exception.dart';
 import '../../../../core/utils/app_logger.dart';
 import '../models/round_model.dart';
 
+class PaginatedRounds {
+  const PaginatedRounds({
+    required this.items,
+    required this.hasMore,
+    required this.currentPage,
+    required this.lastPage,
+  });
+
+  final List<RoundModel> items;
+  final bool hasMore;
+  final int currentPage;
+  final int lastPage;
+}
+
 abstract interface class RoundRemoteDatasource {
-  Future<List<RoundModel>> getRounds(int stageId);
+  Future<PaginatedRounds> getRounds({
+    required int stageId,
+    int page = 1,
+    int perPage = 10,
+  });
   Future<RoundModel> createRound({
     required int stageId,
     required String name,
     int? roundNumber,
     int? numberOfGroups,
+    String? status,
   });
   Future<RoundModel> showRound(int roundId);
   Future<RoundModel> updateRound({
@@ -28,19 +47,49 @@ class RoundRemoteDatasourceImpl implements RoundRemoteDatasource {
 
   final ApiClient _apiClient;
 
+  int _toInt(dynamic val, int fallback) {
+    if (val == null) return fallback;
+    if (val is int) return val;
+    if (val is num) return val.toInt();
+    if (val is String) return int.tryParse(val.trim()) ?? fallback;
+    return fallback;
+  }
+
   @override
-  Future<List<RoundModel>> getRounds(int stageId) async {
+  Future<PaginatedRounds> getRounds({
+    required int stageId,
+    int page = 1,
+    int perPage = 10,
+  }) async {
     try {
       final response = await _apiClient.post(
         ApiConstants.roundsList,
-        data: {'stage_id': stageId},
+        data: {
+          'stage_id': stageId,
+          'page': page,
+          'per_page': perPage,
+        },
       );
       appLogger.d('Rounds response: $response');
       final data = response['data'] as List<dynamic>?;
-      if (data == null) return [];
-      return data
-          .map((e) => RoundModel.fromJson(e as Map<String, dynamic>, stageId: stageId))
-          .toList();
+      final meta = response['meta'] as Map<String, dynamic>?;
+      final currentPage = _toInt(meta?['current_page'], page);
+      final lastPage = _toInt(meta?['last_page'], page);
+
+      final items = data != null
+          ? data
+              .map((e) => RoundModel.fromJson(e as Map<String, dynamic>, stageId: stageId))
+              .toList()
+          : <RoundModel>[];
+
+      final hasMore = meta != null ? currentPage < lastPage : items.length >= perPage;
+
+      return PaginatedRounds(
+        items: items,
+        hasMore: hasMore,
+        currentPage: currentPage,
+        lastPage: lastPage,
+      );
     } on ApiException {
       rethrow;
     } catch (e, st) {
@@ -55,6 +104,7 @@ class RoundRemoteDatasourceImpl implements RoundRemoteDatasource {
     required String name,
     int? roundNumber,
     int? numberOfGroups,
+    String? status,
   }) async {
     try {
       final response = await _apiClient.post(
@@ -64,6 +114,7 @@ class RoundRemoteDatasourceImpl implements RoundRemoteDatasource {
           'name': name,
           if (roundNumber != null) 'round_number': roundNumber,
           if (numberOfGroups != null) 'number_of_groups': numberOfGroups,
+          if (status != null && status.isNotEmpty) 'status': status,
         },
       );
       appLogger.d('Create round response: $response');

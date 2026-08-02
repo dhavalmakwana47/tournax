@@ -4,6 +4,8 @@ import '../../domain/entities/round_entity.dart';
 import '../../domain/repositories/round_repository.dart';
 import '../datasource/round_remote_datasource.dart';
 
+import '../../domain/repositories/tournament_repository.dart';
+
 class RoundRepositoryImpl implements RoundRepository {
   RoundRepositoryImpl({
     required this.remoteDatasource,
@@ -14,10 +16,23 @@ class RoundRepositoryImpl implements RoundRepository {
   final NetworkInfo networkInfo;
 
   @override
-  Future<List<RoundEntity>> getRounds(int stageId) async {
+  Future<PaginatedResult<RoundEntity>> getRounds({
+    required int stageId,
+    int page = 1,
+    int perPage = 10,
+  }) async {
     if (!await networkInfo.isConnected) throw ApiException.noInternet();
-    final models = await remoteDatasource.getRounds(stageId);
-    return models.map((m) => m.toEntity()).toList();
+    final res = await remoteDatasource.getRounds(
+      stageId: stageId,
+      page: page,
+      perPage: perPage,
+    );
+    return PaginatedResult<RoundEntity>(
+      items: res.items.map((m) => m.toEntity()).toList(),
+      hasMore: res.hasMore,
+      currentPage: res.currentPage,
+      lastPage: res.lastPage,
+    );
   }
 
   @override
@@ -26,6 +41,7 @@ class RoundRepositoryImpl implements RoundRepository {
     required String name,
     int? roundNumber,
     int? numberOfGroups,
+    String? status,
   }) async {
     if (!await networkInfo.isConnected) throw ApiException.noInternet();
     final model = await remoteDatasource.createRound(
@@ -33,6 +49,7 @@ class RoundRepositoryImpl implements RoundRepository {
       name: name,
       roundNumber: roundNumber,
       numberOfGroups: numberOfGroups,
+      status: status,
     );
     return model.toEntity();
   }

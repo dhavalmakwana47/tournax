@@ -20,6 +20,10 @@ class RoundState extends Equatable {
     this.updateStatus = RoundActionStatus.idle,
     this.deleteStatus = RoundActionStatus.idle,
     this.rounds = const [],
+    this.hasMore = false,
+    this.isLoadingMore = false,
+    this.currentPage = 1,
+    this.lastPage = 1,
     this.errorMessage,
     this.fieldErrors = const {},
   });
@@ -29,6 +33,10 @@ class RoundState extends Equatable {
   final RoundActionStatus updateStatus;
   final RoundActionStatus deleteStatus;
   final List<RoundEntity> rounds;
+  final bool hasMore;
+  final bool isLoadingMore;
+  final int currentPage;
+  final int lastPage;
   final String? errorMessage;
   final Map<String, String> fieldErrors;
 
@@ -38,6 +46,10 @@ class RoundState extends Equatable {
     RoundActionStatus? updateStatus,
     RoundActionStatus? deleteStatus,
     List<RoundEntity>? rounds,
+    bool? hasMore,
+    bool? isLoadingMore,
+    int? currentPage,
+    int? lastPage,
     String? errorMessage,
     Map<String, String>? fieldErrors,
     bool clearError = false,
@@ -48,12 +60,28 @@ class RoundState extends Equatable {
         updateStatus: updateStatus ?? this.updateStatus,
         deleteStatus: deleteStatus ?? this.deleteStatus,
         rounds: rounds ?? this.rounds,
+        hasMore: hasMore ?? this.hasMore,
+        isLoadingMore: isLoadingMore ?? this.isLoadingMore,
+        currentPage: currentPage ?? this.currentPage,
+        lastPage: lastPage ?? this.lastPage,
         errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
         fieldErrors: clearError ? const {} : fieldErrors ?? this.fieldErrors,
       );
 
   @override
-  List<Object?> get props => [listStatus, createStatus, updateStatus, deleteStatus, rounds, errorMessage, fieldErrors];
+  List<Object?> get props => [
+        listStatus,
+        createStatus,
+        updateStatus,
+        deleteStatus,
+        rounds,
+        hasMore,
+        isLoadingMore,
+        currentPage,
+        lastPage,
+        errorMessage,
+        fieldErrors,
+      ];
 }
 
 class RoundController extends FamilyNotifier<RoundState, int> {
@@ -68,12 +96,25 @@ class RoundController extends FamilyNotifier<RoundState, int> {
 
   Future<void> fetchRounds() async {
     if (state.listStatus == RoundListStatus.loading) return;
-    state = state.copyWith(listStatus: RoundListStatus.loading, clearError: true);
+    state = state.copyWith(
+      listStatus: RoundListStatus.loading,
+      currentPage: 1,
+      hasMore: true,
+      isLoadingMore: false,
+      clearError: true,
+    );
     try {
-      final rounds = await _getRounds(arg);
+      final res = await _getRounds(
+        stageId: arg,
+        page: 1,
+        perPage: 10,
+      );
       state = state.copyWith(
-        listStatus: rounds.isEmpty ? RoundListStatus.empty : RoundListStatus.success,
-        rounds: rounds,
+        listStatus: res.items.isEmpty ? RoundListStatus.empty : RoundListStatus.success,
+        rounds: res.items,
+        hasMore: res.hasMore,
+        currentPage: res.currentPage,
+        lastPage: res.lastPage,
       );
     } on ApiException catch (e) {
       appLogger.e('Fetch rounds failed', error: e);
@@ -84,10 +125,38 @@ class RoundController extends FamilyNotifier<RoundState, int> {
     }
   }
 
+  Future<void> fetchMoreRounds() async {
+    if (!state.hasMore || state.isLoadingMore || state.listStatus == RoundListStatus.loading) return;
+    state = state.copyWith(isLoadingMore: true);
+    final nextPage = state.currentPage + 1;
+    try {
+      final res = await _getRounds(
+        stageId: arg,
+        page: nextPage,
+        perPage: 10,
+      );
+      final combined = [...state.rounds, ...res.items];
+      state = state.copyWith(
+        rounds: combined,
+        hasMore: res.hasMore,
+        currentPage: res.currentPage,
+        lastPage: res.lastPage,
+        isLoadingMore: false,
+      );
+    } on ApiException catch (e) {
+      appLogger.e('Fetch more rounds failed', error: e);
+      state = state.copyWith(isLoadingMore: false);
+    } catch (e) {
+      appLogger.e('Unexpected fetch more rounds error', error: e);
+      state = state.copyWith(isLoadingMore: false);
+    }
+  }
+
   Future<bool> createRound({
     required String name,
     int? roundNumber,
     int? numberOfGroups,
+    String? status,
   }) async {
     state = state.copyWith(createStatus: RoundActionStatus.loading, clearError: true);
     try {
@@ -96,6 +165,7 @@ class RoundController extends FamilyNotifier<RoundState, int> {
         name: name,
         roundNumber: roundNumber,
         numberOfGroups: numberOfGroups,
+        status: status,
       );
       state = state.copyWith(
         createStatus: RoundActionStatus.success,

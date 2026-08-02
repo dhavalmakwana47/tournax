@@ -11,11 +11,13 @@ class CreateRoundUseCase {
     required String name,
     int? roundNumber,
     int? numberOfGroups,
+    String? status,
   }) =>
       _repository.createRound(
         stageId: stageId,
         name: name,
         roundNumber: roundNumber,
         numberOfGroups: numberOfGroups,
+        status: status,
       );
 }

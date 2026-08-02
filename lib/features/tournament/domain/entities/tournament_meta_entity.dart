@@ -19,8 +19,10 @@ class TournamentMetaEntity extends Equatable {
     this.leaderboardTypes = const [],
     List<MetaOption>? statuses,
     List<MetaOption>? stageStatuses,
+    List<MetaOption>? roundStatuses,
   })  : _statuses = statuses,
-        _stageStatuses = stageStatuses;
+        _stageStatuses = stageStatuses,
+        _roundStatuses = roundStatuses;
 
   final List<MetaOption> modes;
   final List<MetaOption> tournamentTypes;
@@ -29,6 +31,7 @@ class TournamentMetaEntity extends Equatable {
   final List<MetaOption> leaderboardTypes;
   final List<MetaOption>? _statuses;
   final List<MetaOption>? _stageStatuses;
+  final List<MetaOption>? _roundStatuses;
 
   static const defaultStatuses = [
     MetaOption(value: 'draft', label: 'Draft'),
@@ -43,6 +46,12 @@ class TournamentMetaEntity extends Equatable {
     MetaOption(value: 'completed', label: 'Completed'),
   ];
 
+  static const defaultRoundStatuses = [
+    MetaOption(value: 'pending', label: 'Pending'),
+    MetaOption(value: 'active', label: 'Active'),
+    MetaOption(value: 'completed', label: 'Completed'),
+  ];
+
   List<MetaOption> get statuses =>
       (_statuses != null && _statuses!.isNotEmpty) ? _statuses! : defaultStatuses;
 
@@ -51,7 +60,20 @@ class TournamentMetaEntity extends Equatable {
           ? _stageStatuses!
           : defaultStageStatuses;
 
+  List<MetaOption> get roundStatuses =>
+      (_roundStatuses != null && _roundStatuses!.isNotEmpty)
+          ? _roundStatuses!
+          : defaultRoundStatuses;
+
   @override
-  List<Object> get props =>
-      [modes, tournamentTypes, playerRoles, stageTypes, leaderboardTypes, statuses, stageStatuses];
+  List<Object> get props => [
+        modes,
+        tournamentTypes,
+        playerRoles,
+        stageTypes,
+        leaderboardTypes,
+        statuses,
+        stageStatuses,
+        roundStatuses,
+      ];
 }
