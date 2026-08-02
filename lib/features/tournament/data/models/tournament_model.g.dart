@@ -8,6 +8,7 @@ part of 'tournament_model.dart';
 
 TournamentModel _$TournamentModelFromJson(Map<String, dynamic> json) {
   final settings = json['settings'] as Map<String, dynamic>? ?? {};
+  final stagesJson = json['stages'] as Map<String, dynamic>?;
   return TournamentModel(
     id: (json['id'] as num).toInt(),
     name: json['name'] as String,
@@ -28,6 +29,8 @@ TournamentModel _$TournamentModelFromJson(Map<String, dynamic> json) {
     leaderboardType: settings['leaderboard_type'] as String?,
     rules: settings['rules'] as String?,
     createdAt: json['created_at'] as String?,
+    stages:
+        stagesJson != null ? TournamentStagesModel.fromJson(stagesJson) : null,
   );
 }
 
@@ -52,4 +55,13 @@ Map<String, dynamic> _$TournamentModelToJson(TournamentModel instance) =>
       'leaderboard_type': instance.leaderboardType,
       'rules': instance.rules,
       'created_at': instance.createdAt,
+      'stages': instance.stages?.toJson(),
+    };
+
+Map<String, dynamic> _$TournamentStagesModelToJson(
+        TournamentStagesModel instance) =>
+    <String, dynamic>{
+      'total': instance.total,
+      'completed': instance.completed,
+      'completed_percentage': instance.completedPercentage,
     };

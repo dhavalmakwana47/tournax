@@ -65,6 +65,7 @@ class TournamentActionButton extends StatelessWidget {
           ),
         );
 
+      case 'published':
       case 'upcoming':
         return _OutlinedActionButton(
           label: 'View',
@@ -83,10 +84,16 @@ class TournamentActionButton extends StatelessWidget {
 
       case 'completed':
       case 'finished':
-      default:
         return _OutlinedActionButton(
           label: 'Results',
           color: AppColors.completedStatus,
+          onPressed: onPressed,
+        );
+
+      default:
+        return _OutlinedActionButton(
+          label: 'View',
+          color: AppColors.primary,
           onPressed: onPressed,
         );
     }

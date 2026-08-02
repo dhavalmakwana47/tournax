@@ -10,6 +10,7 @@ class TournamentBadge extends StatelessWidget {
     switch (status.toLowerCase()) {
       case 'draft':
         return AppColors.draftStatus;
+      case 'published':
       case 'upcoming':
         return AppColors.upcomingStatus;
       case 'live':

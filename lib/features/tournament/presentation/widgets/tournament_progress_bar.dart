@@ -27,7 +27,7 @@ class TournamentProgressBar extends StatelessWidget {
           children: [
             Expanded(
               child: Text(
-                'Tournament Progress',
+                'Completed Stage',
                 style: const TextStyle(
                   color: AppColors.textSecondary,
                   fontSize: 10,

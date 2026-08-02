@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'tournament_stages_entity.dart';
 
 class TournamentEntity extends Equatable {
   const TournamentEntity({
@@ -21,6 +22,7 @@ class TournamentEntity extends Equatable {
     this.leaderboardType,
     this.rules,
     this.createdAt,
+    this.stages,
   });
 
   final int id;
@@ -42,6 +44,7 @@ class TournamentEntity extends Equatable {
   final String? leaderboardType;
   final String? rules;
   final String? createdAt;
+  final TournamentStagesEntity? stages;
 
   @override
   List<Object?> get props => [
@@ -64,5 +67,6 @@ class TournamentEntity extends Equatable {
         leaderboardType,
         rules,
         createdAt,
+        stages,
       ];
 }

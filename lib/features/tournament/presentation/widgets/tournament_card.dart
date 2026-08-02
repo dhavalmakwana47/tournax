@@ -34,34 +34,54 @@ class TournamentCard extends StatelessWidget {
     return _bannerImages[index];
   }
 
-  // Derive mock stage & progress for visual demo based on status or ID if API doesn't send progress
+  // Derive dynamic stage & progress from API stages object
   (String stageText, double percent) get _stageProgress {
+    if (tournament.stages != null) {
+      final stages = tournament.stages!;
+      final completed = stages.completed;
+      final total = stages.total;
+      final percent = (stages.completedPercentage / 100.0).clamp(0.0, 1.0);
+      return ('$completed/$total', percent);
+    }
     switch (tournament.status.toLowerCase()) {
       case 'draft':
-        return ('Stage 1 of 5', 0.20);
+        return ('0/0', 0.0);
       case 'upcoming':
-        return ('Stage 0 of 4', 0.0);
+        return ('0/0', 0.0);
       case 'live':
       case 'active':
       case 'ongoing':
-        return ('Stage 2 of 4', 0.50);
+        return ('0/0', 0.0);
       case 'completed':
       case 'finished':
       default:
-        return ('Stage 4 of 4', 1.0);
+        return ('0/0', 1.0);
     }
   }
 
   // Fourth stat card calculation
   (IconData icon, String value, String label, Color? color) get _fourthStat {
+    if (tournament.stages != null) {
+      final percentage = tournament.stages!.completedPercentage;
+      final formatted = percentage.truncateToDouble() == percentage
+          ? percentage.toStringAsFixed(0)
+          : percentage.toStringAsFixed(1);
+      return (
+        Icons.trending_up_rounded,
+        '$formatted%',
+        'Progress',
+        AppColors.success,
+      );
+    }
     switch (tournament.status.toLowerCase()) {
       case 'draft':
         return (Icons.trending_up_rounded, '--', 'Progress', AppColors.success);
+      case 'published':
       case 'upcoming':
         return (
-          Icons.access_time_rounded,
-          '5 Days',
-          'Remaining',
+          Icons.calendar_month_rounded,
+          'Published',
+          'Status',
           AppColors.upcomingStatus
         );
       case 'live':
@@ -75,12 +95,18 @@ class TournamentCard extends StatelessWidget {
         );
       case 'completed':
       case 'finished':
-      default:
         return (
           Icons.emoji_events_rounded,
           'Completed',
           'Final Result',
           AppColors.warning
+        );
+      default:
+        return (
+          Icons.sports_esports_rounded,
+          tournament.status.toUpperCase(),
+          'Status',
+          AppColors.primary,
         );
     }
   }
@@ -88,12 +114,8 @@ class TournamentCard extends StatelessWidget {
   void _onPrimaryAction(BuildContext context) {
     switch (tournament.status.toLowerCase()) {
       case 'draft':
+      case 'published':
       case 'upcoming':
-        context.pushNamed(
-          AppRoutes.stageList,
-          extra: StageArgs(tournament: tournament),
-        );
-        break;
       case 'live':
       case 'active':
       case 'ongoing':
@@ -104,7 +126,6 @@ class TournamentCard extends StatelessWidget {
         break;
       case 'completed':
       case 'finished':
-      default:
         context.pushNamed(
           AppRoutes.leaderboard,
           extra: LeaderboardArgs(
@@ -113,6 +134,12 @@ class TournamentCard extends StatelessWidget {
             id: tournament.id,
             name: tournament.name,
           ),
+        );
+        break;
+      default:
+        context.pushNamed(
+          AppRoutes.stageList,
+          extra: StageArgs(tournament: tournament),
         );
         break;
     }

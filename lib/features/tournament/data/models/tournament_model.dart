@@ -24,6 +24,7 @@ class TournamentModel {
     this.leaderboardType,
     this.rules,
     this.createdAt,
+    this.stages,
   });
 
   final int id;
@@ -73,8 +74,36 @@ class TournamentModel {
   @JsonKey(name: 'created_at')
   final String? createdAt;
 
+  final TournamentStagesModel? stages;
+
   factory TournamentModel.fromJson(Map<String, dynamic> json) =>
       _$TournamentModelFromJson(json);
 
   Map<String, dynamic> toJson() => _$TournamentModelToJson(this);
+}
+
+@JsonSerializable()
+class TournamentStagesModel {
+  const TournamentStagesModel({
+    required this.total,
+    required this.completed,
+    required this.completedPercentage,
+  });
+
+  final int total;
+  final int completed;
+
+  @JsonKey(name: 'completed_percentage')
+  final double completedPercentage;
+
+  factory TournamentStagesModel.fromJson(Map<String, dynamic> json) {
+    return TournamentStagesModel(
+      total: (json['total'] as num?)?.toInt() ?? 0,
+      completed: (json['completed'] as num?)?.toInt() ?? 0,
+      completedPercentage:
+          (json['completed_percentage'] as num?)?.toDouble() ?? 0.0,
+    );
+  }
+
+  Map<String, dynamic> toJson() => _$TournamentStagesModelToJson(this);
 }

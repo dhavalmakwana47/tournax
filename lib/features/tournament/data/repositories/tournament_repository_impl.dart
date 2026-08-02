@@ -2,6 +2,7 @@ import '../../../../core/api/api_exception.dart';
 import '../../../../core/network/network_info.dart';
 import '../../domain/entities/tournament_entity.dart';
 import '../../domain/entities/tournament_meta_entity.dart';
+import '../../domain/entities/tournament_stages_entity.dart';
 import '../../domain/repositories/tournament_repository.dart';
 import '../datasource/tournament_remote_datasource.dart';
 import '../models/tournament_model.dart';
@@ -118,5 +119,12 @@ class TournamentRepositoryImpl implements TournamentRepository {
         leaderboardType: m.leaderboardType,
         rules: m.rules,
         createdAt: m.createdAt,
+        stages: m.stages != null
+            ? TournamentStagesEntity(
+                total: m.stages!.total,
+                completed: m.stages!.completed,
+                completedPercentage: m.stages!.completedPercentage,
+              )
+            : null,
       );
 }
