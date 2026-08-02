@@ -36,6 +36,18 @@ class ProfileRepositoryImpl implements ProfileRepository {
     return _toEntity(model);
   }
 
+  @override
+  Future<String> sendDeleteAccountOtp() async {
+    if (!await networkInfo.isConnected) throw ApiException.noInternet();
+    return remoteDatasource.sendDeleteAccountOtp();
+  }
+
+  @override
+  Future<String> confirmDeleteAccount(String otp) async {
+    if (!await networkInfo.isConnected) throw ApiException.noInternet();
+    return remoteDatasource.confirmDeleteAccount(otp);
+  }
+
   ProfileEntity _toEntity(model) => ProfileEntity(
         id: model.id,
         name: model.name,

@@ -15,6 +15,8 @@ abstract final class ApiConstants {
   static const String verifyEmailOtp = '/verify-email-otp';
   static const String resendEmailOtp = '/resend-email-otp';
   static const String profile = '/profile';
+  static const String sendDeleteAccountOtp = '/account/delete/send-otp';
+  static const String confirmDeleteAccount = '/account/delete/confirm';
 
   static const String forgotPassword = '/forgot-password';
   static const String verifyForgotPasswordOtp = '/verify-forgot-password-otp';

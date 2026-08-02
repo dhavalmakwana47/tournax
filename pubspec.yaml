@@ -85,7 +85,6 @@ flutter:
   uses-material-design: true
 
   assets:
-    - assets/design/login/
     - assets/App Logo/
 
   # An image asset can refer to one or more resolution-specific "variants", see

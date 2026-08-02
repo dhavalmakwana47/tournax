@@ -21,6 +21,8 @@ import '../../features/profile/data/repositories/profile_repository_impl.dart';
 import '../../features/profile/domain/repositories/profile_repository.dart';
 import '../../features/profile/domain/usecases/get_profile_usecase.dart';
 import '../../features/profile/domain/usecases/update_profile_usecase.dart';
+import '../../features/profile/domain/usecases/send_delete_account_otp_usecase.dart';
+import '../../features/profile/domain/usecases/confirm_delete_account_usecase.dart';
 import '../../features/tournament/data/datasource/tournament_remote_datasource.dart';
 import '../../features/tournament/data/datasource/team_remote_datasource.dart';
 import '../../features/tournament/data/repositories/tournament_repository_impl.dart';
@@ -188,6 +190,16 @@ final getProfileUseCaseProvider = Provider<GetProfileUseCase>(
 
 final updateProfileUseCaseProvider = Provider<UpdateProfileUseCase>(
   (ref) => UpdateProfileUseCase(ref.read(profileRepositoryProvider)),
+);
+
+final sendDeleteAccountOtpUseCaseProvider =
+    Provider<SendDeleteAccountOtpUseCase>(
+  (ref) => SendDeleteAccountOtpUseCase(ref.read(profileRepositoryProvider)),
+);
+
+final confirmDeleteAccountUseCaseProvider =
+    Provider<ConfirmDeleteAccountUseCase>(
+  (ref) => ConfirmDeleteAccountUseCase(ref.read(profileRepositoryProvider)),
 );
 
 // --- Tournament ---

@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_assets.dart';
@@ -9,6 +11,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/utils/app_logger.dart';
 import '../controller/profile_controller.dart';
+import '../widgets/delete_account_dialogs.dart';
 
 class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({super.key});
@@ -36,6 +39,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     } finally {
       authNotifier.setToken(null);
     }
+  }
+
+  Future<void> _handleDeleteAccount() async {
+    final profile = ref.read(profileControllerProvider).profile;
+    final userEmail = profile?.email ?? '';
+    await showDeleteAccountFlow(context, ref, userEmail);
   }
 
   Future<bool> _showLogoutDialog() async {
@@ -143,6 +152,21 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                             label: 'About Tournax',
                             subtitle: 'Version 1.0.0',
                             onTap: () {},
+                            trailing: const _ChevronTrailing(),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: AppSpacing.xl),
+                      const _SectionLabel(label: 'DANGER ZONE'),
+                      const SizedBox(height: AppSpacing.sm),
+                      _SettingsGroup(
+                        children: [
+                          _SettingsTile(
+                            icon: Icons.delete_forever_rounded,
+                            iconColor: AppColors.error,
+                            label: 'Delete My Account',
+                            subtitle: 'Permanently remove your account and data',
+                            onTap: _handleDeleteAccount,
                             trailing: const _ChevronTrailing(),
                           ),
                         ],

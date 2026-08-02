@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/di/providers.dart';
 import '../../../../core/routes/app_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/utils/app_logger.dart';
 import '../../domain/entities/profile_entity.dart';
 import '../controller/profile_controller.dart';
+import '../widgets/delete_account_dialogs.dart';
 
 class ProfilePage extends ConsumerStatefulWidget {
   const ProfilePage({super.key});
@@ -114,6 +117,79 @@ class _ProfileContent extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.md),
           _InfoCard(profile: profile),
+          const SizedBox(height: AppSpacing.xl),
+          const _LogoutSection(),
+          const SizedBox(height: AppSpacing.md),
+          _DeleteAccountSection(email: profile.email),
+        ],
+      ),
+    );
+  }
+}
+
+class _DeleteAccountSection extends ConsumerWidget {
+  const _DeleteAccountSection({required this.email});
+
+  final String email;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.error.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: AppColors.error.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: AppColors.error.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(AppRadius.md),
+            ),
+            child: const Icon(Icons.delete_forever_rounded, color: AppColors.error, size: 22),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Text(
+                  'Delete My Account',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.error,
+                  ),
+                ),
+                SizedBox(height: 2),
+                Text(
+                  'Permanently remove account & data',
+                  style: AppTextStyles.bodySmall,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          ElevatedButton(
+            onPressed: () => showDeleteAccountFlow(context, ref, email),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.md,
+                vertical: AppSpacing.xs + 2,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppRadius.full),
+              ),
+            ),
+            child: const Text('Delete', style: AppTextStyles.labelLarge),
+          ),
         ],
       ),
     );
@@ -292,6 +368,146 @@ class _InfoRow extends StatelessWidget {
           ),
           if (trailing case final t?) t,
         ],
+      ),
+    );
+  }
+}
+
+class _LogoutSection extends ConsumerWidget {
+  const _LogoutSection();
+
+  Future<void> _handleLogout(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => const _LogoutDialog(),
+        ) ??
+        false;
+
+    if (!confirmed || !context.mounted) return;
+
+    try {
+      await ref.read(logoutUseCaseProvider).call();
+    } catch (e) {
+      appLogger.e('Logout error', error: e);
+    } finally {
+      authNotifier.setToken(null);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(AppRadius.lg),
+      child: InkWell(
+        onTap: () => _handleLogout(context, ref),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        splashColor: AppColors.error.withValues(alpha: 0.1),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(AppSpacing.md),
+          decoration: BoxDecoration(
+            color: AppColors.error.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            border: Border.all(color: AppColors.error.withValues(alpha: 0.25)),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.logout_rounded, color: AppColors.error, size: 20),
+              const SizedBox(width: AppSpacing.sm),
+              Text(
+                'Sign Out',
+                style: AppTextStyles.titleMedium.copyWith(
+                  color: AppColors.error,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LogoutDialog extends StatelessWidget {
+  const _LogoutDialog();
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: AppColors.cardBackground,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.xl),
+        side: BorderSide(color: AppColors.error.withValues(alpha: 0.3)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: AppColors.error.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.logout_rounded,
+                  color: AppColors.error, size: 30),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            const Text('Sign Out?', style: AppTextStyles.headlineMedium),
+            const SizedBox(height: AppSpacing.sm),
+            const Text(
+              'You will be logged out of your TournaX account. You can sign back in anytime.',
+              style: AppTextStyles.bodyMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: AppSpacing.xl),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: AppColors.divider),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppRadius.full),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                          vertical: AppSpacing.sm + 2),
+                    ),
+                    child: Text(
+                      'Cancel',
+                      style: AppTextStyles.titleMedium.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.of(context).pop(true),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.error,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppRadius.full),
+                      ),
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(
+                          vertical: AppSpacing.sm + 2),
+                    ),
+                    child: const Text('Sign Out',
+                        style: AppTextStyles.labelLarge),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

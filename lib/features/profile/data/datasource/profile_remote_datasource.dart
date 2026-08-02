@@ -7,6 +7,8 @@ import '../models/profile_model.dart';
 abstract interface class ProfileRemoteDatasource {
   Future<ProfileModel> getProfile();
   Future<ProfileModel> updateProfile(Map<String, dynamic> data);
+  Future<String> sendDeleteAccountOtp();
+  Future<String> confirmDeleteAccount(String otp);
 }
 
 class ProfileRemoteDatasourceImpl implements ProfileRemoteDatasource {
@@ -42,6 +44,37 @@ class ProfileRemoteDatasourceImpl implements ProfileRemoteDatasource {
       rethrow;
     } catch (e, st) {
       appLogger.e('Profile update error', error: e, stackTrace: st);
+      throw ApiException.unexpected();
+    }
+  }
+
+  @override
+  Future<String> sendDeleteAccountOtp() async {
+    try {
+      final response = await _apiClient.post(ApiConstants.sendDeleteAccountOtp);
+      appLogger.d('Delete account send OTP response: $response');
+      return response['message'] as String? ?? 'A confirmation OTP has been sent to your email.';
+    } on ApiException {
+      rethrow;
+    } catch (e, st) {
+      appLogger.e('Delete account send OTP error', error: e, stackTrace: st);
+      throw ApiException.unexpected();
+    }
+  }
+
+  @override
+  Future<String> confirmDeleteAccount(String otp) async {
+    try {
+      final response = await _apiClient.post(
+        ApiConstants.confirmDeleteAccount,
+        data: {'otp': otp},
+      );
+      appLogger.d('Delete account confirm response: $response');
+      return response['message'] as String? ?? 'Your account has been permanently deleted.';
+    } on ApiException {
+      rethrow;
+    } catch (e, st) {
+      appLogger.e('Delete account confirm error', error: e, stackTrace: st);
       throw ApiException.unexpected();
     }
   }
