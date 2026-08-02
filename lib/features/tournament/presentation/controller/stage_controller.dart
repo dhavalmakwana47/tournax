@@ -21,6 +21,10 @@ class StageState extends Equatable {
     this.updateStatus = StageActionStatus.idle,
     this.deleteStatus = StageActionStatus.idle,
     this.stages = const [],
+    this.hasMore = false,
+    this.isLoadingMore = false,
+    this.currentPage = 1,
+    this.lastPage = 1,
     this.errorMessage,
     this.fieldErrors = const {},
   });
@@ -30,6 +34,10 @@ class StageState extends Equatable {
   final StageActionStatus updateStatus;
   final StageActionStatus deleteStatus;
   final List<StageEntity> stages;
+  final bool hasMore;
+  final bool isLoadingMore;
+  final int currentPage;
+  final int lastPage;
   final String? errorMessage;
   final Map<String, String> fieldErrors;
 
@@ -39,6 +47,10 @@ class StageState extends Equatable {
     StageActionStatus? updateStatus,
     StageActionStatus? deleteStatus,
     List<StageEntity>? stages,
+    bool? hasMore,
+    bool? isLoadingMore,
+    int? currentPage,
+    int? lastPage,
     String? errorMessage,
     Map<String, String>? fieldErrors,
     bool clearError = false,
@@ -49,6 +61,10 @@ class StageState extends Equatable {
         updateStatus: updateStatus ?? this.updateStatus,
         deleteStatus: deleteStatus ?? this.deleteStatus,
         stages: stages ?? this.stages,
+        hasMore: hasMore ?? this.hasMore,
+        isLoadingMore: isLoadingMore ?? this.isLoadingMore,
+        currentPage: currentPage ?? this.currentPage,
+        lastPage: lastPage ?? this.lastPage,
         errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
         fieldErrors: clearError ? const {} : fieldErrors ?? this.fieldErrors,
       );
@@ -60,6 +76,10 @@ class StageState extends Equatable {
         updateStatus,
         deleteStatus,
         stages,
+        hasMore,
+        isLoadingMore,
+        currentPage,
+        lastPage,
         errorMessage,
         fieldErrors,
       ];
@@ -77,12 +97,25 @@ class StageController extends FamilyNotifier<StageState, int> {
 
   Future<void> fetchStages() async {
     if (state.listStatus == StageListStatus.loading) return;
-    state = state.copyWith(listStatus: StageListStatus.loading, clearError: true);
+    state = state.copyWith(
+      listStatus: StageListStatus.loading,
+      currentPage: 1,
+      hasMore: true,
+      isLoadingMore: false,
+      clearError: true,
+    );
     try {
-      final stages = await _getStages(arg);
+      final res = await _getStages(
+        tournamentId: arg,
+        page: 1,
+        perPage: 10,
+      );
       state = state.copyWith(
-        listStatus: stages.isEmpty ? StageListStatus.empty : StageListStatus.success,
-        stages: stages,
+        listStatus: res.items.isEmpty ? StageListStatus.empty : StageListStatus.success,
+        stages: res.items,
+        hasMore: res.hasMore,
+        currentPage: res.currentPage,
+        lastPage: res.lastPage,
       );
     } on ApiException catch (e) {
       appLogger.e('Fetch stages failed', error: e);
@@ -96,10 +129,38 @@ class StageController extends FamilyNotifier<StageState, int> {
     }
   }
 
+  Future<void> fetchMoreStages() async {
+    if (!state.hasMore || state.isLoadingMore || state.listStatus == StageListStatus.loading) return;
+    state = state.copyWith(isLoadingMore: true);
+    final nextPage = state.currentPage + 1;
+    try {
+      final res = await _getStages(
+        tournamentId: arg,
+        page: nextPage,
+        perPage: 10,
+      );
+      final combined = [...state.stages, ...res.items];
+      state = state.copyWith(
+        stages: combined,
+        hasMore: res.hasMore,
+        currentPage: res.currentPage,
+        lastPage: res.lastPage,
+        isLoadingMore: false,
+      );
+    } on ApiException catch (e) {
+      appLogger.e('Fetch more stages failed', error: e);
+      state = state.copyWith(isLoadingMore: false);
+    } catch (e) {
+      appLogger.e('Unexpected fetch more stages error', error: e);
+      state = state.copyWith(isLoadingMore: false);
+    }
+  }
+
   Future<bool> createStage({
     required String name,
     required String stageType,
     int? order,
+    String? status,
   }) async {
     state = state.copyWith(
         createStatus: StageActionStatus.loading, clearError: true);
@@ -109,6 +170,7 @@ class StageController extends FamilyNotifier<StageState, int> {
         name: name,
         stageType: stageType,
         order: order,
+        status: status,
       );
       state = state.copyWith(
         createStatus: StageActionStatus.success,
@@ -150,6 +212,7 @@ class StageController extends FamilyNotifier<StageState, int> {
     required String name,
     required String stageType,
     int? order,
+    String? status,
   }) async {
     state = state.copyWith(
         updateStatus: StageActionStatus.loading, clearError: true);
@@ -159,6 +222,7 @@ class StageController extends FamilyNotifier<StageState, int> {
         name: name,
         stageType: stageType,
         order: order,
+        status: status,
       );
       final updated = state.stages.map((s) {
         if (s.id != stageId) return s;
@@ -168,7 +232,10 @@ class StageController extends FamilyNotifier<StageState, int> {
           name: name,
           stageType: stageType,
           order: order,
-          status: s.status,
+          status: status ?? s.status,
+          teamsCount: s.teamsCount,
+          roundsCount: s.roundsCount,
+          matchesCount: s.matchesCount,
           createdAt: s.createdAt,
         );
       }).toList();

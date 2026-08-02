@@ -1,12 +1,18 @@
 import '../entities/stage_entity.dart';
+import 'tournament_repository.dart';
 
 abstract interface class StageRepository {
-  Future<List<StageEntity>> getStages(int tournamentId);
+  Future<PaginatedResult<StageEntity>> getStages({
+    required int tournamentId,
+    int page = 1,
+    int perPage = 10,
+  });
   Future<StageEntity> createStage({
     required int tournamentId,
     required String name,
     required String stageType,
     int? order,
+    String? status,
   });
   Future<StageEntity> showStage(int stageId);
   Future<void> updateStage({
@@ -14,6 +20,7 @@ abstract interface class StageRepository {
     required String name,
     required String stageType,
     int? order,
+    String? status,
   });
   Future<void> deleteStage(int stageId);
 }

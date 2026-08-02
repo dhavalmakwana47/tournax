@@ -8,6 +8,9 @@ class StageEntity extends Equatable {
     required this.stageType,
     this.order,
     this.status,
+    this.teamsCount,
+    this.roundsCount,
+    this.matchesCount,
     this.createdAt,
   });
 
@@ -17,8 +20,22 @@ class StageEntity extends Equatable {
   final String stageType;
   final int? order;
   final String? status;
+  final int? teamsCount;
+  final int? roundsCount;
+  final int? matchesCount;
   final String? createdAt;
 
   @override
-  List<Object?> get props => [id, tournamentId, name, stageType, order, status, createdAt];
+  List<Object?> get props => [
+        id,
+        tournamentId,
+        name,
+        stageType,
+        order,
+        status,
+        teamsCount,
+        roundsCount,
+        matchesCount,
+        createdAt,
+      ];
 }

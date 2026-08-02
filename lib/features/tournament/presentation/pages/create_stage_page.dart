@@ -25,6 +25,7 @@ class _CreateStagePageState extends ConsumerState<CreateStagePage> {
   final _nameCtrl = TextEditingController();
   final _orderCtrl = TextEditingController();
   MetaOption? _stageType;
+  MetaOption? _stageStatusOption;
 
   @override
   void initState() {
@@ -60,6 +61,7 @@ class _CreateStagePageState extends ConsumerState<CreateStagePage> {
           name: _nameCtrl.text.trim(),
           stageType: _stageType!.value,
           order: order,
+          status: _stageStatusOption?.value,
         );
 
     if (!mounted) return;
@@ -89,6 +91,9 @@ class _CreateStagePageState extends ConsumerState<CreateStagePage> {
 
     if (meta != null && _stageType == null && meta.stageTypes.isNotEmpty) {
       _stageType = meta.stageTypes.first;
+    }
+    if (meta != null && _stageStatusOption == null && meta.stageStatuses.isNotEmpty) {
+      _stageStatusOption = meta.stageStatuses.first;
     }
 
     ref.listen(stageControllerProvider(widget.tournament.id), (_, next) {
@@ -131,7 +136,7 @@ class _CreateStagePageState extends ConsumerState<CreateStagePage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _FieldLabel(label: 'Tournament'),
+                    const _FieldLabel(label: 'Tournament'),
                     const SizedBox(height: AppSpacing.xs),
                     TextFormField(
                       initialValue: widget.tournament.name,
@@ -143,7 +148,7 @@ class _CreateStagePageState extends ConsumerState<CreateStagePage> {
                       ),
                     ),
                     const SizedBox(height: AppSpacing.md),
-                    _FieldLabel(label: 'Stage Name'),
+                    const _FieldLabel(label: 'Stage Name'),
                     const SizedBox(height: AppSpacing.xs),
                     TextFormField(
                       controller: _nameCtrl,
@@ -155,7 +160,7 @@ class _CreateStagePageState extends ConsumerState<CreateStagePage> {
                       textInputAction: TextInputAction.next,
                     ),
                     const SizedBox(height: AppSpacing.md),
-                    _FieldLabel(label: 'Stage Type'),
+                    const _FieldLabel(label: 'Stage Type'),
                     const SizedBox(height: AppSpacing.xs),
                     if (meta != null &&
                         meta.stageTypes.isNotEmpty &&
@@ -187,7 +192,37 @@ class _CreateStagePageState extends ConsumerState<CreateStagePage> {
                         ),
                       ),
                     const SizedBox(height: AppSpacing.md),
-                    _FieldLabel(label: 'Order (optional)'),
+                    const _FieldLabel(label: 'Status'),
+                    const SizedBox(height: AppSpacing.xs),
+                    if (meta != null &&
+                        meta.stageStatuses.isNotEmpty &&
+                        _stageStatusOption != null)
+                      DropdownButtonFormField<MetaOption>(
+                        initialValue: _stageStatusOption,
+                        dropdownColor: AppColors.cardBackground,
+                        style: const TextStyle(
+                            color: AppColors.textPrimary, fontSize: 14),
+                        decoration: _inputDecoration('Select status').copyWith(
+                          errorText: fieldErrors['status'],
+                        ),
+                        items: meta.stageStatuses
+                            .map((e) => DropdownMenuItem(
+                                  value: e,
+                                  child: Text(e.label),
+                                ))
+                            .toList(),
+                        onChanged: (v) => setState(() => _stageStatusOption = v),
+                      )
+                    else
+                      TextFormField(
+                        enabled: false,
+                        decoration:
+                            _inputDecoration('No stage statuses available').copyWith(
+                          errorText: fieldErrors['status'],
+                        ),
+                      ),
+                    const SizedBox(height: AppSpacing.md),
+                    const _FieldLabel(label: 'Order (optional)'),
                     const SizedBox(height: AppSpacing.xs),
                     TextFormField(
                       controller: _orderCtrl,

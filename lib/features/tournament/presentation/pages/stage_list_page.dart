@@ -20,14 +20,38 @@ class StageListPage extends ConsumerStatefulWidget {
 }
 
 class _StageListPageState extends ConsumerState<StageListPage> {
+  final ScrollController _scrollController = ScrollController();
+
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref
           .read(stageControllerProvider(widget.tournament.id).notifier)
           .fetchStages();
     });
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final state = ref.read(stageControllerProvider(widget.tournament.id));
+    if (!state.hasMore || state.isLoadingMore) return;
+
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final currentScroll = _scrollController.position.pixels;
+    if (maxScroll - currentScroll <= 300 ||
+        _scrollController.position.extentAfter < 300) {
+      ref
+          .read(stageControllerProvider(widget.tournament.id).notifier)
+          .fetchMoreStages();
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   Future<void> _confirmDelete(StageEntity stage) async {
@@ -210,6 +234,7 @@ class _StageListPageState extends ConsumerState<StageListPage> {
               .read(stageControllerProvider(widget.tournament.id).notifier)
               .fetchStages(),
           child: SingleChildScrollView(
+            controller: _scrollController,
             physics: const AlwaysScrollableScrollPhysics(
               parent: BouncingScrollPhysics(),
             ),
@@ -285,48 +310,6 @@ class _StageListPageState extends ConsumerState<StageListPage> {
                           const SizedBox(width: 8),
                         ],
                         InkWell(
-                          onTap: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Reorder stages')),
-                            );
-                          },
-                          borderRadius: BorderRadius.circular(8),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.inputFill,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: AppColors.cardBorder,
-                                width: 1,
-                              ),
-                            ),
-                            child: const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.import_export_rounded,
-                                  color: AppColors.textSecondary,
-                                  size: 16,
-                                ),
-                                SizedBox(width: 4),
-                                Text(
-                                  'Reorder',
-                                  style: TextStyle(
-                                    color: AppColors.textSecondary,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        InkWell(
                           onTap: () => context.pushNamed(
                             AppRoutes.createStage,
                             extra: StageArgs(tournament: widget.tournament),
@@ -383,8 +366,33 @@ class _StageListPageState extends ConsumerState<StageListPage> {
                 ListView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  itemCount: state.stages.length,
+                  itemCount: state.stages.length +
+                      ((state.isLoadingMore || (!state.hasMore && state.stages.isNotEmpty)) ? 1 : 0),
                   itemBuilder: (context, index) {
+                    if (index == state.stages.length) {
+                      if (state.isLoadingMore) {
+                        return const Padding(
+                          padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
+                          child: Center(
+                            child: CircularProgressIndicator(
+                              color: AppColors.primary,
+                              strokeWidth: 2.5,
+                            ),
+                          ),
+                        );
+                      }
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
+                        child: Center(
+                          child: Text(
+                            'No more stages',
+                            style: AppTextStyles.bodySmall.copyWith(
+                              color: AppColors.textSecondary.withValues(alpha: 0.7),
+                            ),
+                          ),
+                        ),
+                      );
+                    }
                     final stage = state.stages[index];
                     return _StageCard(
                       index: index,
@@ -601,15 +609,21 @@ class _StageCard extends StatelessWidget {
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
-  // Determine stage status: COMPLETED, IN PROGRESS, UPCOMING
+  // Determine dynamic stage status: COMPLETED, IN PROGRESS, PENDING
   (String statusLabel, Color statusColor) get _stageStatus {
-    final statusStr = (stage.status ?? '').toLowerCase();
-    if (statusStr == 'completed' || index == 0) {
-      return ('COMPLETED', AppColors.liveStatus);
-    } else if (statusStr == 'in_progress' || statusStr == 'active' || index == 1) {
-      return ('IN PROGRESS', AppColors.upcomingStatus);
-    } else {
-      return ('UPCOMING', AppColors.primary);
+    final statusStr = (stage.status ?? 'pending').toLowerCase();
+    switch (statusStr) {
+      case 'completed':
+      case 'finished':
+        return ('COMPLETED', AppColors.liveStatus);
+      case 'active':
+      case 'in_progress':
+      case 'ongoing':
+        return ('IN PROGRESS', AppColors.upcomingStatus);
+      case 'pending':
+        return ('PENDING', AppColors.primary);
+      default:
+        return (statusStr.replaceAll('_', ' ').toUpperCase(), AppColors.primary);
     }
   }
 
@@ -631,29 +645,23 @@ class _StageCard extends StatelessWidget {
     }
   }
 
-  // Derive stage bottom statistics: Teams, Groups/Format, Matches
-  (String teamsText, String formatText, String matchesText) get _stageStats {
-    final nameLower = stage.name.toLowerCase();
-    if (nameLower.contains('qualifier')) {
-      return ('16 Teams', '4 Groups', '24 Matches');
-    } else if (nameLower.contains('group')) {
-      return ('16 Teams', '4 Groups', '24 Matches');
-    } else if (nameLower.contains('quarter')) {
-      return ('8 Teams', 'Single Elimination', '4 Matches');
-    } else if (nameLower.contains('semi')) {
-      return ('4 Teams', 'Single Elimination', '2 Matches');
-    } else if (nameLower.contains('grand') || nameLower.contains('final')) {
-      return ('2 Teams', 'Best of 5', '1 Match');
-    } else {
-      return ('${tournament.maxTeams} Teams', stage.stageType.replaceAll('_', ' ').toUpperCase(), '-- Matches');
-    }
+  // Derive dynamic stage bottom statistics: Teams, Rounds, Matches
+  (String teamsText, String roundsText, String matchesText) get _stageStats {
+    final teams = stage.teamsCount ?? 0;
+    final rounds = stage.roundsCount ?? 0;
+    final matches = stage.matchesCount ?? 0;
+    return (
+      '$teams ${teams == 1 ? 'Team' : 'Teams'}',
+      '$rounds ${rounds == 1 ? 'Round' : 'Rounds'}',
+      '$matches ${matches == 1 ? 'Match' : 'Matches'}',
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final (statusLabel, statusColor) = _stageStatus;
     final (icon, iconBg) = _stageIconConfig;
-    final (teamsText, formatText, matchesText) = _stageStats;
+    final (teamsText, roundsText, matchesText) = _stageStats;
     final orderNum = stage.order ?? (index + 1);
 
     return Container(
@@ -930,16 +938,14 @@ class _StageCard extends StatelessWidget {
                               ),
                               Row(
                                 children: [
-                                  Icon(
-                                    formatText.contains('Group')
-                                        ? Icons.people_outline_rounded
-                                        : Icons.workspace_premium_rounded,
+                                  const Icon(
+                                    Icons.repeat_rounded,
                                     size: 14,
                                     color: AppColors.upcomingStatus,
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
-                                    formatText,
+                                    roundsText,
                                     style: const TextStyle(
                                       color: AppColors.textPrimary,
                                       fontSize: 12,

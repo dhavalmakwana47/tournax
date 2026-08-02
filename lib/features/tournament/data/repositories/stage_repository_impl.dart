@@ -4,6 +4,8 @@ import '../../domain/entities/stage_entity.dart';
 import '../../domain/repositories/stage_repository.dart';
 import '../datasource/stage_remote_datasource.dart';
 
+import '../../domain/repositories/tournament_repository.dart';
+
 class StageRepositoryImpl implements StageRepository {
   StageRepositoryImpl({
     required this.remoteDatasource,
@@ -14,10 +16,23 @@ class StageRepositoryImpl implements StageRepository {
   final NetworkInfo networkInfo;
 
   @override
-  Future<List<StageEntity>> getStages(int tournamentId) async {
+  Future<PaginatedResult<StageEntity>> getStages({
+    required int tournamentId,
+    int page = 1,
+    int perPage = 10,
+  }) async {
     if (!await networkInfo.isConnected) throw ApiException.noInternet();
-    final models = await remoteDatasource.getStages(tournamentId);
-    return models.map((m) => m.toEntity()).toList();
+    final res = await remoteDatasource.getStages(
+      tournamentId: tournamentId,
+      page: page,
+      perPage: perPage,
+    );
+    return PaginatedResult<StageEntity>(
+      items: res.items.map((m) => m.toEntity()).toList(),
+      hasMore: res.hasMore,
+      currentPage: res.currentPage,
+      lastPage: res.lastPage,
+    );
   }
 
   @override
@@ -26,6 +41,7 @@ class StageRepositoryImpl implements StageRepository {
     required String name,
     required String stageType,
     int? order,
+    String? status,
   }) async {
     if (!await networkInfo.isConnected) throw ApiException.noInternet();
     final model = await remoteDatasource.createStage(
@@ -33,6 +49,7 @@ class StageRepositoryImpl implements StageRepository {
       name: name,
       stageType: stageType,
       order: order,
+      status: status,
     );
     return model.toEntity();
   }
@@ -50,6 +67,7 @@ class StageRepositoryImpl implements StageRepository {
     required String name,
     required String stageType,
     int? order,
+    String? status,
   }) async {
     if (!await networkInfo.isConnected) throw ApiException.noInternet();
     await remoteDatasource.updateStage(
@@ -57,6 +75,7 @@ class StageRepositoryImpl implements StageRepository {
       name: name,
       stageType: stageType,
       order: order,
+      status: status,
     );
   }
 

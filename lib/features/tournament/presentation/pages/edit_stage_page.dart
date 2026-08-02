@@ -30,6 +30,7 @@ class _EditStagePageState extends ConsumerState<EditStagePage> {
   final _nameCtrl = TextEditingController();
   final _orderCtrl = TextEditingController();
   MetaOption? _stageType;
+  MetaOption? _stageStatusOption;
   bool _prefilled = false;
 
   @override
@@ -72,16 +73,23 @@ class _EditStagePageState extends ConsumerState<EditStagePage> {
     _orderCtrl.text = stage.order?.toString() ?? '';
 
     MetaOption? matched;
+    MetaOption? matchedStatus;
     if (meta != null) {
       try {
         matched = meta.stageTypes.firstWhere((o) => o.value == stage.stageType);
       } catch (_) {
         matched = meta.stageTypes.isNotEmpty ? meta.stageTypes.first : null;
       }
+      try {
+        matchedStatus = meta.stageStatuses.firstWhere((o) => o.value == stage.status);
+      } catch (_) {
+        matchedStatus = meta.stageStatuses.isNotEmpty ? meta.stageStatuses.first : null;
+      }
     }
 
     setState(() {
       _stageType = matched;
+      _stageStatusOption = matchedStatus;
       _prefilled = true;
     });
   }
@@ -110,6 +118,7 @@ class _EditStagePageState extends ConsumerState<EditStagePage> {
           name: _nameCtrl.text.trim(),
           stageType: _stageType!.value,
           order: order,
+          status: _stageStatusOption?.value,
         );
 
     if (!mounted) return;
@@ -218,6 +227,36 @@ class _EditStagePageState extends ConsumerState<EditStagePage> {
                         decoration:
                             _inputDecoration('No stage types available').copyWith(
                           errorText: fieldErrors['stage_type'],
+                        ),
+                      ),
+                    const SizedBox(height: AppSpacing.md),
+                    const _FieldLabel(label: 'Status'),
+                    const SizedBox(height: AppSpacing.xs),
+                    if (meta != null &&
+                        meta.stageStatuses.isNotEmpty &&
+                        _stageStatusOption != null)
+                      DropdownButtonFormField<MetaOption>(
+                        initialValue: _stageStatusOption,
+                        dropdownColor: AppColors.cardBackground,
+                        style: const TextStyle(
+                            color: AppColors.textPrimary, fontSize: 14),
+                        decoration: _inputDecoration('Select status').copyWith(
+                          errorText: fieldErrors['status'],
+                        ),
+                        items: meta.stageStatuses
+                            .map((e) => DropdownMenuItem(
+                                  value: e,
+                                  child: Text(e.label),
+                                ))
+                            .toList(),
+                        onChanged: (v) => setState(() => _stageStatusOption = v),
+                      )
+                    else
+                      TextFormField(
+                        enabled: false,
+                        decoration:
+                            _inputDecoration('No stage statuses available').copyWith(
+                          errorText: fieldErrors['status'],
                         ),
                       ),
                     const SizedBox(height: AppSpacing.md),

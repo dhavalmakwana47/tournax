@@ -11,11 +11,13 @@ class CreateStageUseCase {
     required String name,
     required String stageType,
     int? order,
+    String? status,
   }) =>
       _repository.createStage(
         tournamentId: tournamentId,
         name: name,
         stageType: stageType,
         order: order,
+        status: status,
       );
 }

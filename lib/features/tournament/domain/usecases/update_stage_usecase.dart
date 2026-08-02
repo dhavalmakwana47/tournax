@@ -10,11 +10,13 @@ class UpdateStageUseCase {
     required String name,
     required String stageType,
     int? order,
+    String? status,
   }) =>
       _repository.updateStage(
         stageId: stageId,
         name: name,
         stageType: stageType,
         order: order,
+        status: status,
       );
 }

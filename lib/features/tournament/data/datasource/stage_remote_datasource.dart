@@ -4,13 +4,32 @@ import '../../../../core/api/api_exception.dart';
 import '../../../../core/utils/app_logger.dart';
 import '../models/stage_model.dart';
 
+class PaginatedStages {
+  const PaginatedStages({
+    required this.items,
+    required this.hasMore,
+    required this.currentPage,
+    required this.lastPage,
+  });
+
+  final List<StageModel> items;
+  final bool hasMore;
+  final int currentPage;
+  final int lastPage;
+}
+
 abstract interface class StageRemoteDatasource {
-  Future<List<StageModel>> getStages(int tournamentId);
+  Future<PaginatedStages> getStages({
+    required int tournamentId,
+    int page = 1,
+    int perPage = 10,
+  });
   Future<StageModel> createStage({
     required int tournamentId,
     required String name,
     required String stageType,
     int? order,
+    String? status,
   });
   Future<StageModel> showStage(int stageId);
   Future<void> updateStage({
@@ -18,6 +37,7 @@ abstract interface class StageRemoteDatasource {
     required String name,
     required String stageType,
     int? order,
+    String? status,
   });
   Future<void> deleteStage(int stageId);
 }
@@ -27,20 +47,50 @@ class StageRemoteDatasourceImpl implements StageRemoteDatasource {
 
   final ApiClient _apiClient;
 
+  int _toInt(dynamic val, int fallback) {
+    if (val == null) return fallback;
+    if (val is int) return val;
+    if (val is num) return val.toInt();
+    if (val is String) return int.tryParse(val.trim()) ?? fallback;
+    return fallback;
+  }
+
   @override
-  Future<List<StageModel>> getStages(int tournamentId) async {
+  Future<PaginatedStages> getStages({
+    required int tournamentId,
+    int page = 1,
+    int perPage = 10,
+  }) async {
     try {
       final response = await _apiClient.post(
         ApiConstants.stagesList,
-        data: {'tournament_id': tournamentId},
+        data: {
+          'tournament_id': tournamentId,
+          'page': page,
+          'per_page': perPage,
+        },
       );
       appLogger.d('Stages response: $response');
       final data = response['data'] as List<dynamic>?;
-      if (data == null) return [];
-      return data
-          .map((e) => StageModel.fromJson(e as Map<String, dynamic>,
-              tournamentId: tournamentId))
-          .toList();
+      final meta = response['meta'] as Map<String, dynamic>?;
+      final currentPage = _toInt(meta?['current_page'], page);
+      final lastPage = _toInt(meta?['last_page'], page);
+
+      final items = data != null
+          ? data
+              .map((e) => StageModel.fromJson(e as Map<String, dynamic>,
+                  tournamentId: tournamentId))
+              .toList()
+          : <StageModel>[];
+
+      final hasMore = meta != null ? currentPage < lastPage : items.length >= perPage;
+
+      return PaginatedStages(
+        items: items,
+        hasMore: hasMore,
+        currentPage: currentPage,
+        lastPage: lastPage,
+      );
     } on ApiException {
       rethrow;
     } catch (e, st) {
@@ -55,6 +105,7 @@ class StageRemoteDatasourceImpl implements StageRemoteDatasource {
     required String name,
     required String stageType,
     int? order,
+    String? status,
   }) async {
     try {
       final response = await _apiClient.post(
@@ -64,6 +115,7 @@ class StageRemoteDatasourceImpl implements StageRemoteDatasource {
           'name': name,
           'stage_type': stageType,
           if (order != null) 'order': order,
+          if (status != null && status.isNotEmpty) 'status': status,
         },
       );
       appLogger.d('Create stage response: $response');
@@ -102,6 +154,7 @@ class StageRemoteDatasourceImpl implements StageRemoteDatasource {
     required String name,
     required String stageType,
     int? order,
+    String? status,
   }) async {
     try {
       await _apiClient.post(
@@ -111,6 +164,7 @@ class StageRemoteDatasourceImpl implements StageRemoteDatasource {
           'name': name,
           'stage_type': stageType,
           if (order != null) 'order': order,
+          if (status != null && status.isNotEmpty) 'status': status,
         },
       );
     } on ApiException {
