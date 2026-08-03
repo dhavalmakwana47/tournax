@@ -91,4 +91,11 @@ abstract final class ApiConstants {
   static const String pointSystemsDelete = '/organizer/point-systems/delete';
 
   static const String templates = '/templates';
+
+  // Player Endpoints
+  static const String playerTournaments = '/player/tournaments';
+  static const String playerTournamentsShow = '/player/tournaments/show';
+  static const String playerTournamentsJoin = '/player/tournaments/join';
+  static const String playerTournamentsLeave = '/player/tournaments/leave';
+  static const String playerTournamentsParticipated = '/player/tournaments/participated';
 }

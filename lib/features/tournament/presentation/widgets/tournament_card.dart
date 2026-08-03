@@ -15,9 +15,14 @@ import 'tournament_stat_card.dart';
 import 'package:tournax/core/widgets/app_cached_network_image.dart';
 
 class TournamentCard extends StatelessWidget {
-  const TournamentCard({super.key, required this.tournament});
+  const TournamentCard({
+    super.key,
+    required this.tournament,
+    this.isOrganizer = false,
+  });
 
   final TournamentEntity tournament;
+  final bool isOrganizer;
 
   // Curated esports game artwork URLs based on tournament ID / title / mode
   static const List<String> _bannerImages = [
@@ -123,7 +128,7 @@ class TournamentCard extends StatelessWidget {
       case 'ongoing':
         context.pushNamed(
           AppRoutes.stageList,
-          extra: StageArgs(tournament: tournament),
+          extra: StageArgs(tournament: tournament, isOrganizer: isOrganizer),
         );
         break;
       case 'completed':
@@ -141,7 +146,7 @@ class TournamentCard extends StatelessWidget {
       default:
         context.pushNamed(
           AppRoutes.stageList,
-          extra: StageArgs(tournament: tournament),
+          extra: StageArgs(tournament: tournament, isOrganizer: isOrganizer),
         );
         break;
     }
@@ -257,6 +262,7 @@ class TournamentCard extends StatelessWidget {
                         children: [
                           TournamentBadge(status: tournament.status),
                           TournamentPopupMenu(
+                            isOrganizer: isOrganizer,
                             onSelected: (action) => _onMenuAction(context, action),
                           ),
                         ],

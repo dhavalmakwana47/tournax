@@ -248,9 +248,13 @@ GoRouter buildRouter(Ref ref, String? initialToken) {
       GoRoute(
         path: AppRoutes.stageList,
         name: AppRoutes.stageList,
-        builder: (context, state) => StageListPage(
-          tournament: (state.extra as StageArgs).tournament,
-        ),
+        builder: (context, state) {
+          final args = state.extra as StageArgs;
+          return StageListPage(
+            tournament: args.tournament,
+            isOrganizer: args.isOrganizer,
+          );
+        },
       ),
       GoRoute(
         path: AppRoutes.createStage,

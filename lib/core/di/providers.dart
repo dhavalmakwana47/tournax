@@ -101,6 +101,13 @@ import '../../features/tournament/domain/usecases/get_round_leaderboard_usecase.
 import '../../features/tournament/domain/usecases/get_stage_leaderboard_usecase.dart';
 import '../../features/tournament/domain/usecases/get_tournament_leaderboard_usecase.dart';
 import '../../features/tournament/domain/usecases/get_match_leaderboard_usecase.dart';
+import '../../features/tournament/data/datasource/player_tournament_remote_datasource.dart';
+import '../../features/tournament/data/repositories/player_tournament_repository_impl.dart';
+import '../../features/tournament/domain/repositories/player_tournament_repository.dart';
+import '../../features/tournament/domain/usecases/get_player_tournaments_usecase.dart';
+import '../../features/tournament/domain/usecases/get_participated_tournaments_usecase.dart';
+import '../../features/tournament/domain/usecases/join_tournament_usecase.dart';
+import '../../features/tournament/domain/usecases/leave_tournament_usecase.dart';
 
 // --- Infrastructure ---
 
@@ -123,6 +130,15 @@ final apiClientProvider = Provider<ApiClient>(
 final networkInfoProvider = Provider<NetworkInfo>(
   (ref) => NetworkInfoImpl(InternetConnection()),
 );
+
+/// Reads the current user's role straight from SecureStorage so
+/// [HomePage] always gets the correct role immediately — even before
+/// the profile API responds.
+final userRoleProvider = FutureProvider<String?>((ref) async {
+  final storage = ref.read(secureStorageProvider);
+  final user = await storage.getUser();
+  return user?['role'] as String?;
+});
 
 // --- Auth ---
 
@@ -522,4 +538,37 @@ final getTournamentLeaderboardUseCaseProvider = Provider<GetTournamentLeaderboar
 
 final getMatchLeaderboardUseCaseProvider = Provider<GetMatchLeaderboardUseCase>(
   (ref) => GetMatchLeaderboardUseCase(ref.read(leaderboardRepositoryProvider)),
+);
+
+// --- Player Tournament ---
+
+final playerTournamentRemoteDatasourceProvider =
+    Provider<PlayerTournamentRemoteDatasource>(
+  (ref) => PlayerTournamentRemoteDatasourceImpl(ref.read(apiClientProvider)),
+);
+
+final playerTournamentRepositoryProvider =
+    Provider<PlayerTournamentRepository>(
+  (ref) => PlayerTournamentRepositoryImpl(
+    remoteDatasource: ref.read(playerTournamentRemoteDatasourceProvider),
+    networkInfo: ref.read(networkInfoProvider),
+  ),
+);
+
+final getPlayerTournamentsUseCaseProvider =
+    Provider<GetPlayerTournamentsUseCase>(
+  (ref) => GetPlayerTournamentsUseCase(ref.read(playerTournamentRepositoryProvider)),
+);
+
+final getParticipatedTournamentsUseCaseProvider =
+    Provider<GetParticipatedTournamentsUseCase>(
+  (ref) => GetParticipatedTournamentsUseCase(ref.read(playerTournamentRepositoryProvider)),
+);
+
+final joinTournamentUseCaseProvider = Provider<JoinTournamentUseCase>(
+  (ref) => JoinTournamentUseCase(ref.read(playerTournamentRepositoryProvider)),
+);
+
+final leaveTournamentUseCaseProvider = Provider<LeaveTournamentUseCase>(
+  (ref) => LeaveTournamentUseCase(ref.read(playerTournamentRepositoryProvider)),
 );

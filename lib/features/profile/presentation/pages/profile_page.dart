@@ -7,6 +7,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/utils/app_logger.dart';
+import '../../../../core/utils/app_state_reset.dart';
 import '../../domain/entities/profile_entity.dart';
 import '../controller/profile_controller.dart';
 import '../widgets/delete_account_dialogs.dart';
@@ -387,6 +388,7 @@ class _LogoutSection extends ConsumerWidget {
     } catch (e) {
       appLogger.e('Logout error', error: e);
     } finally {
+      resetUserStateFromWidget(ref);
       authNotifier.setToken(null);
     }
   }

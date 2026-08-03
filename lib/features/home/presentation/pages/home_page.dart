@@ -1,53 +1,84 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_assets.dart';
+import '../../../../core/di/providers.dart';
 import '../../../../core/routes/app_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
-import '../../../../core/theme/app_text_styles.dart';
+import '../../../authentication/presentation/controller/login_controller.dart';
+import '../../../profile/presentation/controller/profile_controller.dart';
 import '../../../profile/presentation/pages/profile_page.dart';
+import '../../../tournament/presentation/pages/player_tournament_list_page.dart';
 import '../../../tournament/presentation/pages/tournament_list_page.dart';
 
-class HomePage extends StatefulWidget {
+class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
 
   @override
-  State<HomePage> createState() => _HomePageState();
+  ConsumerState<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends ConsumerState<HomePage> {
   int _currentIndex = 0;
 
-  static const List<Widget> _pages = [
-    TournamentListPage(),
-    _PlaceholderView(
-      icon: Icons.groups_rounded,
-      title: 'Teams Management',
-      subtitle: 'Manage teams, rosters, and player profiles.',
-    ),
-    _PlaceholderView(
-      icon: Icons.sports_esports_rounded,
-      title: 'Matches & Fixtures',
-      subtitle: 'View upcoming, live, and completed matches.',
-    ),
-    _PlaceholderView(
-      icon: Icons.equalizer_rounded,
-      title: 'Global Standings',
-      subtitle: 'Track leaderboard positions and rankings.',
-    ),
-    ProfilePage(),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() {
+      ref.read(profileControllerProvider.notifier).fetch();
+    });
+  }
+
+  bool _isOrganizer(String? role) {
+    if (role == null) return false;
+    final r = role.toLowerCase();
+    return r.contains('organizer') || r.contains('organiser');
+  }
 
   @override
   Widget build(BuildContext context) {
+    // --- Primary: role from SecureStorage (available instantly) ---
+    final roleAsync = ref.watch(userRoleProvider);
+
+    // --- Fallbacks from in-memory state (for cases where storage read is
+    //     still in-flight, or after a same-session login) ---
+    final profileRole = ref.watch(profileControllerProvider).profile?.role;
+    final loginRole = ref.watch(loginControllerProvider).user?.role;
+
+    // Resolve role: storage → profile API → login state → null (show loading)
+    final resolvedRole = roleAsync.maybeWhen(
+      data: (r) => r ?? profileRole ?? loginRole,
+      orElse: () => profileRole ?? loginRole,
+    );
+
+    // While role is genuinely unknown (storage hasn't returned yet and no
+    // in-memory fallback), show a minimal loading indicator so we never
+    // accidentally flash the wrong screen.
+    if (resolvedRole == null && roleAsync.isLoading) {
+      return const Scaffold(
+        backgroundColor: AppColors.background,
+        body: Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
+      );
+    }
+
+    final isOrganizer = _isOrganizer(resolvedRole);
+
+    final List<Widget> pages = [
+      isOrganizer ? const TournamentListPage() : const PlayerTournamentListPage(),
+      const ProfilePage(),
+    ];
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: _buildAppBar(),
       body: IndexedStack(
-        index: _currentIndex,
-        children: _pages,
+        index: _currentIndex < pages.length ? _currentIndex : 0,
+        children: pages,
       ),
-      floatingActionButton: _currentIndex == 0
+      floatingActionButton: (isOrganizer && _currentIndex == 0)
           ? FloatingActionButton(
               onPressed: () => context.pushNamed(AppRoutes.createTournament),
               backgroundColor: AppColors.primary,
@@ -60,7 +91,7 @@ class _HomePageState extends State<HomePage> {
               ),
             )
           : null,
-      bottomNavigationBar: _buildBottomNavigationBar(),
+      bottomNavigationBar: _buildBottomNavigationBar(isOrganizer),
     );
   }
 
@@ -68,7 +99,7 @@ class _HomePageState extends State<HomePage> {
     return AppBar(
       backgroundColor: AppColors.surface,
       elevation: 0,
-      automaticallyImplyLeading: false, // Removes hamburger / back menu completely
+      automaticallyImplyLeading: false,
       titleSpacing: AppSpacing.lg,
       title: Row(
         children: [
@@ -90,11 +121,11 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
           const SizedBox(width: 10),
-          Column(
+          const Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
+              Text(
                 'TOURNAX',
                 style: TextStyle(
                   fontFamily: 'Inter',
@@ -109,7 +140,7 @@ class _HomePageState extends State<HomePage> {
                 style: TextStyle(
                   fontSize: 8,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.textSecondary.withValues(alpha: 0.7),
+                  color: AppColors.textSecondary,
                   letterSpacing: 0.8,
                 ),
               ),
@@ -117,11 +148,12 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-
     );
   }
 
-  Widget _buildBottomNavigationBar() {
+  Widget _buildBottomNavigationBar(bool isOrganizer) {
+    final firstTabLabel = isOrganizer ? 'Tournaments' : 'My Tournaments';
+
     return Container(
       decoration: const BoxDecoration(
         color: AppColors.surface,
@@ -130,7 +162,7 @@ class _HomePageState extends State<HomePage> {
         ),
       ),
       child: BottomNavigationBar(
-        currentIndex: _currentIndex,
+        currentIndex: _currentIndex < 2 ? _currentIndex : 0,
         onTap: (index) => setState(() => _currentIndex = index),
         type: BottomNavigationBarType.fixed,
         backgroundColor: AppColors.surface,
@@ -141,84 +173,20 @@ class _HomePageState extends State<HomePage> {
         selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700),
         unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500),
         elevation: 0,
-        items: const [
+        items: [
           BottomNavigationBarItem(
-            icon: Icon(Icons.emoji_events_rounded),
-            activeIcon: Icon(Icons.emoji_events_rounded, color: AppColors.primary),
-            label: 'Tournaments',
+            icon: const Icon(Icons.emoji_events_rounded),
+            activeIcon: const Icon(Icons.emoji_events_rounded,
+                color: AppColors.primary),
+            label: firstTabLabel,
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.groups_rounded),
-            activeIcon: Icon(Icons.groups_rounded, color: AppColors.primary),
-            label: 'Teams',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.sports_esports_rounded),
-            activeIcon: Icon(Icons.sports_esports_rounded, color: AppColors.primary),
-            label: 'Matches',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.bar_chart_rounded),
-            activeIcon: Icon(Icons.bar_chart_rounded, color: AppColors.primary),
-            label: 'Standings',
-          ),
-          BottomNavigationBarItem(
+          const BottomNavigationBarItem(
             icon: Icon(Icons.person_rounded),
-            activeIcon: Icon(Icons.person_rounded, color: AppColors.primary),
+            activeIcon:
+                Icon(Icons.person_rounded, color: AppColors.primary),
             label: 'Profile',
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _PlaceholderView extends StatelessWidget {
-  const _PlaceholderView({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.xl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: AppColors.cardBackground,
-                shape: BoxShape.circle,
-                border: Border.all(color: AppColors.cardBorder),
-              ),
-              child: Icon(icon, size: 48, color: AppColors.primary),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            Text(
-              title,
-              style: AppTextStyles.headlineMedium.copyWith(
-                color: AppColors.textPrimary,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              subtitle,
-              style: AppTextStyles.bodyMedium.copyWith(
-                color: AppColors.textSecondary,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
       ),
     );
   }

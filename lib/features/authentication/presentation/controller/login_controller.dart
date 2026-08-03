@@ -5,6 +5,7 @@ import '../../../../core/di/providers.dart';
 import '../../../../core/routes/app_router.dart';
 import '../../../../core/storage/secure_storage_service.dart';
 import '../../../../core/utils/app_logger.dart';
+import '../../../../core/utils/app_state_reset.dart';
 import '../../domain/entities/user_entity.dart';
 import '../../domain/usecases/login_usecase.dart';
 
@@ -79,6 +80,10 @@ class LoginController extends Notifier<LoginState> {
       );
 
       await _storage.saveRememberMe(value: state.rememberMe);
+
+      // Clear any cached data from a previous user session before
+      // storing the new user's state.
+      resetUserState(ref);
 
       state = state.copyWith(status: LoginStatus.success, user: result.user);
 

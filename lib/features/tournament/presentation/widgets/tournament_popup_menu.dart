@@ -7,9 +7,11 @@ class TournamentPopupMenu extends StatelessWidget {
   const TournamentPopupMenu({
     super.key,
     required this.onSelected,
+    this.isOrganizer = false,
   });
 
   final ValueChanged<TournamentAction> onSelected;
+  final bool isOrganizer;
 
   @override
   Widget build(BuildContext context) {
@@ -27,16 +29,18 @@ class TournamentPopupMenu extends StatelessWidget {
       ),
       onSelected: onSelected,
       itemBuilder: (context) => [
-        _buildItem(
-          value: TournamentAction.edit,
-          icon: Icons.edit_outlined,
-          label: 'Edit',
-        ),
-        _buildItem(
-          value: TournamentAction.addTeams,
-          icon: Icons.groups_2_outlined,
-          label: 'Add Teams',
-        ),
+        if (isOrganizer)
+          _buildItem(
+            value: TournamentAction.edit,
+            icon: Icons.edit_outlined,
+            label: 'Edit',
+          ),
+        if (isOrganizer)
+          _buildItem(
+            value: TournamentAction.addTeams,
+            icon: Icons.groups_2_outlined,
+            label: 'Add Teams',
+          ),
         _buildItem(
           value: TournamentAction.leaderboard,
           icon: Icons.emoji_events_outlined,

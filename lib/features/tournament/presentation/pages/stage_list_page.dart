@@ -11,9 +11,10 @@ import '../../domain/entities/tournament_entity.dart';
 import '../controller/stage_controller.dart';
 
 class StageListPage extends ConsumerStatefulWidget {
-  const StageListPage({super.key, required this.tournament});
+  const StageListPage({super.key, required this.tournament, this.isOrganizer = false});
 
   final TournamentEntity tournament;
+  final bool isOrganizer;
 
   @override
   ConsumerState<StageListPage> createState() => _StageListPageState();
@@ -117,20 +118,22 @@ class _StageListPageState extends ConsumerState<StageListPage> {
       backgroundColor: AppColors.background,
       appBar: _buildAppBar(),
       body: _buildBody(state),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => context.pushNamed(
-          AppRoutes.createStage,
-          extra: StageArgs(tournament: widget.tournament),
-        ),
-        backgroundColor: AppColors.primary,
-        elevation: 6,
-        shape: const CircleBorder(),
-        child: const Icon(
-          Icons.add_rounded,
-          color: AppColors.textPrimary,
-          size: 30,
-        ),
-      ),
+      floatingActionButton: widget.isOrganizer
+          ? FloatingActionButton(
+              onPressed: () => context.pushNamed(
+                AppRoutes.createStage,
+                extra: StageArgs(tournament: widget.tournament, isOrganizer: widget.isOrganizer),
+              ),
+              backgroundColor: AppColors.primary,
+              elevation: 6,
+              shape: const CircleBorder(),
+              child: const Icon(
+                Icons.add_rounded,
+                color: AppColors.textPrimary,
+                size: 30,
+              ),
+            )
+          : null,
     );
   }
 
@@ -168,26 +171,27 @@ class _StageListPageState extends ConsumerState<StageListPage> {
         ],
       ),
       actions: [
-        IconButton(
-          icon: const Icon(
-            Icons.auto_awesome_rounded,
-            color: AppColors.primary,
-            size: 20,
-          ),
-          tooltip: 'Generate Leaderboard Studio',
-          onPressed: () => context.pushNamed(
-            AppRoutes.leaderboardGenerator,
-            extra: LeaderboardGeneratorArgs(
-              tournament: widget.tournament,
-              args: LeaderboardArgs(
+        if (widget.isOrganizer)
+          IconButton(
+            icon: const Icon(
+              Icons.auto_awesome_rounded,
+              color: AppColors.primary,
+              size: 20,
+            ),
+            tooltip: 'Generate Leaderboard Studio',
+            onPressed: () => context.pushNamed(
+              AppRoutes.leaderboardGenerator,
+              extra: LeaderboardGeneratorArgs(
                 tournament: widget.tournament,
-                type: LeaderboardType.tournament,
-                id: widget.tournament.id,
-                name: widget.tournament.name,
+                args: LeaderboardArgs(
+                  tournament: widget.tournament,
+                  type: LeaderboardType.tournament,
+                  id: widget.tournament.id,
+                  name: widget.tournament.name,
+                ),
               ),
             ),
           ),
-        ),
         IconButton(
           icon: const Icon(
             Icons.emoji_events_outlined,
@@ -216,9 +220,10 @@ class _StageListPageState extends ConsumerState<StageListPage> {
           child: CircularProgressIndicator(color: AppColors.primary),
         ),
       StageListStatus.empty => _EmptyState(
+          isOrganizer: widget.isOrganizer,
           onAdd: () => context.pushNamed(
             AppRoutes.createStage,
-            extra: StageArgs(tournament: widget.tournament),
+            extra: StageArgs(tournament: widget.tournament, isOrganizer: widget.isOrganizer),
           ),
         ),
       StageListStatus.error => _ErrorState(
@@ -272,7 +277,7 @@ class _StageListPageState extends ConsumerState<StageListPage> {
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        if (state.stages.isNotEmpty) ...[
+                        if (widget.isOrganizer && state.stages.isNotEmpty) ...[
                           IconButton(
                             style: IconButton.styleFrom(
                               backgroundColor: AppColors.primary.withValues(alpha: 0.15),
@@ -309,53 +314,54 @@ class _StageListPageState extends ConsumerState<StageListPage> {
                           ),
                           const SizedBox(width: 8),
                         ],
-                        InkWell(
-                          onTap: () => context.pushNamed(
-                            AppRoutes.createStage,
-                            extra: StageArgs(tournament: widget.tournament),
-                          ),
-                          borderRadius: BorderRadius.circular(8),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 6,
+                        if (widget.isOrganizer)
+                          InkWell(
+                            onTap: () => context.pushNamed(
+                              AppRoutes.createStage,
+                              extra: StageArgs(tournament: widget.tournament, isOrganizer: widget.isOrganizer),
                             ),
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [AppColors.primary, Color(0xFFFF8C00)],
-                                begin: Alignment.centerLeft,
-                                end: Alignment.centerRight,
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 6,
                               ),
-                              borderRadius: BorderRadius.circular(8),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: AppColors.primary.withValues(alpha: 0.3),
-                                  blurRadius: 6,
-                                  offset: const Offset(0, 2),
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [AppColors.primary, Color(0xFFFF8C00)],
+                                  begin: Alignment.centerLeft,
+                                  end: Alignment.centerRight,
                                 ),
-                              ],
-                            ),
-                            child: const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.add_rounded,
-                                  color: Colors.white,
-                                  size: 16,
-                                ),
-                                SizedBox(width: 4),
-                                Text(
-                                  'Add Stage',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w700,
+                                borderRadius: BorderRadius.circular(8),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.primary.withValues(alpha: 0.3),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 2),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.add_rounded,
+                                    color: Colors.white,
+                                    size: 16,
+                                  ),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    'Add Stage',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
                       ],
                     ),
                   ],
@@ -398,6 +404,7 @@ class _StageListPageState extends ConsumerState<StageListPage> {
                       index: index,
                       stage: stage,
                       tournament: widget.tournament,
+                      isOrganizer: widget.isOrganizer,
                       onViewLeaderboard: () => context.pushNamed(
                         AppRoutes.leaderboard,
                         extra: LeaderboardArgs(
@@ -598,6 +605,7 @@ class _StageCard extends StatelessWidget {
     required this.onViewRounds,
     required this.onEdit,
     required this.onDelete,
+    this.isOrganizer = false,
   });
 
   final int index;
@@ -608,6 +616,7 @@ class _StageCard extends StatelessWidget {
   final VoidCallback onViewRounds;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final bool isOrganizer;
 
   // Determine dynamic stage status: COMPLETED, IN PROGRESS, PENDING
   (String statusLabel, Color statusColor) get _stageStatus {
@@ -843,61 +852,64 @@ class _StageCard extends StatelessWidget {
                                           ],
                                         ),
                                       ),
-                                      const PopupMenuItem(
-                                        value: 'generate_leaderboard',
-                                        child: Row(
-                                          children: [
-                                            Icon(
-                                              Icons.auto_awesome_rounded,
-                                              size: 16,
-                                              color: Color(0xFFFF8C00),
-                                            ),
-                                            SizedBox(width: 8),
-                                            Text(
-                                              'Generate Leaderboard',
-                                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      const PopupMenuItem(
-                                        value: 'edit',
-                                        child: Row(
-                                          children: [
-                                            Icon(
-                                              Icons.edit_outlined,
-                                              size: 16,
-                                              color: AppColors.textPrimary,
-                                            ),
-                                            SizedBox(width: 8),
-                                            Text(
-                                              'Edit Stage',
-                                              style: TextStyle(fontSize: 13),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      const PopupMenuDivider(height: 1),
-                                      const PopupMenuItem(
-                                        value: 'delete',
-                                        child: Row(
-                                          children: [
-                                            Icon(
-                                              Icons.delete_outline_rounded,
-                                              size: 16,
-                                              color: AppColors.error,
-                                            ),
-                                            SizedBox(width: 8),
-                                            Text(
-                                              'Delete Stage',
-                                              style: TextStyle(
-                                                color: AppColors.error,
-                                                fontSize: 13,
+                                      if (isOrganizer)
+                                        const PopupMenuItem(
+                                          value: 'generate_leaderboard',
+                                          child: Row(
+                                            children: [
+                                              Icon(
+                                                Icons.auto_awesome_rounded,
+                                                size: 16,
+                                                color: Color(0xFFFF8C00),
                                               ),
-                                            ),
-                                          ],
+                                              SizedBox(width: 8),
+                                              Text(
+                                                'Generate Leaderboard',
+                                                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                                              ),
+                                            ],
+                                          ),
                                         ),
-                                      ),
+                                      if (isOrganizer)
+                                        const PopupMenuItem(
+                                          value: 'edit',
+                                          child: Row(
+                                            children: [
+                                              Icon(
+                                                Icons.edit_outlined,
+                                                size: 16,
+                                                color: AppColors.textPrimary,
+                                              ),
+                                              SizedBox(width: 8),
+                                              Text(
+                                                'Edit Stage',
+                                                style: TextStyle(fontSize: 13),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      if (isOrganizer) const PopupMenuDivider(height: 1),
+                                      if (isOrganizer)
+                                        const PopupMenuItem(
+                                          value: 'delete',
+                                          child: Row(
+                                            children: [
+                                              Icon(
+                                                Icons.delete_outline_rounded,
+                                                size: 16,
+                                                color: AppColors.error,
+                                              ),
+                                              SizedBox(width: 8),
+                                              Text(
+                                                'Delete Stage',
+                                                style: TextStyle(
+                                                  color: AppColors.error,
+                                                  fontSize: 13,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
                                     ],
                                   ),
                                 ],
@@ -1105,9 +1117,10 @@ class _StageFormatBadge extends StatelessWidget {
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.onAdd});
+  const _EmptyState({required this.onAdd, this.isOrganizer = false});
 
   final VoidCallback onAdd;
+  final bool isOrganizer;
 
   @override
   Widget build(BuildContext context) {
@@ -1123,20 +1136,25 @@ class _EmptyState extends StatelessWidget {
           const SizedBox(height: AppSpacing.md),
           const Text('No stages yet', style: AppTextStyles.headlineMedium),
           const SizedBox(height: AppSpacing.sm),
-          const Text(
-            'Add the first stage to get started.',
+          Text(
+            isOrganizer
+                ? 'Add the first stage to get started.'
+                : 'Stages will appear here once the organizer adds them.',
             style: AppTextStyles.bodyMedium,
+            textAlign: TextAlign.center,
           ),
-          const SizedBox(height: AppSpacing.lg),
-          FilledButton.icon(
-            onPressed: onAdd,
-            icon: const Icon(Icons.add_rounded),
-            label: const Text('Add Stage'),
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: AppColors.textPrimary,
+          if (isOrganizer) ...[
+            const SizedBox(height: AppSpacing.lg),
+            FilledButton.icon(
+              onPressed: onAdd,
+              icon: const Icon(Icons.add_rounded),
+              label: const Text('Add Stage'),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: AppColors.textPrimary,
+              ),
             ),
-          ),
+          ],
         ],
       ),
     );

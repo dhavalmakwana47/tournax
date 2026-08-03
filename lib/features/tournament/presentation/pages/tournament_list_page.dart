@@ -327,7 +327,7 @@ class _TournamentListPageState extends ConsumerState<TournamentListPage> {
                       return AnimatedOpacity(
                         duration: Duration(milliseconds: 200 + (index * 50)),
                         opacity: 1.0,
-                        child: TournamentCard(tournament: tournament),
+                        child: TournamentCard(tournament: tournament, isOrganizer: true),
                       );
                     },
                     childCount: displayedTournaments.length,

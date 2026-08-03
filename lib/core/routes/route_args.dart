@@ -38,8 +38,9 @@ class EditPlayerArgs {
 }
 
 class StageArgs {
-  const StageArgs({required this.tournament});
+  const StageArgs({required this.tournament, this.isOrganizer = false});
   final TournamentEntity tournament;
+  final bool isOrganizer;
 }
 
 class EditStageArgs {

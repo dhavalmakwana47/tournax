@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/widgets.dart';
 import '../routes/app_router.dart';
 import '../storage/secure_storage_service.dart';
 import '../utils/app_logger.dart';
@@ -79,16 +80,22 @@ class _UnauthenticatedInterceptor extends Interceptor {
   _UnauthenticatedInterceptor(this._storage);
 
   final SecureStorageService _storage;
+  bool _isLoggingOut = false; // guard against duplicate calls
 
   @override
   Future<void> onError(
     DioException err,
     ErrorInterceptorHandler handler,
   ) async {
-    if (err.response?.statusCode == 401) {
+    if (err.response?.statusCode == 401 && !_isLoggingOut) {
+      _isLoggingOut = true;
       appLogger.w('[AUTH] 401 received — clearing session and redirecting to login.');
       await _storage.clearAll();
-      authNotifier.setToken(null);
+      // Schedule on the Flutter main thread so ChangeNotifier is safe to call
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        authNotifier.setToken(null);
+        _isLoggingOut = false;
+      });
     }
     handler.next(err);
   }
