@@ -290,6 +290,11 @@ class _InfoCard extends StatelessWidget {
                 : const Icon(Icons.cancel_outlined, color: AppColors.error, size: 16),
           ),
           const Divider(color: AppColors.divider, height: 1),
+          _InfoRow(
+            icon: Icons.security_rounded,
+            label: 'Role',
+            value: profile.role,
+          ),
           if (profile.username != null) ...[
             const Divider(color: AppColors.divider, height: 1),
             _InfoRow(
@@ -298,15 +303,7 @@ class _InfoCard extends StatelessWidget {
               value: profile.username!,
             ),
           ],
-          if (profile.status != null) ...[
-            const Divider(color: AppColors.divider, height: 1),
-            _InfoRow(
-              icon: Icons.circle,
-              label: 'Status',
-              value: profile.status!,
-              iconColor: profile.status == '1' ? AppColors.success : AppColors.error,
-            ),
-          ],
+
           if (profile.lastLoginAt != null) ...[
             const Divider(color: AppColors.divider, height: 1),
             _InfoRow(

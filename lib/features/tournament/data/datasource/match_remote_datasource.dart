@@ -49,7 +49,7 @@ class MatchRemoteDatasourceImpl implements MatchRemoteDatasource {
 
   @override
   Future<List<MatchModel>> getMatches(int groupId) async {
-    final response = await _apiClient.post('/matches/list', data: {'group_id': groupId});
+    final response = await _apiClient.post(ApiConstants.matchesList, data: {'group_id': groupId});
     final data = response['data'] as List<dynamic>?;
     if (data == null) return [];
     return data.map((e) => MatchModel.fromJson(e as Map<String, dynamic>)).toList();
@@ -65,7 +65,7 @@ class MatchRemoteDatasourceImpl implements MatchRemoteDatasource {
     String? status,
   }) async {
     final response = await _apiClient.post(
-      '/matches',
+      ApiConstants.matches,
       data: {
         'group_id': groupId,
         'match_number': matchNumber,
@@ -80,7 +80,7 @@ class MatchRemoteDatasourceImpl implements MatchRemoteDatasource {
 
   @override
   Future<MatchModel> showMatch(int matchId) async {
-    final response = await _apiClient.post('/matches/show', data: {'match_id': matchId});
+    final response = await _apiClient.post(ApiConstants.matchesShow, data: {'match_id': matchId});
     return MatchModel.fromJson(response['data'] as Map<String, dynamic>);
   }
 
@@ -96,7 +96,7 @@ class MatchRemoteDatasourceImpl implements MatchRemoteDatasource {
     String? status,
   }) async {
     final response = await _apiClient.post(
-      '/matches/update',
+      ApiConstants.matchesUpdate,
       data: {
         'match_id': matchId,
         if (matchNumber != null) 'match_number': matchNumber,
@@ -113,7 +113,7 @@ class MatchRemoteDatasourceImpl implements MatchRemoteDatasource {
 
   @override
   Future<void> deleteMatch(int matchId) async {
-    await _apiClient.post('/matches/delete', data: {'match_id': matchId});
+    await _apiClient.post(ApiConstants.matchesDelete, data: {'match_id': matchId});
   }
 
   @override
@@ -124,7 +124,7 @@ class MatchRemoteDatasourceImpl implements MatchRemoteDatasource {
     String? lane,
   }) async {
     final response = await _apiClient.post(
-      '/matches/add-team',
+      ApiConstants.matchesAddTeam,
       data: {
         'match_id': matchId,
         'team_id': teamId,
@@ -141,7 +141,7 @@ class MatchRemoteDatasourceImpl implements MatchRemoteDatasource {
     required int teamId,
   }) async {
     final response = await _apiClient.post(
-      '/matches/remove-team',
+      ApiConstants.matchesRemoveTeam,
       data: {
         'match_id': matchId,
         'team_id': teamId,
