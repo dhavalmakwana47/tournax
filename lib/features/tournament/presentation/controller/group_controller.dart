@@ -23,6 +23,10 @@ class GroupState extends Equatable {
     this.deleteStatus = GroupActionStatus.idle,
     this.teamActionStatus = GroupActionStatus.idle,
     this.groups = const [],
+    this.hasMore = false,
+    this.isLoadingMore = false,
+    this.currentPage = 1,
+    this.lastPage = 1,
     this.errorMessage,
     this.fieldErrors = const {},
     this.isWarning = false,
@@ -34,6 +38,10 @@ class GroupState extends Equatable {
   final GroupActionStatus deleteStatus;
   final GroupActionStatus teamActionStatus;
   final List<GroupEntity> groups;
+  final bool hasMore;
+  final bool isLoadingMore;
+  final int currentPage;
+  final int lastPage;
   final String? errorMessage;
   final Map<String, String> fieldErrors;
   final bool isWarning;
@@ -45,6 +53,10 @@ class GroupState extends Equatable {
     GroupActionStatus? deleteStatus,
     GroupActionStatus? teamActionStatus,
     List<GroupEntity>? groups,
+    bool? hasMore,
+    bool? isLoadingMore,
+    int? currentPage,
+    int? lastPage,
     String? errorMessage,
     Map<String, String>? fieldErrors,
     bool? isWarning,
@@ -57,6 +69,10 @@ class GroupState extends Equatable {
         deleteStatus: deleteStatus ?? this.deleteStatus,
         teamActionStatus: teamActionStatus ?? this.teamActionStatus,
         groups: groups ?? this.groups,
+        hasMore: hasMore ?? this.hasMore,
+        isLoadingMore: isLoadingMore ?? this.isLoadingMore,
+        currentPage: currentPage ?? this.currentPage,
+        lastPage: lastPage ?? this.lastPage,
         errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
         fieldErrors: clearError ? const {} : fieldErrors ?? this.fieldErrors,
         isWarning: clearError ? false : isWarning ?? this.isWarning,
@@ -70,6 +86,10 @@ class GroupState extends Equatable {
         deleteStatus,
         teamActionStatus,
         groups,
+        hasMore,
+        isLoadingMore,
+        currentPage,
+        lastPage,
         errorMessage,
         fieldErrors,
         isWarning,
@@ -90,14 +110,27 @@ class GroupController extends FamilyNotifier<GroupState, int> {
 
   Future<void> fetchGroups() async {
     if (state.listStatus == GroupListStatus.loading) return;
-    state = state.copyWith(listStatus: GroupListStatus.loading, clearError: true);
+    state = state.copyWith(
+      listStatus: GroupListStatus.loading,
+      currentPage: 1,
+      hasMore: true,
+      isLoadingMore: false,
+      clearError: true,
+    );
     try {
-      final groups = await _getGroups(arg);
-      final sortedGroups = List<GroupEntity>.from(groups)
+      final res = await _getGroups(
+        roundId: arg,
+        page: 1,
+        perPage: 10,
+      );
+      final sortedGroups = List<GroupEntity>.from(res.items)
         ..sort((a, b) => a.displayOrder.compareTo(b.displayOrder));
       state = state.copyWith(
         listStatus: sortedGroups.isEmpty ? GroupListStatus.empty : GroupListStatus.success,
         groups: sortedGroups,
+        hasMore: res.hasMore,
+        currentPage: res.currentPage,
+        lastPage: res.lastPage,
       );
     } on ApiException catch (e) {
       appLogger.e('Fetch groups failed', error: e);
@@ -112,6 +145,34 @@ class GroupController extends FamilyNotifier<GroupState, int> {
         listStatus: GroupListStatus.error,
         errorMessage: 'Failed to load groups.',
       );
+    }
+  }
+
+  Future<void> fetchMoreGroups() async {
+    if (!state.hasMore || state.isLoadingMore || state.listStatus == GroupListStatus.loading) return;
+    state = state.copyWith(isLoadingMore: true);
+    final nextPage = state.currentPage + 1;
+    try {
+      final res = await _getGroups(
+        roundId: arg,
+        page: nextPage,
+        perPage: 10,
+      );
+      final combined = [...state.groups, ...res.items]
+        ..sort((a, b) => a.displayOrder.compareTo(b.displayOrder));
+      state = state.copyWith(
+        groups: combined,
+        hasMore: res.hasMore,
+        currentPage: res.currentPage,
+        lastPage: res.lastPage,
+        isLoadingMore: false,
+      );
+    } on ApiException catch (e) {
+      appLogger.e('Fetch more groups failed', error: e);
+      state = state.copyWith(isLoadingMore: false);
+    } catch (e) {
+      appLogger.e('Unexpected fetch more groups error', error: e);
+      state = state.copyWith(isLoadingMore: false);
     }
   }
 

@@ -1,7 +1,12 @@
 import '../entities/group_entity.dart';
+import 'tournament_repository.dart';
 
 abstract interface class GroupRepository {
-  Future<List<GroupEntity>> getGroups(int roundId);
+  Future<PaginatedResult<GroupEntity>> getGroups({
+    required int roundId,
+    int page = 1,
+    int perPage = 10,
+  });
   Future<GroupEntity> createGroup({
     required int roundId,
     required String name,

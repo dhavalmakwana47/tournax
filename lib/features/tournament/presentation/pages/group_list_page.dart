@@ -27,13 +27,30 @@ class GroupListPage extends ConsumerStatefulWidget {
 }
 
 class _GroupListPageState extends ConsumerState<GroupListPage> {
+  final ScrollController _scrollController = ScrollController();
+
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(groupControllerProvider(widget.roundId).notifier).fetchGroups();
       ref.read(teamControllerProvider(widget.tournament.id).notifier).fetchTeams();
     });
+  }
+
+  @override
+  void dispose() {
+    _scrollController
+      ..removeListener(_onScroll)
+      ..dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.extentAfter < 300) {
+      ref.read(groupControllerProvider(widget.roundId).notifier).fetchMoreGroups();
+    }
   }
 
   Future<void> _confirmDelete(GroupEntity group) async {
@@ -433,10 +450,10 @@ class _GroupListPageState extends ConsumerState<GroupListPage> {
         ),
       GroupListStatus.success => RefreshIndicator(
           color: AppColors.primary,
-          onRefresh: () => ref
-              .read(groupControllerProvider(widget.roundId).notifier)
-              .fetchGroups(),
+          onRefresh: () =>
+              ref.read(groupControllerProvider(widget.roundId).notifier).fetchGroups(),
           child: SingleChildScrollView(
+            controller: _scrollController,
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.all(AppSpacing.lg),
             child: Column(
@@ -446,7 +463,6 @@ class _GroupListPageState extends ConsumerState<GroupListPage> {
                 _QuickStatsOverview(
                   tournament: widget.tournament,
                   groupsCount: state.groups.length,
-                  totalTeams: state.groups.fold(0, (acc, g) => acc + (g.teams?.length ?? 0)),
                 ),
                 const SizedBox(height: AppSpacing.lg),
 
@@ -626,6 +642,46 @@ class _GroupListPageState extends ConsumerState<GroupListPage> {
                     );
                   },
                 ),
+
+                // Pagination footer
+                if (state.isLoadingMore)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    child: Center(
+                      child: CircularProgressIndicator(color: AppColors.primary),
+                    ),
+                  )
+                else if (!state.hasMore && state.groups.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 20),
+                    child: Center(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 40,
+                            height: 1,
+                            color: AppColors.divider,
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            'No more groups',
+                            style: TextStyle(
+                              color: AppColors.textSecondary.withValues(alpha: 0.7),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Container(
+                            width: 40,
+                            height: 1,
+                            color: AppColors.divider,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
@@ -638,113 +694,154 @@ class _QuickStatsOverview extends StatelessWidget {
   const _QuickStatsOverview({
     required this.tournament,
     required this.groupsCount,
-    required this.totalTeams,
   });
 
   final TournamentEntity tournament;
   final int groupsCount;
-  final int totalTeams;
+
+  Color _statusColor(String status) => switch (status.toLowerCase()) {
+        'active' || 'in_progress' || 'ongoing' => const Color(0xFF3B9EFF),
+        'completed' || 'finished' => const Color(0xFF00C896),
+        'draft' => const Color(0xFFAA8FFF),
+        'published' => const Color(0xFF00D4D4),
+        _ => const Color(0xFFFFC107),
+      };
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: AppColors.cardBackground,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.cardBorder, width: 1),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _StatItem(
-            icon: Icons.grid_view_rounded,
-            iconBg: const Color(0xFF6C5CE7),
-            value: '$groupsCount',
-            label: 'Total Groups',
-          ),
-          Container(width: 1, height: 36, color: AppColors.divider),
-          _StatItem(
-            icon: Icons.groups_rounded,
-            iconBg: const Color(0xFF00CEC9),
-            value: '$totalTeams',
-            label: 'Total Teams',
-          ),
-          Container(width: 1, height: 36, color: AppColors.divider),
-          _StatItem(
-            icon: Icons.flag_rounded,
-            iconBg: AppColors.upcomingStatus,
-            value: tournament.status.toUpperCase(),
-            label: 'Status',
-            isStatus: true,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StatItem extends StatelessWidget {
-  const _StatItem({
-    required this.icon,
-    required this.iconBg,
-    required this.value,
-    required this.label,
-    this.isStatus = false,
-  });
-
-  final IconData icon;
-  final Color iconBg;
-  final String value;
-  final String label;
-  final bool isStatus;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
+    final statusColor = _statusColor(tournament.status);
+    return Row(
       children: [
-        Container(
-          width: 32,
-          height: 32,
-          decoration: BoxDecoration(
-            color: iconBg.withValues(alpha: 0.15),
-            shape: BoxShape.circle,
+        // Total Groups card
+        Expanded(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+            decoration: BoxDecoration(
+              color: AppColors.cardBackground,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFF6C5CE7).withValues(alpha: 0.3)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.18),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF6C5CE7).withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.grid_view_rounded,
+                    color: Color(0xFF6C5CE7),
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '$groupsCount',
+                      style: const TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                        height: 1.1,
+                      ),
+                    ),
+                    const Text(
+                      'Total Groups',
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-          child: Icon(icon, color: iconBg, size: 16),
         ),
-        const SizedBox(height: 6),
-        Text(
-          value,
-          style: TextStyle(
-            color: isStatus ? AppColors.upcomingStatus : AppColors.textPrimary,
-            fontSize: isStatus ? 13 : 15,
-            fontWeight: FontWeight.w800,
-            letterSpacing: isStatus ? 0.5 : 0,
-          ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          style: const TextStyle(
-            color: AppColors.textSecondary,
-            fontSize: 10,
-            fontWeight: FontWeight.w600,
+        const SizedBox(width: 10),
+        // Status card
+        Expanded(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+            decoration: BoxDecoration(
+              color: AppColors.cardBackground,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: statusColor.withValues(alpha: 0.3)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.18),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: statusColor.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    Icons.flag_rounded,
+                    color: statusColor,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        tournament.status[0].toUpperCase() +
+                            tournament.status.substring(1).toLowerCase(),
+                        style: TextStyle(
+                          color: statusColor,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.3,
+                          height: 1.2,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const Text(
+                        'Status',
+                        style: TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ],
     );
   }
 }
+
 
 class _GroupCard extends StatelessWidget {
   const _GroupCard({
@@ -775,11 +872,18 @@ class _GroupCard extends StatelessWidget {
     final orderNum = group.displayOrder > 0 ? group.displayOrder : index + 1;
     final statusLower = group.status.toLowerCase();
     final statusColor = switch (statusLower) {
-      'active' || 'in_progress' => AppColors.primary,
-      'completed' => AppColors.upcomingStatus,
-      _ => AppColors.draftStatus,
+      'active' || 'in_progress' || 'ongoing'  => const Color(0xFF3B9EFF),   // Blue
+      'completed' || 'finished'               => const Color(0xFF00C896),   // Emerald Green
+      'draft'                                 => const Color(0xFFAA8FFF),   // Purple
+      'published'                             => const Color(0xFF00D4D4),   // Cyan
+      'pending'                               => const Color(0xFFFFC107),   // Amber
+      'cancelled' || 'canceled'               => const Color(0xFFFF5E5E),   // Red
+      _                                       => const Color(0xFF8A9BB0),   // Grey fallback
     };
-    final statusLabel = group.status.toUpperCase();
+    final statusLabel = group.status.isEmpty
+        ? 'Unknown'
+        : group.status[0].toUpperCase() +
+          group.status.substring(1).toLowerCase().replaceAll('_', ' ');
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.md),
@@ -884,24 +988,38 @@ class _GroupCard extends StatelessWidget {
                           children: [
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 3,
+                                horizontal: 9,
+                                vertical: 4,
                               ),
                               decoration: BoxDecoration(
                                 color: statusColor.withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(6),
+                                borderRadius: BorderRadius.circular(20),
                                 border: Border.all(
-                                  color: statusColor.withValues(alpha: 0.3),
+                                  color: statusColor.withValues(alpha: 0.4),
                                 ),
                               ),
-                              child: Text(
-                                statusLabel,
-                                style: TextStyle(
-                                  color: statusColor,
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 0.5,
-                                ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: 6,
+                                    height: 6,
+                                    decoration: BoxDecoration(
+                                      color: statusColor,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 5),
+                                  Text(
+                                    statusLabel,
+                                    style: TextStyle(
+                                      color: statusColor,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w700,
+                                      letterSpacing: 0.2,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                             PopupMenuButton<String>(

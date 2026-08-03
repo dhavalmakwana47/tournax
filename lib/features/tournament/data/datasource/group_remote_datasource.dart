@@ -4,8 +4,26 @@ import '../../../../core/api/api_exception.dart';
 import '../../../../core/utils/app_logger.dart';
 import '../models/group_model.dart';
 
+class PaginatedGroups {
+  const PaginatedGroups({
+    required this.items,
+    required this.hasMore,
+    required this.currentPage,
+    required this.lastPage,
+  });
+
+  final List<GroupModel> items;
+  final bool hasMore;
+  final int currentPage;
+  final int lastPage;
+}
+
 abstract interface class GroupRemoteDatasource {
-  Future<List<GroupModel>> getGroups(int roundId);
+  Future<PaginatedGroups> getGroups({
+    required int roundId,
+    int page = 1,
+    int perPage = 10,
+  });
   Future<GroupModel> createGroup({
     required int roundId,
     required String name,
@@ -36,19 +54,49 @@ class GroupRemoteDatasourceImpl implements GroupRemoteDatasource {
 
   final ApiClient _apiClient;
 
+  int _toInt(dynamic val, int fallback) {
+    if (val == null) return fallback;
+    if (val is int) return val;
+    if (val is num) return val.toInt();
+    if (val is String) return int.tryParse(val.trim()) ?? fallback;
+    return fallback;
+  }
+
   @override
-  Future<List<GroupModel>> getGroups(int roundId) async {
+  Future<PaginatedGroups> getGroups({
+    required int roundId,
+    int page = 1,
+    int perPage = 10,
+  }) async {
     try {
       final response = await _apiClient.post(
         ApiConstants.groupsList,
-        data: {'round_id': roundId},
+        data: {
+          'round_id': roundId,
+          'page': page,
+          'per_page': perPage,
+        },
       );
       appLogger.d('Groups response: $response');
       final data = response['data'] as List<dynamic>?;
-      if (data == null) return [];
-      return data
-          .map((e) => GroupModel.fromJson(e as Map<String, dynamic>, roundId: roundId))
-          .toList();
+      final meta = response['meta'] as Map<String, dynamic>?;
+      final currentPage = _toInt(meta?['current_page'], page);
+      final lastPage = _toInt(meta?['last_page'], page);
+
+      final items = data != null
+          ? data
+              .map((e) => GroupModel.fromJson(e as Map<String, dynamic>, roundId: roundId))
+              .toList()
+          : <GroupModel>[];
+
+      final hasMore = meta != null ? currentPage < lastPage : items.length >= perPage;
+
+      return PaginatedGroups(
+        items: items,
+        hasMore: hasMore,
+        currentPage: currentPage,
+        lastPage: lastPage,
+      );
     } on ApiException {
       rethrow;
     } catch (e, st) {

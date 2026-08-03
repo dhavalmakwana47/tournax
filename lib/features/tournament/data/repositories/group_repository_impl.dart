@@ -4,6 +4,8 @@ import '../../domain/entities/group_entity.dart';
 import '../../domain/repositories/group_repository.dart';
 import '../datasource/group_remote_datasource.dart';
 
+import '../../domain/repositories/tournament_repository.dart';
+
 class GroupRepositoryImpl implements GroupRepository {
   GroupRepositoryImpl({
     required this.remoteDatasource,
@@ -14,10 +16,23 @@ class GroupRepositoryImpl implements GroupRepository {
   final NetworkInfo networkInfo;
 
   @override
-  Future<List<GroupEntity>> getGroups(int roundId) async {
+  Future<PaginatedResult<GroupEntity>> getGroups({
+    required int roundId,
+    int page = 1,
+    int perPage = 10,
+  }) async {
     if (!await networkInfo.isConnected) throw ApiException.noInternet();
-    final models = await remoteDatasource.getGroups(roundId);
-    return models.map((m) => m.toEntity()).toList();
+    final res = await remoteDatasource.getGroups(
+      roundId: roundId,
+      page: page,
+      perPage: perPage,
+    );
+    return PaginatedResult<GroupEntity>(
+      items: res.items.map((m) => m.toEntity()).toList(),
+      hasMore: res.hasMore,
+      currentPage: res.currentPage,
+      lastPage: res.lastPage,
+    );
   }
 
   @override
