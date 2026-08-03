@@ -12,6 +12,8 @@ import 'tournament_popup_menu.dart';
 import 'tournament_progress_bar.dart';
 import 'tournament_stat_card.dart';
 
+import 'package:tournax/core/widgets/app_cached_network_image.dart';
+
 class TournamentCard extends StatelessWidget {
   const TournamentCard({super.key, required this.tournament});
 
@@ -204,10 +206,10 @@ class TournamentCard extends StatelessWidget {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    Image.network(
-                      _bannerUrl,
+                    AppCachedNetworkImage(
+                      imageUrl: _bannerUrl,
                       fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Container(
+                      errorWidget: (context, error, stackTrace) => Container(
                         decoration: const BoxDecoration(
                           gradient: LinearGradient(
                             colors: [AppColors.surface, AppColors.cardBackground],

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../../../domain/models/enums.dart';
 import '../../../domain/models/layer_model.dart';
 
+import 'package:tournax/core/widgets/app_cached_network_image.dart';
+
 class RenderImageLayer extends StatelessWidget {
   final LayerModel layer;
   final Map<String, String> variables;
@@ -61,13 +63,17 @@ class RenderImageLayer extends StatelessWidget {
 
     Widget imageWidget;
     if (finalUrl.startsWith('http://') || finalUrl.startsWith('https://')) {
-      imageWidget = Image.network(
-        finalUrl,
+      imageWidget = AppCachedNetworkImage(
+        imageUrl: finalUrl,
         fit: _getBoxFit(layer.imageFit),
-        errorBuilder: (context, error, stackTrace) {
+        errorWidget: (context, error, stackTrace) {
           if (finalUrl.contains('10.151.118.115:8000')) {
             final fallback = finalUrl.replaceAll('10.151.118.115:8000', '127.0.0.1:8000');
-            return Image.network(fallback, fit: _getBoxFit(layer.imageFit), errorBuilder: (_, __, ___) => _buildPlaceholder());
+            return AppCachedNetworkImage(
+              imageUrl: fallback,
+              fit: _getBoxFit(layer.imageFit),
+              errorWidget: (_, __, ___) => _buildPlaceholder(),
+            );
           }
           return _buildPlaceholder();
         },

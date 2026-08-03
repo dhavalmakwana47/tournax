@@ -12,6 +12,8 @@ import '../../domain/entities/tournament_entity.dart';
 import '../controller/group_controller.dart';
 import '../controller/team_controller.dart';
 
+import 'package:tournax/core/widgets/app_cached_network_image.dart';
+
 class GroupTeamListPage extends ConsumerStatefulWidget {
   const GroupTeamListPage({
     super.key,
@@ -478,9 +480,9 @@ class _GroupTeamListPageState extends ConsumerState<GroupTeamListPage> {
                                   radius: 18,
                                   backgroundColor: AppColors.surface,
                                   child: team.logo != null
-                                      ? Image.network(
-                                          team.logo!,
-                                          errorBuilder: (_, __, ___) => _teamInitial(team.name),
+                                      ? AppCachedNetworkImage(
+                                          imageUrl: team.logo!,
+                                          errorWidget: (_, __, ___) => _teamInitial(team.name),
                                         )
                                       : _teamInitial(team.name),
                                 ),

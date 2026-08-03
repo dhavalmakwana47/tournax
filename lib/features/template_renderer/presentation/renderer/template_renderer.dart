@@ -11,6 +11,8 @@ import 'widgets/render_qr_layer.dart';
 import 'widgets/render_barcode_layer.dart';
 import 'widgets/render_component_layer.dart';
 
+import 'package:tournax/core/widgets/app_cached_network_image.dart';
+
 /// Standalone dynamic Flutter renderer engine for TournaX JSON templates.
 class TemplateRenderer extends StatelessWidget {
   final TemplateModel template;
@@ -331,23 +333,23 @@ class TemplateRenderer extends StatelessWidget {
 
   Widget _buildBackgroundImageWidget(String url) {
     if (url.startsWith('http://') || url.startsWith('https://')) {
-      return Image.network(
-        url,
+      return AppCachedNetworkImage(
+        imageUrl: url,
         fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) {
+        errorWidget: (context, error, stackTrace) {
           if (url.contains('10.151.118.115:8000')) {
             final fallbackUrl = url.replaceAll('10.151.118.115:8000', '127.0.0.1:8000');
-            return Image.network(
-              fallbackUrl,
+            return AppCachedNetworkImage(
+              imageUrl: fallbackUrl,
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+              errorWidget: (_, __, ___) => const SizedBox.shrink(),
             );
           } else if (url.contains('127.0.0.1:8000')) {
             final fallbackUrl = url.replaceAll('127.0.0.1:8000', '10.151.118.115:8000');
-            return Image.network(
-              fallbackUrl,
+            return AppCachedNetworkImage(
+              imageUrl: fallbackUrl,
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+              errorWidget: (_, __, ___) => const SizedBox.shrink(),
             );
           }
           return const SizedBox.shrink();

@@ -609,7 +609,9 @@ class _LeaderboardGeneratorPageState extends ConsumerState<LeaderboardGeneratorP
               children: [
                 Icon(Icons.check_circle_rounded, color: Colors.white),
                 SizedBox(width: 10),
-                Text('Leaderboard graphic saved to Gallery!'),
+                Expanded(
+                  child: Text('Leaderboard graphic saved to Gallery!'),
+                ),
               ],
             ),
             backgroundColor: AppColors.success,
@@ -663,7 +665,9 @@ class _LeaderboardGeneratorPageState extends ConsumerState<LeaderboardGeneratorP
               children: [
                 const Icon(Icons.check_circle_rounded, color: Colors.white),
                 const SizedBox(width: 10),
-                Text('Successfully saved $savedCount page graphics to Gallery!'),
+                Expanded(
+                  child: Text('Successfully saved $savedCount page graphics to Gallery!'),
+                ),
               ],
             ),
             backgroundColor: AppColors.success,
