@@ -282,6 +282,7 @@ GoRouter buildRouter(Ref ref, String? initialToken) {
           return RoundListPage(
             tournament: args.tournament,
             stageId: args.stageId,
+            isOrganizer: args.isOrganizer,
           );
         },
       ),
@@ -305,6 +306,7 @@ GoRouter buildRouter(Ref ref, String? initialToken) {
           return GroupListPage(
             tournament: args.tournament,
             roundId: args.roundId,
+            isOrganizer: args.isOrganizer,
           );
         },
       ),
@@ -350,6 +352,7 @@ GoRouter buildRouter(Ref ref, String? initialToken) {
           return MatchListPage(
             tournament: args.tournament,
             group: args.group,
+            isOrganizer: args.isOrganizer,
           );
         },
       ),

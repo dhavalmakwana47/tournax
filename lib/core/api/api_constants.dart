@@ -1,6 +1,6 @@
 abstract final class ApiConstants {
-  // static const String baseUrl = 'https://tournax.in/api/v1';
-  static const String baseUrl = 'http://10.151.118.115:8000/api/v1';
+  static const String baseUrl = 'https://tournax.in/api/v1';
+  // static const String baseUrl = 'http://10.151.118.115:8000/api/v1';
   static const Duration connectTimeout = Duration(seconds: 15);
   static const Duration receiveTimeout = Duration(seconds: 15);
   static const Duration sendTimeout = Duration(seconds: 15);
@@ -77,12 +77,14 @@ abstract final class ApiConstants {
   static const String leaderboardGroup = '/organizer/leaderboard/group';
   static const String leaderboardRound = '/organizer/leaderboard/round';
   static const String leaderboardStage = '/organizer/leaderboard/stage';
-  static const String leaderboardTournament = '/organizer/leaderboard/tournament';
+  static const String leaderboardTournament =
+      '/organizer/leaderboard/tournament';
   static const String leaderboardMatch = '/organizer/leaderboard/match';
 
   static const String matchesResultsStore = '/organizer/matches/results';
   static const String matchesResultsShow = '/organizer/matches/results/show';
-  static const String matchesResultsDelete = '/organizer/matches/results/delete';
+  static const String matchesResultsDelete =
+      '/organizer/matches/results/delete';
 
   static const String pointSystems = '/organizer/point-systems';
   static const String pointSystemsList = '/organizer/point-systems/list';
@@ -97,5 +99,6 @@ abstract final class ApiConstants {
   static const String playerTournamentsShow = '/player/tournaments/show';
   static const String playerTournamentsJoin = '/player/tournaments/join';
   static const String playerTournamentsLeave = '/player/tournaments/leave';
-  static const String playerTournamentsParticipated = '/player/tournaments/participated';
+  static const String playerTournamentsParticipated =
+      '/player/tournaments/participated';
 }

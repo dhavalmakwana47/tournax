@@ -18,10 +18,12 @@ class RoundListPage extends ConsumerStatefulWidget {
     super.key,
     required this.tournament,
     required this.stageId,
+    this.isOrganizer = false,
   });
 
   final TournamentEntity tournament;
   final int stageId;
+  final bool isOrganizer;
 
   @override
   ConsumerState<RoundListPage> createState() => _RoundListPageState();
@@ -288,17 +290,19 @@ class _RoundListPageState extends ConsumerState<RoundListPage> {
       backgroundColor: AppColors.background,
       appBar: _buildAppBar(),
       body: _buildBody(state),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showCreateRoundDialog,
-        backgroundColor: AppColors.primary,
-        elevation: 6,
-        shape: const CircleBorder(),
-        child: const Icon(
-          Icons.add_rounded,
-          color: AppColors.textPrimary,
-          size: 30,
-        ),
-      ),
+      floatingActionButton: widget.isOrganizer
+          ? FloatingActionButton(
+              onPressed: _showCreateRoundDialog,
+              backgroundColor: AppColors.primary,
+              elevation: 6,
+              shape: const CircleBorder(),
+              child: const Icon(
+                Icons.add_rounded,
+                color: AppColors.textPrimary,
+                size: 30,
+              ),
+            )
+          : null,
     );
   }
 
@@ -362,7 +366,10 @@ class _RoundListPageState extends ConsumerState<RoundListPage> {
       RoundListStatus.initial || RoundListStatus.loading => const Center(
           child: CircularProgressIndicator(color: AppColors.primary),
         ),
-      RoundListStatus.empty => _EmptyState(onAdd: _showCreateRoundDialog),
+      RoundListStatus.empty => _EmptyState(
+          isOrganizer: widget.isOrganizer,
+          onAdd: _showCreateRoundDialog,
+        ),
       RoundListStatus.error => _ErrorState(
           message: state.errorMessage ?? 'Something went wrong.',
           onRetry: () => ref
@@ -406,7 +413,7 @@ class _RoundListPageState extends ConsumerState<RoundListPage> {
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        if (state.rounds.isNotEmpty) ...[
+                        if (widget.isOrganizer && state.rounds.isNotEmpty) ...[
                           IconButton(
                             style: IconButton.styleFrom(
                               backgroundColor: AppColors.primary.withValues(alpha: 0.15),
@@ -443,50 +450,51 @@ class _RoundListPageState extends ConsumerState<RoundListPage> {
                           ),
                           const SizedBox(width: 8),
                         ],
-                        InkWell(
-                          onTap: _showCreateRoundDialog,
-                          borderRadius: BorderRadius.circular(8),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [AppColors.primary, Color(0xFFFF8C00)],
-                                begin: Alignment.centerLeft,
-                                end: Alignment.centerRight,
+                        if (widget.isOrganizer)
+                          InkWell(
+                            onTap: _showCreateRoundDialog,
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 6,
                               ),
-                              borderRadius: BorderRadius.circular(8),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: AppColors.primary.withValues(alpha: 0.3),
-                                  blurRadius: 6,
-                                  offset: const Offset(0, 2),
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [AppColors.primary, Color(0xFFFF8C00)],
+                                  begin: Alignment.centerLeft,
+                                  end: Alignment.centerRight,
                                 ),
-                              ],
-                            ),
-                            child: const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.add_rounded,
-                                  color: Colors.white,
-                                  size: 16,
-                                ),
-                                SizedBox(width: 4),
-                                Text(
-                                  'Add Round',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w700,
+                                borderRadius: BorderRadius.circular(8),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.primary.withValues(alpha: 0.3),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 2),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.add_rounded,
+                                    color: Colors.white,
+                                    size: 16,
+                                  ),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    'Add Round',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
                       ],
                     ),
                   ],
@@ -528,6 +536,7 @@ class _RoundListPageState extends ConsumerState<RoundListPage> {
                     return _RoundCard(
                       index: index,
                       round: round,
+                      isOrganizer: widget.isOrganizer,
                       onShowLeaderboard: () => context.pushNamed(
                         AppRoutes.leaderboard,
                         extra: LeaderboardArgs(
@@ -563,6 +572,7 @@ class _RoundListPageState extends ConsumerState<RoundListPage> {
                         extra: GroupArgs(
                           tournament: widget.tournament,
                           roundId: round.id,
+                          isOrganizer: widget.isOrganizer,
                         ),
                       ),
                     );
@@ -752,6 +762,7 @@ class _RoundCard extends StatelessWidget {
     required this.onEdit,
     required this.onDelete,
     required this.onManageGroups,
+    this.isOrganizer = false,
   });
 
   final int index;
@@ -761,6 +772,7 @@ class _RoundCard extends StatelessWidget {
   final VoidCallback onEdit;
   final VoidCallback onDelete;
   final VoidCallback onManageGroups;
+  final bool isOrganizer;
 
   @override
   Widget build(BuildContext context) {
@@ -951,61 +963,64 @@ class _RoundCard extends StatelessWidget {
                                         ],
                                       ),
                                     ),
-                                    const PopupMenuItem(
-                                      value: 'generate_leaderboard',
-                                      child: Row(
-                                        children: [
-                                          Icon(
-                                            Icons.auto_awesome_rounded,
-                                            size: 16,
-                                            color: Color(0xFFFF8C00),
-                                          ),
-                                          SizedBox(width: 8),
-                                          Text(
-                                            'Generate Leaderboard',
-                                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    const PopupMenuItem(
-                                      value: 'edit',
-                                      child: Row(
-                                        children: [
-                                          Icon(
-                                            Icons.edit_outlined,
-                                            size: 16,
-                                            color: AppColors.textPrimary,
-                                          ),
-                                          SizedBox(width: 8),
-                                          Text(
-                                            'Edit Round',
-                                            style: TextStyle(fontSize: 13),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    const PopupMenuDivider(height: 1),
-                                    const PopupMenuItem(
-                                      value: 'delete',
-                                      child: Row(
-                                        children: [
-                                          Icon(
-                                            Icons.delete_outline_rounded,
-                                            size: 16,
-                                            color: AppColors.error,
-                                          ),
-                                          SizedBox(width: 8),
-                                          Text(
-                                            'Delete Round',
-                                            style: TextStyle(
-                                              color: AppColors.error,
-                                              fontSize: 13,
+                                    if (isOrganizer)
+                                      const PopupMenuItem(
+                                        value: 'generate_leaderboard',
+                                        child: Row(
+                                          children: [
+                                            Icon(
+                                              Icons.auto_awesome_rounded,
+                                              size: 16,
+                                              color: Color(0xFFFF8C00),
                                             ),
-                                          ),
-                                        ],
+                                            SizedBox(width: 8),
+                                            Text(
+                                              'Generate Leaderboard',
+                                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                                            ),
+                                          ],
+                                        ),
                                       ),
-                                    ),
+                                    if (isOrganizer)
+                                      const PopupMenuItem(
+                                        value: 'edit',
+                                        child: Row(
+                                          children: [
+                                            Icon(
+                                              Icons.edit_outlined,
+                                              size: 16,
+                                              color: AppColors.textPrimary,
+                                            ),
+                                            SizedBox(width: 8),
+                                            Text(
+                                              'Edit Round',
+                                              style: TextStyle(fontSize: 13),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    if (isOrganizer) const PopupMenuDivider(height: 1),
+                                    if (isOrganizer)
+                                      const PopupMenuItem(
+                                        value: 'delete',
+                                        child: Row(
+                                          children: [
+                                            Icon(
+                                              Icons.delete_outline_rounded,
+                                              size: 16,
+                                              color: AppColors.error,
+                                            ),
+                                            SizedBox(width: 8),
+                                            Text(
+                                              'Delete Round',
+                                              style: TextStyle(
+                                                color: AppColors.error,
+                                                fontSize: 13,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
                                   ],
                                 ),
                               ],
@@ -1153,9 +1168,10 @@ class _RoundCard extends StatelessWidget {
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.onAdd});
+  const _EmptyState({required this.onAdd, this.isOrganizer = false});
 
   final VoidCallback onAdd;
+  final bool isOrganizer;
 
   @override
   Widget build(BuildContext context) {
@@ -1188,55 +1204,59 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
-              'Create rounds to organize groups and matches.',
+              isOrganizer
+                  ? 'Create rounds to organize groups and matches.'
+                  : 'Rounds will appear here once the organizer creates them.',
               style: AppTextStyles.bodyMedium.copyWith(
                 color: AppColors.textSecondary,
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: AppSpacing.xl),
-            Container(
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [AppColors.primary, Color(0xFFFF8C00)],
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                ),
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.35),
-                    blurRadius: 8,
-                    offset: const Offset(0, 3),
+            if (isOrganizer) ...[
+              const SizedBox(height: AppSpacing.xl),
+              Container(
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [AppColors.primary, Color(0xFFFF8C00)],
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
                   ),
-                ],
-              ),
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: onAdd,
                   borderRadius: BorderRadius.circular(12),
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.add_rounded, color: Colors.white, size: 20),
-                        SizedBox(width: 6),
-                        Text(
-                          'Add First Round',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primary.withValues(alpha: 0.35),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: onAdd,
+                    borderRadius: BorderRadius.circular(12),
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.add_rounded, color: Colors.white, size: 20),
+                          SizedBox(width: 6),
+                          Text(
+                            'Add First Round',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
+            ],
           ],
         ),
       ),

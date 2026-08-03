@@ -19,10 +19,12 @@ class GroupListPage extends ConsumerStatefulWidget {
     super.key,
     required this.tournament,
     required this.roundId,
+    this.isOrganizer = false,
   });
 
   final TournamentEntity tournament;
   final int roundId;
+  final bool isOrganizer;
 
   @override
   ConsumerState<GroupListPage> createState() => _GroupListPageState();
@@ -361,20 +363,22 @@ class _GroupListPageState extends ConsumerState<GroupListPage> {
       backgroundColor: AppColors.background,
       appBar: _buildAppBar(),
       body: _buildBody(state),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => context.pushNamed(
-          AppRoutes.createGroup,
-          extra: GroupArgs(tournament: widget.tournament, roundId: widget.roundId),
-        ),
-        backgroundColor: AppColors.primary,
-        elevation: 6,
-        shape: const CircleBorder(),
-        child: const Icon(
-          Icons.add_rounded,
-          color: AppColors.textPrimary,
-          size: 30,
-        ),
-      ),
+      floatingActionButton: widget.isOrganizer
+          ? FloatingActionButton(
+              onPressed: () => context.pushNamed(
+                AppRoutes.createGroup,
+                extra: GroupArgs(tournament: widget.tournament, roundId: widget.roundId),
+              ),
+              backgroundColor: AppColors.primary,
+              elevation: 6,
+              shape: const CircleBorder(),
+              child: const Icon(
+                Icons.add_rounded,
+                color: AppColors.textPrimary,
+                size: 30,
+              ),
+            )
+          : null,
     );
   }
 
@@ -439,6 +443,7 @@ class _GroupListPageState extends ConsumerState<GroupListPage> {
           child: CircularProgressIndicator(color: AppColors.primary),
         ),
       GroupListStatus.empty => _EmptyState(
+          isOrganizer: widget.isOrganizer,
           onAdd: () => context.pushNamed(
             AppRoutes.createGroup,
             extra: GroupArgs(tournament: widget.tournament, roundId: widget.roundId),
@@ -486,7 +491,7 @@ class _GroupListPageState extends ConsumerState<GroupListPage> {
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        if (state.groups.isNotEmpty) ...[
+                        if (widget.isOrganizer && state.groups.isNotEmpty) ...[
                           IconButton(
                             style: IconButton.styleFrom(
                               backgroundColor: AppColors.primary.withValues(alpha: 0.15),
@@ -523,8 +528,9 @@ class _GroupListPageState extends ConsumerState<GroupListPage> {
                           ),
                           const SizedBox(width: 8),
                         ],
-                        InkWell(
-                          onTap: () => context.pushNamed(
+                        if (widget.isOrganizer)
+                          InkWell(
+                            onTap: () => context.pushNamed(
                             AppRoutes.createGroup,
                             extra: GroupArgs(
                               tournament: widget.tournament,
@@ -589,6 +595,7 @@ class _GroupListPageState extends ConsumerState<GroupListPage> {
                     return _GroupCard(
                       index: index,
                       group: group,
+                      isOrganizer: widget.isOrganizer,
                       onEdit: () => context.pushNamed(
                         AppRoutes.editGroup,
                         extra: EditGroupArgs(
@@ -856,6 +863,7 @@ class _GroupCard extends StatelessWidget {
     required this.onGenerateLeaderboard,
     required this.onConfigurePoints,
     required this.onManageMatches,
+    this.isOrganizer = false,
   });
 
   final int index;
@@ -867,6 +875,7 @@ class _GroupCard extends StatelessWidget {
   final VoidCallback onGenerateLeaderboard;
   final VoidCallback onConfigurePoints;
   final VoidCallback onManageMatches;
+  final bool isOrganizer;
 
   @override
   Widget build(BuildContext context) {
@@ -1063,78 +1072,82 @@ class _GroupCard extends StatelessWidget {
                                     ],
                                   ),
                                 ),
-                                const PopupMenuItem(
-                                  value: 'generate_leaderboard',
-                                  child: Row(
-                                    children: [
-                                      Icon(
-                                        Icons.auto_awesome_rounded,
-                                        size: 16,
-                                        color: Color(0xFFFF8C00),
-                                      ),
-                                      SizedBox(width: 8),
-                                      Text(
-                                        'Generate Leaderboard',
-                                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const PopupMenuItem(
-                                  value: 'points',
-                                  child: Row(
-                                    children: [
-                                      Icon(
-                                        Icons.settings_outlined,
-                                        size: 16,
-                                        color: AppColors.primary,
-                                      ),
-                                      SizedBox(width: 8),
-                                      Text(
-                                        'Configure Points',
-                                        style: TextStyle(fontSize: 13),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const PopupMenuItem(
-                                  value: 'edit',
-                                  child: Row(
-                                    children: [
-                                      Icon(
-                                        Icons.edit_outlined,
-                                        size: 16,
-                                        color: AppColors.textPrimary,
-                                      ),
-                                      SizedBox(width: 8),
-                                      Text(
-                                        'Edit Group',
-                                        style: TextStyle(fontSize: 13),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const PopupMenuDivider(height: 1),
-                                const PopupMenuItem(
-                                  value: 'delete',
-                                  child: Row(
-                                    children: [
-                                      Icon(
-                                        Icons.delete_outline_rounded,
-                                        size: 16,
-                                        color: AppColors.error,
-                                      ),
-                                      SizedBox(width: 8),
-                                      Text(
-                                        'Delete Group',
-                                        style: TextStyle(
-                                          color: AppColors.error,
-                                          fontSize: 13,
+                                if (isOrganizer)
+                                  const PopupMenuItem(
+                                    value: 'generate_leaderboard',
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          Icons.auto_awesome_rounded,
+                                          size: 16,
+                                          color: Color(0xFFFF8C00),
                                         ),
-                                      ),
-                                    ],
+                                        SizedBox(width: 8),
+                                        Text(
+                                          'Generate Leaderboard',
+                                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                ),
+                                if (isOrganizer)
+                                  const PopupMenuItem(
+                                    value: 'points',
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          Icons.settings_outlined,
+                                          size: 16,
+                                          color: AppColors.primary,
+                                        ),
+                                        SizedBox(width: 8),
+                                        Text(
+                                          'Configure Points',
+                                          style: TextStyle(fontSize: 13),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                if (isOrganizer)
+                                  const PopupMenuItem(
+                                    value: 'edit',
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          Icons.edit_outlined,
+                                          size: 16,
+                                          color: AppColors.textPrimary,
+                                        ),
+                                        SizedBox(width: 8),
+                                        Text(
+                                          'Edit Group',
+                                          style: TextStyle(fontSize: 13),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                if (isOrganizer) const PopupMenuDivider(height: 1),
+                                if (isOrganizer)
+                                  const PopupMenuItem(
+                                    value: 'delete',
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          Icons.delete_outline_rounded,
+                                          size: 16,
+                                          color: AppColors.error,
+                                        ),
+                                        SizedBox(width: 8),
+                                        Text(
+                                          'Delete Group',
+                                          style: TextStyle(
+                                            color: AppColors.error,
+                                            fontSize: 13,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                               ],
                             ),
                           ],
@@ -1149,48 +1162,50 @@ class _GroupCard extends StatelessWidget {
                     // Action Buttons Row: Manage Teams & Manage Matches
                     Row(
                       children: [
-                        Expanded(
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: AppColors.inputFill,
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                color: AppColors.cardBorder,
-                                width: 1,
-                              ),
-                            ),
-                            child: Material(
-                              color: Colors.transparent,
-                              child: InkWell(
-                                onTap: onManageTeams,
+                        if (isOrganizer) ...[  
+                          Expanded(
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: AppColors.inputFill,
                                 borderRadius: BorderRadius.circular(10),
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(vertical: 8),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      const Icon(
-                                        Icons.people_alt_rounded,
-                                        color: AppColors.primary,
-                                        size: 16,
-                                      ),
-                                      const SizedBox(width: 6),
-                                      Text(
-                                        'Teams (${teams.length})',
-                                        style: const TextStyle(
-                                          color: AppColors.textPrimary,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w700,
+                                border: Border.all(
+                                  color: AppColors.cardBorder,
+                                  width: 1,
+                                ),
+                              ),
+                              child: Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  onTap: onManageTeams,
+                                  borderRadius: BorderRadius.circular(10),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(vertical: 8),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        const Icon(
+                                          Icons.people_alt_rounded,
+                                          color: AppColors.primary,
+                                          size: 16,
                                         ),
-                                      ),
-                                    ],
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          'Teams (${teams.length})',
+                                          style: const TextStyle(
+                                            color: AppColors.textPrimary,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 10),
+                          const SizedBox(width: 10),
+                        ],
                         Expanded(
                           child: Container(
                             decoration: BoxDecoration(
@@ -1492,9 +1507,10 @@ class _ManageGroupTeamsBottomSheet extends StatelessWidget {
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.onAdd});
+  const _EmptyState({required this.onAdd, this.isOrganizer = false});
 
   final VoidCallback onAdd;
+  final bool isOrganizer;
 
   @override
   Widget build(BuildContext context) {
@@ -1527,55 +1543,59 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
-              'Create groups to organize teams and schedule matches.',
+              isOrganizer
+                  ? 'Create groups to organize teams and schedule matches.'
+                  : 'Groups will appear here once the organizer creates them.',
               style: AppTextStyles.bodyMedium.copyWith(
                 color: AppColors.textSecondary,
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: AppSpacing.xl),
-            Container(
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [AppColors.primary, Color(0xFFFF8C00)],
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                ),
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.35),
-                    blurRadius: 8,
-                    offset: const Offset(0, 3),
+            if (isOrganizer) ...[
+              const SizedBox(height: AppSpacing.xl),
+              Container(
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [AppColors.primary, Color(0xFFFF8C00)],
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
                   ),
-                ],
-              ),
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: onAdd,
                   borderRadius: BorderRadius.circular(12),
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.add_rounded, color: Colors.white, size: 20),
-                        SizedBox(width: 6),
-                        Text(
-                          'Add First Group',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primary.withValues(alpha: 0.35),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: onAdd,
+                    borderRadius: BorderRadius.circular(12),
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.add_rounded, color: Colors.white, size: 20),
+                          SizedBox(width: 6),
+                          Text(
+                            'Add First Group',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
+            ],
           ],
         ),
       ),

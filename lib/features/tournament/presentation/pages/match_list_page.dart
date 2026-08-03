@@ -20,10 +20,12 @@ class MatchListPage extends ConsumerStatefulWidget {
     super.key,
     required this.tournament,
     required this.group,
+    this.isOrganizer = false,
   });
 
   final TournamentEntity tournament;
   final GroupEntity group;
+  final bool isOrganizer;
 
   @override
   ConsumerState<MatchListPage> createState() => _MatchListPageState();
@@ -158,13 +160,15 @@ class _MatchListPageState extends ConsumerState<MatchListPage> {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showMatchDialog(),
-        backgroundColor: AppColors.primary,
-        elevation: 6,
-        shape: const CircleBorder(),
-        child: const Icon(Icons.add_rounded, color: Colors.white, size: 28),
-      ),
+      floatingActionButton: widget.isOrganizer
+          ? FloatingActionButton(
+              onPressed: () => _showMatchDialog(),
+              backgroundColor: AppColors.primary,
+              elevation: 6,
+              shape: const CircleBorder(),
+              child: const Icon(Icons.add_rounded, color: Colors.white, size: 28),
+            )
+          : null,
       body: isLoading
           ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
           : RefreshIndicator(
@@ -205,7 +209,7 @@ class _MatchListPageState extends ConsumerState<MatchListPage> {
                         ),
                         Row(
                           children: [
-                            if (state.matches.isNotEmpty)
+                            if (widget.isOrganizer && state.matches.isNotEmpty)
                               InkWell(
                                 onTap: () => context.pushNamed(
                                   AppRoutes.slotListGenerator,
@@ -240,45 +244,46 @@ class _MatchListPageState extends ConsumerState<MatchListPage> {
                                   ),
                                 ),
                               ),
-                            InkWell(
-                              onTap: () => _showMatchDialog(),
-                              borderRadius: BorderRadius.circular(8),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  gradient: const LinearGradient(
-                                    colors: [AppColors.primary, Color(0xFFFF8C00)],
-                                    begin: Alignment.centerLeft,
-                                    end: Alignment.centerRight,
+                            if (widget.isOrganizer)
+                              InkWell(
+                                onTap: () => _showMatchDialog(),
+                                borderRadius: BorderRadius.circular(8),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 6,
                                   ),
-                                  borderRadius: BorderRadius.circular(8),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: AppColors.primary.withValues(alpha: 0.3),
-                                      blurRadius: 6,
-                                      offset: const Offset(0, 2),
+                                  decoration: BoxDecoration(
+                                    gradient: const LinearGradient(
+                                      colors: [AppColors.primary, Color(0xFFFF8C00)],
+                                      begin: Alignment.centerLeft,
+                                      end: Alignment.centerRight,
                                     ),
-                                  ],
-                                ),
-                                child: const Row(
-                                  children: [
-                                    Icon(Icons.add_rounded, color: Colors.white, size: 16),
-                                    SizedBox(width: 4),
-                                    Text(
-                                      'Add Match',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w700,
+                                    borderRadius: BorderRadius.circular(8),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: AppColors.primary.withValues(alpha: 0.3),
+                                        blurRadius: 6,
+                                        offset: const Offset(0, 2),
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
+                                  child: const Row(
+                                    children: [
+                                      Icon(Icons.add_rounded, color: Colors.white, size: 16),
+                                      SizedBox(width: 4),
+                                      Text(
+                                        'Add Match',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
-                            ),
                           ],
                         ),
                       ],
@@ -299,6 +304,7 @@ class _MatchListPageState extends ConsumerState<MatchListPage> {
                             match: match,
                             tournament: widget.tournament,
                             group: widget.group,
+                            isOrganizer: widget.isOrganizer,
                             onEdit: () => _showMatchDialog(match: match),
                             onDelete: () => _deleteMatch(match),
                             onResults: () => _showResultsDialog(match),
@@ -347,24 +353,28 @@ class _MatchListPageState extends ConsumerState<MatchListPage> {
             ),
           ),
           const SizedBox(height: 4),
-          const Text(
-            'Tap "+ Add Match" to create match fixtures for this group.',
+          Text(
+            widget.isOrganizer
+                ? 'Tap "+ Add Match" to create match fixtures for this group.'
+                : 'Matches will appear here once the organizer schedules them.',
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               color: AppColors.textSecondary,
               fontSize: 12,
             ),
           ),
-          const SizedBox(height: 16),
-          ElevatedButton.icon(
-            onPressed: () => _showMatchDialog(),
-            icon: const Icon(Icons.add, size: 18),
-            label: const Text('Add First Match'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
+          if (widget.isOrganizer) ...[
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: () => _showMatchDialog(),
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text('Add First Match'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+              ),
             ),
-          ),
+          ],
         ],
       ),
     );
@@ -488,6 +498,7 @@ class _MatchCard extends StatelessWidget {
     required this.onDelete,
     required this.onResults,
     required this.onManageTeams,
+    this.isOrganizer = false,
   });
 
   final MatchEntity match;
@@ -497,6 +508,7 @@ class _MatchCard extends StatelessWidget {
   final VoidCallback onDelete;
   final VoidCallback onResults;
   final VoidCallback onManageTeams;
+  final bool isOrganizer;
 
   @override
   Widget build(BuildContext context) {
@@ -705,40 +717,42 @@ class _MatchCard extends StatelessWidget {
                               if (val == 'delete') onDelete();
                             },
                             itemBuilder: (context) => [
-                              const PopupMenuItem(
-                                value: 'slot_list',
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      Icons.dashboard_customize_outlined,
-                                      size: 16,
-                                      color: AppColors.primary,
-                                    ),
-                                    SizedBox(width: 8),
-                                    Text(
-                                      'Generate Slot List',
-                                      style: TextStyle(fontSize: 13),
-                                    ),
-                                  ],
+                              if (isOrganizer)
+                                const PopupMenuItem(
+                                  value: 'slot_list',
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.dashboard_customize_outlined,
+                                        size: 16,
+                                        color: AppColors.primary,
+                                      ),
+                                      SizedBox(width: 8),
+                                      Text(
+                                        'Generate Slot List',
+                                        style: TextStyle(fontSize: 13),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                              const PopupMenuItem(
-                                value: 'leaderboard_graphic',
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      Icons.palette_outlined,
-                                      size: 16,
-                                      color: AppColors.primary,
-                                    ),
-                                    SizedBox(width: 8),
-                                    Text(
-                                      'Generate Leaderboard',
-                                      style: TextStyle(fontSize: 13),
-                                    ),
-                                  ],
+                              if (isOrganizer)
+                                const PopupMenuItem(
+                                  value: 'leaderboard_graphic',
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.palette_outlined,
+                                        size: 16,
+                                        color: AppColors.primary,
+                                      ),
+                                      SizedBox(width: 8),
+                                      Text(
+                                        'Generate Leaderboard',
+                                        style: TextStyle(fontSize: 13),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ),
                               const PopupMenuItem(
                                 value: 'standings',
                                 child: Row(
@@ -756,44 +770,46 @@ class _MatchCard extends StatelessWidget {
                                   ],
                                 ),
                               ),
-                              const PopupMenuItem(
-                                value: 'edit',
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      Icons.edit_outlined,
-                                      size: 16,
-                                      color: AppColors.textPrimary,
-                                    ),
-                                    SizedBox(width: 8),
-                                    Text(
-                                      'Edit Match',
-                                      style: TextStyle(fontSize: 13),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const PopupMenuDivider(height: 1),
-                              const PopupMenuItem(
-                                value: 'delete',
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      Icons.delete_outline_rounded,
-                                      size: 16,
-                                      color: AppColors.error,
-                                    ),
-                                    SizedBox(width: 8),
-                                    Text(
-                                      'Delete Match',
-                                      style: TextStyle(
-                                        color: AppColors.error,
-                                        fontSize: 13,
+                              if (isOrganizer)
+                                const PopupMenuItem(
+                                  value: 'edit',
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.edit_outlined,
+                                        size: 16,
+                                        color: AppColors.textPrimary,
                                       ),
-                                    ),
-                                  ],
+                                      SizedBox(width: 8),
+                                      Text(
+                                        'Edit Match',
+                                        style: TextStyle(fontSize: 13),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ),
+                              if (isOrganizer) const PopupMenuDivider(height: 1),
+                              if (isOrganizer)
+                                const PopupMenuItem(
+                                  value: 'delete',
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.delete_outline_rounded,
+                                        size: 16,
+                                        color: AppColors.error,
+                                      ),
+                                      SizedBox(width: 8),
+                                      Text(
+                                        'Delete Match',
+                                        style: TextStyle(
+                                          color: AppColors.error,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                             ],
                           ),
                         ],
@@ -808,101 +824,161 @@ class _MatchCard extends StatelessWidget {
                   // Action Row: Teams (X), Scores / Results, Slot Poster
                   Row(
                     children: [
-                      // Teams Button (Navigates to MatchTeamListPage)
-                      Expanded(
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: AppColors.inputFill,
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(
-                              color: AppColors.cardBorder,
-                              width: 1,
-                            ),
-                          ),
-                          child: Material(
-                            color: Colors.transparent,
-                            child: InkWell(
-                              onTap: onManageTeams,
+                      if (isOrganizer) ...[
+                        // Teams Button (Navigates to MatchTeamListPage)
+                        Expanded(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: AppColors.inputFill,
                               borderRadius: BorderRadius.circular(10),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 8),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    const Icon(
-                                      Icons.people_alt_rounded,
-                                      color: AppColors.primary,
-                                      size: 16,
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      'Teams ($teamsCount)',
-                                      style: const TextStyle(
-                                        color: AppColors.textPrimary,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w700,
+                              border: Border.all(
+                                color: AppColors.cardBorder,
+                                width: 1,
+                              ),
+                            ),
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                onTap: onManageTeams,
+                                borderRadius: BorderRadius.circular(10),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 8),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Icon(
+                                        Icons.people_alt_rounded,
+                                        color: AppColors.primary,
+                                        size: 16,
                                       ),
-                                    ),
-                                  ],
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        'Teams ($teamsCount)',
+                                        style: const TextStyle(
+                                          color: AppColors.textPrimary,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
+                        const SizedBox(width: 8),
 
-                      // Results / Scores Button
-                      Expanded(
-                        child: Container(
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [AppColors.primary, Color(0xFFFF8C00)],
-                              begin: Alignment.centerLeft,
-                              end: Alignment.centerRight,
-                            ),
-                            borderRadius: BorderRadius.circular(10),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.primary.withValues(alpha: 0.35),
-                                blurRadius: 6,
-                                offset: const Offset(0, 2),
+                        // Results / Scores Button
+                        Expanded(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [AppColors.primary, Color(0xFFFF8C00)],
+                                begin: Alignment.centerLeft,
+                                end: Alignment.centerRight,
                               ),
-                            ],
-                          ),
-                          child: Material(
-                            color: Colors.transparent,
-                            child: InkWell(
-                              onTap: onResults,
                               borderRadius: BorderRadius.circular(10),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 8),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      match.status == 'completed'
-                                          ? Icons.emoji_events_rounded
-                                          : Icons.scoreboard_outlined,
-                                      color: Colors.white,
-                                      size: 15,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      match.status == 'completed' ? 'Results' : 'Scores',
-                                      style: const TextStyle(
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppColors.primary.withValues(alpha: 0.35),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                onTap: onResults,
+                                borderRadius: BorderRadius.circular(10),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 8),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        match.status == 'completed'
+                                            ? Icons.emoji_events_rounded
+                                            : Icons.scoreboard_outlined,
                                         color: Colors.white,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w700,
+                                        size: 15,
                                       ),
-                                    ),
-                                  ],
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        match.status == 'completed' ? 'Results' : 'Scores',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),
                           ),
                         ),
-                      ),
+                      ] else ...[
+                        // View Standings Button for Players
+                        Expanded(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [AppColors.primary, Color(0xFFFF8C00)],
+                                begin: Alignment.centerLeft,
+                                end: Alignment.centerRight,
+                              ),
+                              borderRadius: BorderRadius.circular(10),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppColors.primary.withValues(alpha: 0.35),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                onTap: () => context.pushNamed(
+                                  AppRoutes.leaderboard,
+                                  extra: LeaderboardArgs(
+                                    tournament: tournament,
+                                    type: LeaderboardType.match,
+                                    id: match.id,
+                                    name: match.name ?? 'Match ${match.matchNumber}',
+                                  ),
+                                ),
+                                borderRadius: BorderRadius.circular(10),
+                                child: const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 8),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.emoji_events_outlined,
+                                        color: Colors.white,
+                                        size: 16,
+                                      ),
+                                      SizedBox(width: 6),
+                                      Text(
+                                        'View Standings',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ],

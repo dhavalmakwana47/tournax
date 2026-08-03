@@ -55,9 +55,10 @@ class EditTournamentArgs {
 }
 
 class RoundArgs {
-  const RoundArgs({required this.tournament, required this.stageId});
+  const RoundArgs({required this.tournament, required this.stageId, this.isOrganizer = false});
   final TournamentEntity tournament;
   final int stageId;
+  final bool isOrganizer;
 }
 
 class EditRoundArgs {
@@ -72,9 +73,10 @@ class EditRoundArgs {
 }
 
 class GroupArgs {
-  const GroupArgs({required this.tournament, required this.roundId});
+  const GroupArgs({required this.tournament, required this.roundId, this.isOrganizer = false});
   final TournamentEntity tournament;
   final int roundId;
+  final bool isOrganizer;
 }
 
 class EditGroupArgs {
@@ -101,9 +103,11 @@ class MatchArgs {
   const MatchArgs({
     required this.tournament,
     required this.group,
+    this.isOrganizer = false,
   });
   final TournamentEntity tournament;
   final GroupEntity group;
+  final bool isOrganizer;
 }
 
 class GroupTeamListArgs {

@@ -431,6 +431,7 @@ class _StageListPageState extends ConsumerState<StageListPage> {
                         extra: RoundArgs(
                           tournament: widget.tournament,
                           stageId: stage.id,
+                          isOrganizer: widget.isOrganizer,
                         ),
                       ),
                       onEdit: () => context.pushNamed(
