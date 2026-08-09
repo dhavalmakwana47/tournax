@@ -239,12 +239,18 @@ class _PointSystemPageState extends ConsumerState<PointSystemPage> {
       _initializeFields(state.customPointSystem);
     }
 
-    ref.listen(pointSystemControllerProvider(widget.groupId), (_, next) {
-      if (next.saveStatus == PointSystemActionStatus.error && next.errorMessage != null) {
+    ref.listen(pointSystemControllerProvider(widget.groupId), (previous, next) {
+      final hasError = next.saveStatus == PointSystemActionStatus.error ||
+          next.deleteStatus == PointSystemActionStatus.error ||
+          next.status == PointSystemActionStatus.error;
+
+      if (hasError && next.errorMessage != null && next.errorMessage != previous?.errorMessage) {
+        ScaffoldMessenger.of(context).clearSnackBars();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(next.errorMessage!),
             backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
           ),
         );
       }

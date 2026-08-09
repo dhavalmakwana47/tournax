@@ -646,6 +646,7 @@ class _GroupListPageState extends ConsumerState<GroupListPage> {
                         extra: MatchArgs(
                           tournament: widget.tournament,
                           group: group,
+                          isOrganizer: widget.isOrganizer,
                         ),
                       ),
                     );

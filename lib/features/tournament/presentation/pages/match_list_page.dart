@@ -9,6 +9,9 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/utils/validators.dart';
+import '../../../../core/di/providers.dart';
+import '../../../authentication/presentation/controller/login_controller.dart';
+import '../../../profile/presentation/controller/profile_controller.dart';
 import '../../domain/entities/group_entity.dart';
 import '../../domain/entities/match_entity.dart';
 import '../../domain/entities/tournament_entity.dart';
@@ -110,6 +113,18 @@ class _MatchListPageState extends ConsumerState<MatchListPage> {
 
   @override
   Widget build(BuildContext context) {
+    final roleAsync = ref.watch(userRoleProvider);
+    final profileRole = ref.watch(profileControllerProvider).profile?.role;
+    final loginRole = ref.watch(loginControllerProvider).user?.role;
+    final resolvedRole = roleAsync.maybeWhen(
+      data: (r) => r ?? profileRole ?? loginRole,
+      orElse: () => profileRole ?? loginRole,
+    );
+    final isOrganizer = widget.isOrganizer ||
+        (resolvedRole != null &&
+            (resolvedRole.toLowerCase().contains('organizer') ||
+                resolvedRole.toLowerCase().contains('organiser')));
+
     final state = ref.watch(matchControllerProvider(widget.group.id));
     final isLoading = state.status == MatchActionStatus.loading;
 
@@ -160,7 +175,7 @@ class _MatchListPageState extends ConsumerState<MatchListPage> {
           ],
         ),
       ),
-      floatingActionButton: widget.isOrganizer
+      floatingActionButton: isOrganizer
           ? FloatingActionButton(
               onPressed: () => _showMatchDialog(),
               backgroundColor: AppColors.primary,
@@ -209,7 +224,7 @@ class _MatchListPageState extends ConsumerState<MatchListPage> {
                         ),
                         Row(
                           children: [
-                            if (widget.isOrganizer && state.matches.isNotEmpty)
+                            if (isOrganizer && state.matches.isNotEmpty)
                               InkWell(
                                 onTap: () => context.pushNamed(
                                   AppRoutes.slotListGenerator,
@@ -244,7 +259,7 @@ class _MatchListPageState extends ConsumerState<MatchListPage> {
                                   ),
                                 ),
                               ),
-                            if (widget.isOrganizer)
+                            if (isOrganizer)
                               InkWell(
                                 onTap: () => _showMatchDialog(),
                                 borderRadius: BorderRadius.circular(8),
@@ -291,7 +306,7 @@ class _MatchListPageState extends ConsumerState<MatchListPage> {
                     const SizedBox(height: AppSpacing.md),
 
                     if (state.matches.isEmpty)
-                      _buildEmptyState()
+                      _buildEmptyState(isOrganizer)
                     else
                       ListView.separated(
                         shrinkWrap: true,
@@ -304,7 +319,7 @@ class _MatchListPageState extends ConsumerState<MatchListPage> {
                             match: match,
                             tournament: widget.tournament,
                             group: widget.group,
-                            isOrganizer: widget.isOrganizer,
+                            isOrganizer: isOrganizer,
                             onEdit: () => _showMatchDialog(match: match),
                             onDelete: () => _deleteMatch(match),
                             onResults: () => _showResultsDialog(match),
@@ -326,7 +341,7 @@ class _MatchListPageState extends ConsumerState<MatchListPage> {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(bool isOrganizer) {
     return Container(
       padding: const EdgeInsets.all(32),
       width: double.infinity,
@@ -354,7 +369,7 @@ class _MatchListPageState extends ConsumerState<MatchListPage> {
           ),
           const SizedBox(height: 4),
           Text(
-            widget.isOrganizer
+            isOrganizer
                 ? 'Tap "+ Add Match" to create match fixtures for this group.'
                 : 'Matches will appear here once the organizer schedules them.',
             textAlign: TextAlign.center,
@@ -363,7 +378,7 @@ class _MatchListPageState extends ConsumerState<MatchListPage> {
               fontSize: 12,
             ),
           ),
-          if (widget.isOrganizer) ...[
+          if (isOrganizer) ...[
             const SizedBox(height: 16),
             ElevatedButton.icon(
               onPressed: () => _showMatchDialog(),

@@ -1,4 +1,5 @@
 import '../../../../core/api/api_client.dart';
+import '../../../../core/api/api_constants.dart';
 import '../models/point_system_model.dart';
 
 abstract interface class PointSystemRemoteDatasource {
@@ -35,7 +36,7 @@ class PointSystemRemoteDatasourceImpl implements PointSystemRemoteDatasource {
   @override
   Future<List<PointSystemModel>> getPointSystems(int? groupId) async {
     final response = await _apiClient.post(
-      '/point-systems/list',
+      ApiConstants.pointSystemsList,
       data: groupId != null ? {'group_id': groupId} : {},
     );
     final data = response['data'] as List<dynamic>?;
@@ -55,7 +56,7 @@ class PointSystemRemoteDatasourceImpl implements PointSystemRemoteDatasource {
     required List<Map<String, dynamic>> rules,
   }) async {
     final response = await _apiClient.post(
-      '/point-systems',
+      ApiConstants.pointSystems,
       data: {
         if (groupId != null) 'group_id': groupId,
         'name': name,
@@ -73,7 +74,7 @@ class PointSystemRemoteDatasourceImpl implements PointSystemRemoteDatasource {
   @override
   Future<PointSystemModel> showPointSystem(int pointSystemId) async {
     final response = await _apiClient.post(
-      '/point-systems/show',
+      ApiConstants.pointSystemsShow,
       data: {'point_system_id': pointSystemId},
     );
     return PointSystemModel.fromJson(response['data'] as Map<String, dynamic>);
@@ -92,7 +93,7 @@ class PointSystemRemoteDatasourceImpl implements PointSystemRemoteDatasource {
     List<Map<String, dynamic>>? rules,
   }) async {
     final response = await _apiClient.post(
-      '/point-systems/update',
+      ApiConstants.pointSystemsUpdate,
       data: {
         'point_system_id': pointSystemId,
         if (groupId != null) 'group_id': groupId,
@@ -111,7 +112,7 @@ class PointSystemRemoteDatasourceImpl implements PointSystemRemoteDatasource {
   @override
   Future<void> deletePointSystem(int pointSystemId) async {
     await _apiClient.post(
-      '/point-systems/delete',
+      ApiConstants.pointSystemsDelete,
       data: {'point_system_id': pointSystemId},
     );
   }
