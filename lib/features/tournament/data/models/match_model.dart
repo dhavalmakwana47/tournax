@@ -1,5 +1,19 @@
 import '../../domain/entities/match_entity.dart';
 
+int _toInt(dynamic val, [int defaultValue = 0]) {
+  if (val == null) return defaultValue;
+  if (val is num) return val.toInt();
+  if (val is String) return int.tryParse(val) ?? defaultValue;
+  return defaultValue;
+}
+
+int? _toNullableInt(dynamic val) {
+  if (val == null) return null;
+  if (val is num) return val.toInt();
+  if (val is String) return int.tryParse(val);
+  return null;
+}
+
 class MatchTeamMemberModel {
   const MatchTeamMemberModel({
     required this.id,
@@ -23,15 +37,15 @@ class MatchTeamMemberModel {
 
   factory MatchTeamMemberModel.fromJson(Map<String, dynamic> json) =>
       MatchTeamMemberModel(
-        id: (json['id'] as num).toInt(),
-        name: json['name'] as String,
+        id: _toInt(json['id']),
+        name: json['name']?.toString() ?? '',
         shortName: json['short_name'] as String?,
         logo: json['logo'] as String?,
         country: json['country'] as String?,
-        slot: (json['slot'] as num?)?.toInt() ??
-            (json['pivot'] is Map ? (json['pivot']['slot'] as num?)?.toInt() : null) ??
-            (json['slot_number'] as num?)?.toInt() ??
-            (json['pivot'] is Map ? (json['pivot']['slot_number'] as num?)?.toInt() : null),
+        slot: _toNullableInt(json['slot']) ??
+            (json['pivot'] is Map ? _toNullableInt(json['pivot']['slot']) : null) ??
+            _toNullableInt(json['slot_number']) ??
+            (json['pivot'] is Map ? _toNullableInt(json['pivot']['slot_number']) : null),
         lane: json['lane'] as String?,
         status: json['status'] as String? ?? 'confirmed',
       );
@@ -85,9 +99,9 @@ class MatchModel {
   final List<MatchTeamMemberModel> teams;
 
   factory MatchModel.fromJson(Map<String, dynamic> json) => MatchModel(
-        id: (json['id'] as num).toInt(),
-        groupId: (json['group_id'] as num).toInt(),
-        matchNumber: (json['match_number'] as num).toInt(),
+        id: _toInt(json['id']),
+        groupId: _toInt(json['group_id']),
+        matchNumber: _toInt(json['match_number']),
         name: json['name'] as String?,
         map: json['map'] as String?,
         scheduledAt: json['scheduled_at'] as String?,

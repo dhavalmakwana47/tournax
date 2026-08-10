@@ -35,43 +35,72 @@ class _MatchResultsDialogState extends ConsumerState<MatchResultsDialog> {
   @override
   void initState() {
     super.initState();
+    _initializeControllers();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await ref.read(matchResultControllerProvider(widget.match.id).notifier).fetchResults();
-      _initializeControllers();
+      _populateControllersFromState();
     });
   }
 
   void _initializeControllers() {
+    for (var i = 0; i < widget.match.teams.length; i++) {
+      final team = widget.match.teams[i];
+      _getRankCtrl(team.id, i + 1);
+      _getKillsCtrl(team.id);
+      _getBonusCtrl(team.id);
+      _getPenaltyCtrl(team.id);
+      _getSurvivalCtrl(team.id);
+    }
+  }
+
+  TextEditingController _getRankCtrl(int teamId, int defaultRank) {
+    return _rankCtrls.putIfAbsent(teamId, () => TextEditingController(text: defaultRank.toString()));
+  }
+
+  TextEditingController _getKillsCtrl(int teamId) {
+    return _killsCtrls.putIfAbsent(teamId, () => TextEditingController(text: '0'));
+  }
+
+  TextEditingController _getBonusCtrl(int teamId) {
+    return _bonusCtrls.putIfAbsent(teamId, () => TextEditingController(text: '0'));
+  }
+
+  TextEditingController _getPenaltyCtrl(int teamId) {
+    return _penaltyCtrls.putIfAbsent(teamId, () => TextEditingController(text: '0'));
+  }
+
+  TextEditingController _getSurvivalCtrl(int teamId) {
+    return _survivalCtrls.putIfAbsent(teamId, () => TextEditingController(text: '0'));
+  }
+
+  void _populateControllersFromState() {
+    if (!mounted) return;
     final state = ref.read(matchResultControllerProvider(widget.match.id));
     final existingResults = state.results;
 
     for (var i = 0; i < widget.match.teams.length; i++) {
       final team = widget.match.teams[i];
-      final TeamResultEntity? matchResult = existingResults.isEmpty
-          ? null
-          : existingResults.firstWhere((r) => r.teamId == team.id,
-              orElse: () => TeamResultEntity(
-                    matchId: widget.match.id,
-                    teamId: team.id,
-                    rank: i + 1,
-                    bonusPoints: 0,
-                    penaltyPoints: 0,
-                    kills: 0,
-                    survivalTime: 0,
-                  ));
+      final matchResult = existingResults.where((r) => r.teamId == team.id).firstOrNull;
 
-      _rankCtrls[team.id] = TextEditingController(
-          text: matchResult != null ? matchResult.rank.toString() : (i + 1).toString());
-      _killsCtrls[team.id] = TextEditingController(
-          text: matchResult != null ? matchResult.kills.toString() : '0');
-      _bonusCtrls[team.id] = TextEditingController(
-          text: matchResult != null ? matchResult.bonusPoints.toString() : '0');
-      _penaltyCtrls[team.id] = TextEditingController(
-          text: matchResult != null ? matchResult.penaltyPoints.toString() : '0');
-      _survivalCtrls[team.id] = TextEditingController(
-          text: matchResult != null ? matchResult.survivalTime.toString() : '0');
+      if (matchResult != null) {
+        _getRankCtrl(team.id, i + 1).text = matchResult.rank.toString();
+        _getKillsCtrl(team.id).text = matchResult.kills.toString();
+        _getBonusCtrl(team.id).text = matchResult.bonusPoints.toString();
+        _getPenaltyCtrl(team.id).text = matchResult.penaltyPoints.toString();
+        _getSurvivalCtrl(team.id).text = matchResult.survivalTime.toString();
+      } else {
+        _getRankCtrl(team.id, i + 1).text = (i + 1).toString();
+        _getKillsCtrl(team.id).text = '0';
+        _getBonusCtrl(team.id).text = '0';
+        _getPenaltyCtrl(team.id).text = '0';
+        _getSurvivalCtrl(team.id).text = '0';
+      }
     }
-    setState(() {}); // Rebuild with populated inputs
+    if (mounted) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() {});
+      });
+    }
   }
 
   @override
@@ -98,12 +127,13 @@ class _MatchResultsDialogState extends ConsumerState<MatchResultsDialog> {
     if (!_formKey.currentState!.validate()) return;
 
     final resultsList = <TeamResultEntity>[];
-    for (final team in widget.match.teams) {
-      final rank = int.tryParse(_rankCtrls[team.id]?.text ?? '') ?? 1;
-      final kills = int.tryParse(_killsCtrls[team.id]?.text ?? '') ?? 0;
-      final bonus = int.tryParse(_bonusCtrls[team.id]?.text ?? '') ?? 0;
-      final penalty = int.tryParse(_penaltyCtrls[team.id]?.text ?? '') ?? 0;
-      final survival = int.tryParse(_survivalCtrls[team.id]?.text ?? '') ?? 0;
+    for (var i = 0; i < widget.match.teams.length; i++) {
+      final team = widget.match.teams[i];
+      final rank = int.tryParse(_getRankCtrl(team.id, i + 1).text) ?? (i + 1);
+      final kills = int.tryParse(_getKillsCtrl(team.id).text) ?? 0;
+      final bonus = int.tryParse(_getBonusCtrl(team.id).text) ?? 0;
+      final penalty = int.tryParse(_getPenaltyCtrl(team.id).text) ?? 0;
+      final survival = int.tryParse(_getSurvivalCtrl(team.id).text) ?? 0;
 
       resultsList.add(
         TeamResultEntity(
@@ -182,6 +212,13 @@ class _MatchResultsDialogState extends ConsumerState<MatchResultsDialog> {
     final isLoading = state.status == MatchResultStatus.loading;
     final isSaving = state.saveStatus == MatchResultStatus.loading;
     final isDeleting = state.deleteStatus == MatchResultStatus.loading;
+    final screenSize = MediaQuery.of(context).size;
+
+    ref.listen(matchResultControllerProvider(widget.match.id), (prev, next) {
+      if (prev?.status == MatchResultStatus.loading && next.status == MatchResultStatus.success) {
+        _populateControllersFromState();
+      }
+    });
 
     return AlertDialog(
       backgroundColor: AppColors.surface,
@@ -228,8 +265,12 @@ class _MatchResultsDialogState extends ConsumerState<MatchResultsDialog> {
             ),
         ],
       ),
-      content: SizedBox(
-        width: 450,
+      content: Container(
+        constraints: BoxConstraints(
+          maxWidth: 450,
+          maxHeight: screenSize.height * 0.7,
+        ),
+        width: screenSize.width * 0.9,
         child: isLoading
             ? const SizedBox(
                 height: 200,
@@ -260,6 +301,11 @@ class _MatchResultsDialogState extends ConsumerState<MatchResultsDialog> {
                           separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.md),
                           itemBuilder: (context, index) {
                             final team = widget.match.teams[index];
+                            final rankCtrl = _getRankCtrl(team.id, index + 1);
+                            final killsCtrl = _getKillsCtrl(team.id);
+                            final bonusCtrl = _getBonusCtrl(team.id);
+                            final penaltyCtrl = _getPenaltyCtrl(team.id);
+
                             return Container(
                               padding: const EdgeInsets.all(AppSpacing.md),
                               decoration: BoxDecoration(
@@ -287,7 +333,7 @@ class _MatchResultsDialogState extends ConsumerState<MatchResultsDialog> {
                                             const Text('Rank', style: _labelStyle),
                                             const SizedBox(height: 4),
                                             TextFormField(
-                                              controller: _rankCtrls[team.id],
+                                              controller: rankCtrl,
                                               keyboardType: TextInputType.number,
                                               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                                               style: const TextStyle(color: AppColors.textPrimary, fontSize: 13),
@@ -306,7 +352,7 @@ class _MatchResultsDialogState extends ConsumerState<MatchResultsDialog> {
                                             const Text('Kills', style: _labelStyle),
                                             const SizedBox(height: 4),
                                             TextFormField(
-                                              controller: _killsCtrls[team.id],
+                                              controller: killsCtrl,
                                               keyboardType: TextInputType.number,
                                               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                                               style: const TextStyle(color: AppColors.textPrimary, fontSize: 13),
@@ -329,7 +375,7 @@ class _MatchResultsDialogState extends ConsumerState<MatchResultsDialog> {
                                             const Text('Bonus Pts', style: _labelStyle),
                                             const SizedBox(height: 4),
                                             TextFormField(
-                                              controller: _bonusCtrls[team.id],
+                                              controller: bonusCtrl,
                                               keyboardType: TextInputType.number,
                                               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                                               style: const TextStyle(color: AppColors.textPrimary, fontSize: 13),
@@ -348,7 +394,7 @@ class _MatchResultsDialogState extends ConsumerState<MatchResultsDialog> {
                                             const Text('Penalty Pts', style: _labelStyle),
                                             const SizedBox(height: 4),
                                             TextFormField(
-                                              controller: _penaltyCtrls[team.id],
+                                              controller: penaltyCtrl,
                                               keyboardType: TextInputType.number,
                                               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                                               style: const TextStyle(color: AppColors.textPrimary, fontSize: 13),
@@ -378,38 +424,44 @@ class _MatchResultsDialogState extends ConsumerState<MatchResultsDialog> {
               ),
       ),
       actions: [
-        if (state.results.isNotEmpty)
-          TextButton(
-            onPressed: isDeleting || isSaving ? null : _deleteResults,
-            style: TextButton.styleFrom(foregroundColor: AppColors.error),
-            child: isDeleting
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(color: AppColors.error, strokeWidth: 2),
-                  )
-                : const Text('Delete Results'),
-          ),
-        const Spacer(),
-        TextButton(
-          onPressed: isSaving || isDeleting ? null : () => Navigator.of(context).pop(),
-          child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
-        ),
-        if (widget.match.teams.isNotEmpty)
-          FilledButton(
-            onPressed: isSaving || isDeleting ? null : _submit,
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: AppColors.textPrimary,
+        Row(
+          children: [
+            if (state.results.isNotEmpty)
+              TextButton(
+                onPressed: isDeleting || isSaving ? null : _deleteResults,
+                style: TextButton.styleFrom(foregroundColor: AppColors.error),
+                child: isDeleting
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(color: AppColors.error, strokeWidth: 2),
+                      )
+                    : const Text('Delete Results'),
+              ),
+            const Spacer(),
+            TextButton(
+              onPressed: isSaving || isDeleting ? null : () => Navigator.of(context).pop(),
+              child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
             ),
-            child: isSaving
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(color: AppColors.textPrimary, strokeWidth: 2),
-                  )
-                : const Text('Save'),
-          ),
+            if (widget.match.teams.isNotEmpty) ...[
+              const SizedBox(width: AppSpacing.sm),
+              FilledButton(
+                onPressed: isSaving || isDeleting ? null : _submit,
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: AppColors.textPrimary,
+                ),
+                child: isSaving
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(color: AppColors.textPrimary, strokeWidth: 2),
+                      )
+                    : const Text('Save'),
+              ),
+            ],
+          ],
+        ),
       ],
     );
   }

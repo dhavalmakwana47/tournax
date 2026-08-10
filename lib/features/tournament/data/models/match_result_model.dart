@@ -1,5 +1,19 @@
 import '../../domain/entities/match_result_entity.dart';
 
+int _toInt(dynamic val, [int defaultValue = 0]) {
+  if (val == null) return defaultValue;
+  if (val is num) return val.toInt();
+  if (val is String) return int.tryParse(val) ?? defaultValue;
+  return defaultValue;
+}
+
+int? _toNullableInt(dynamic val) {
+  if (val == null) return null;
+  if (val is num) return val.toInt();
+  if (val is String) return int.tryParse(val);
+  return null;
+}
+
 class PlayerResultModel {
   const PlayerResultModel({
     required this.playerId,
@@ -26,16 +40,16 @@ class PlayerResultModel {
   final int finishes;
 
   factory PlayerResultModel.fromJson(Map<String, dynamic> json) => PlayerResultModel(
-        playerId: (json['player_id'] as num).toInt(),
+        playerId: _toInt(json['player_id']),
         playerName: json['player_name'] as String?,
-        kills: (json['kills'] as num? ?? 0).toInt(),
-        assists: (json['assists'] as num? ?? 0).toInt(),
-        damage: (json['damage'] as num? ?? 0).toInt(),
-        headshots: (json['headshots'] as num? ?? 0).toInt(),
-        revives: (json['revives'] as num? ?? 0).toInt(),
-        healing: (json['healing'] as num? ?? 0).toInt(),
-        survivalTime: (json['survival_time'] as num? ?? 0).toInt(),
-        finishes: (json['finishes'] as num? ?? 0).toInt(),
+        kills: _toInt(json['kills']),
+        assists: _toInt(json['assists']),
+        damage: _toInt(json['damage']),
+        headshots: _toInt(json['headshots']),
+        revives: _toInt(json['revives']),
+        healing: _toInt(json['healing']),
+        survivalTime: _toInt(json['survival_time']),
+        finishes: _toInt(json['finishes']),
       );
 
   Map<String, dynamic> toJson() => {
@@ -99,19 +113,19 @@ class TeamResultModel {
   final List<PlayerResultModel> players;
 
   factory TeamResultModel.fromJson(Map<String, dynamic> json) => TeamResultModel(
-        id: (json['id'] as num?)?.toInt(),
-        matchId: (json['match_id'] as num).toInt(),
-        teamId: (json['team_id'] as num).toInt(),
+        id: _toNullableInt(json['id']),
+        matchId: _toInt(json['match_id']),
+        teamId: _toInt(json['team_id']),
         teamName: json['team_name'] as String?,
         teamShortName: json['team_short_name'] as String?,
-        rank: (json['rank'] as num).toInt(),
-        placementPoints: (json['placement_points'] as num?)?.toInt(),
-        killPoints: (json['kill_points'] as num?)?.toInt(),
-        bonusPoints: (json['bonus_points'] as num? ?? 0).toInt(),
-        penaltyPoints: (json['penalty_points'] as num? ?? 0).toInt(),
-        totalPoints: (json['total_points'] as num?)?.toInt(),
-        kills: (json['kills'] as num? ?? 0).toInt(),
-        survivalTime: (json['survival_time'] as num? ?? 0).toInt(),
+        rank: _toInt(json['rank'], 1),
+        placementPoints: _toNullableInt(json['placement_points']),
+        killPoints: _toNullableInt(json['kill_points']),
+        bonusPoints: _toInt(json['bonus_points']),
+        penaltyPoints: _toInt(json['penalty_points']),
+        totalPoints: _toNullableInt(json['total_points']),
+        kills: _toInt(json['kills']),
+        survivalTime: _toInt(json['survival_time']),
         players: json['players'] is List
             ? (json['players'] as List)
                 .map((e) => PlayerResultModel.fromJson(e as Map<String, dynamic>))
