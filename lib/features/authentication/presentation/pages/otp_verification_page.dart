@@ -36,7 +36,9 @@ class _OtpVerificationPageState extends ConsumerState<OtpVerificationPage> {
 
   void _listenToState() {
     ref.listenManual(registerControllerProvider, (previous, next) {
-      if (next.otpStatus == OtpStatus.error && next.errorMessage != null) {
+      if (next.otpStatus == OtpStatus.success || authNotifier.isAuthenticated) {
+        context.go(AppRoutes.home);
+      } else if (next.otpStatus == OtpStatus.error && next.errorMessage != null) {
         _showSnackBar(next.errorMessage!);
         _clearOtp();
       } else if (next.otpStatus == OtpStatus.initial &&
@@ -131,13 +133,21 @@ class _OtpVerificationPageState extends ConsumerState<OtpVerificationPage> {
     final isLoading = state.otpStatus == OtpStatus.loading;
     final isResending = state.otpStatus == OtpStatus.resending;
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: Stack(
-        children: [
-          const _BackgroundDecoration(),
-          SafeArea(
-            child: SingleChildScrollView(
+    return PopScope(
+      canPop: !authNotifier.isAuthenticated,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (authNotifier.isAuthenticated) {
+          context.go(AppRoutes.home);
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        body: Stack(
+          children: [
+            const _BackgroundDecoration(),
+            SafeArea(
+              child: SingleChildScrollView(
               padding:
                   const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
               child: Column(
@@ -172,8 +182,9 @@ class _OtpVerificationPageState extends ConsumerState<OtpVerificationPage> {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 class _BackButton extends StatelessWidget {

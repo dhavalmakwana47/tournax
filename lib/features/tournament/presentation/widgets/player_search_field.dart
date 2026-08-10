@@ -49,6 +49,18 @@ class _PlayerSearchFieldState extends ConsumerState<PlayerSearchField> {
   }
 
   @override
+  void didUpdateWidget(covariant PlayerSearchField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialSelection != oldWidget.initialSelection &&
+        widget.initialSelection != null) {
+      setState(() {
+        _selected = widget.initialSelection;
+        _ctrl.text = widget.initialSelection!.name;
+      });
+    }
+  }
+
+  @override
   void dispose() {
     _debounce?.cancel();
     _ctrl.dispose();
@@ -196,15 +208,19 @@ class _PlayerSearchFieldState extends ConsumerState<PlayerSearchField> {
           ),
         if (_showSuggestions && !_loading && _results.isNotEmpty)
           _SuggestionContainer(
-            child: ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: _results.length,
-              separatorBuilder: (_, __) =>
-                  const Divider(height: 1, color: AppColors.divider),
-              itemBuilder: (_, i) => _SuggestionTile(
-                result: _results[i],
-                onTap: () => _select(_results[i]),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 220),
+              child: ListView.separated(
+                padding: EdgeInsets.zero,
+                shrinkWrap: true,
+                physics: const BouncingScrollPhysics(),
+                itemCount: _results.length,
+                separatorBuilder: (_, __) =>
+                    const Divider(height: 1, color: AppColors.divider),
+                itemBuilder: (_, i) => _SuggestionTile(
+                  result: _results[i],
+                  onTap: () => _select(_results[i]),
+                ),
               ),
             ),
           ),

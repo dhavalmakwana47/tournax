@@ -1,5 +1,6 @@
 abstract final class ApiConstants {
-  static const String baseUrl = 'https://tournax.in/api/v1';
+  static const String baseUrl = 'http://10.251.139.115:8000/api/v1';
+//   static const String baseUrl = 'https://tournax.in/api/v1';
   static const Duration connectTimeout = Duration(seconds: 15);
   static const Duration receiveTimeout = Duration(seconds: 15);
   static const Duration sendTimeout = Duration(seconds: 15);

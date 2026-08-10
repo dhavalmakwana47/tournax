@@ -26,8 +26,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   void _listenToState() {
     ref.listenManual(loginControllerProvider, (previous, next) {
       if (next.status == LoginStatus.success) {
-        _showSnackBar('Login successful! Welcome back 🎉', isError: false);
-        // Navigation handled by router redirect via authNotifier
+        context.go(AppRoutes.home);
       } else if (next.status == LoginStatus.error && next.errorMessage != null) {
         _showSnackBar(next.errorMessage!);
       }

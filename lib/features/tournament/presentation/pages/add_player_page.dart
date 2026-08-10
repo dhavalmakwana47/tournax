@@ -93,11 +93,12 @@ class _AddPlayerPageState extends ConsumerState<AddPlayerPage> {
     }
 
     ref.listen(teamControllerProvider(widget.tournament.id), (_, next) {
-      if (next.addPlayerStatus == TeamActionStatus.error &&
-          next.errorMessage != null) {
+      if (next.addPlayerStatus == TeamActionStatus.error) {
+        final msg = next.errorMessage ??
+            (next.fieldErrors.isNotEmpty ? next.fieldErrors.values.first : 'Failed to add player.');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(next.errorMessage!),
+            content: Text(msg),
             backgroundColor: AppColors.error,
           ),
         );

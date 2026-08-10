@@ -70,6 +70,10 @@ class _EditPlayerPageState extends ConsumerState<EditPlayerPage> {
     _nameCtrl.text = source.name;
     _gameUidCtrl.text = source.gameUid ?? '';
     _resolvedRoleValue = source.role;
+    _userId = source.userId;
+    if (source.user != null) {
+      _initialSearchSelection = source.user;
+    }
     setState(() => _prefilled = true);
   }
 
@@ -128,12 +132,12 @@ class _EditPlayerPageState extends ConsumerState<EditPlayerPage> {
     }
 
     ref.listen(teamControllerProvider(widget.tournament.id), (_, next) {
-      if (next.updatePlayerStatus == TeamActionStatus.error &&
-          next.fieldErrors.isEmpty &&
-          next.errorMessage != null) {
+      if (next.updatePlayerStatus == TeamActionStatus.error) {
+        final msg = next.errorMessage ??
+            (next.fieldErrors.isNotEmpty ? next.fieldErrors.values.first : 'Failed to update player.');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(next.errorMessage!),
+            content: Text(msg),
             backgroundColor: AppColors.error,
           ),
         );
@@ -174,7 +178,12 @@ class _EditPlayerPageState extends ConsumerState<EditPlayerPage> {
                     PlayerSearchField(
                       initialSelection: _initialSearchSelection,
                       onSelected: (result) {
-                        setState(() => _userId = result?.id);
+                        setState(() {
+                          _userId = result?.id;
+                          if (result == null) {
+                            _initialSearchSelection = null;
+                          }
+                        });
                       },
                     ),
                     const SizedBox(height: AppSpacing.md),

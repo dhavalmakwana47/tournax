@@ -43,7 +43,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
     await ref.read(profileControllerProvider.notifier).update(
           name: _nameController.text.trim(),
           username: _usernameController.text.trim(),
-          email: _emailController.text.trim(),
+          email: widget.profile.email,
         );
   }
 
@@ -86,14 +86,13 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
               error: state.fieldErrors['username'],
             ),
             const SizedBox(height: AppSpacing.md),
+            // Read-Only Email Field
             _buildField(
               controller: _emailController,
-              label: 'Email',
+              label: 'Email (Read-Only)',
               icon: Icons.email_outlined,
-              keyboardType: TextInputType.emailAddress,
-              error: state.fieldErrors['email'],
-              validator: (v) =>
-                  (v == null || !v.contains('@')) ? 'Enter a valid email' : null,
+              suffixIcon: Icons.lock_outline_rounded,
+              enabled: false,
             ),
             if (state.errorMessage != null) ...[
               const SizedBox(height: AppSpacing.md),
@@ -131,17 +130,26 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
     required TextEditingController controller,
     required String label,
     required IconData icon,
+    IconData? suffixIcon,
     String? error,
     String? Function(String?)? validator,
     TextInputType? keyboardType,
+    bool enabled = true,
   }) {
     return TextFormField(
       controller: controller,
+      enabled: enabled,
       keyboardType: keyboardType,
       validator: validator,
+      style: TextStyle(
+        color: enabled ? AppColors.textPrimary : AppColors.textSecondary,
+      ),
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: Icon(icon, color: AppColors.textSecondary),
+        suffixIcon: suffixIcon != null
+            ? Icon(suffixIcon, color: AppColors.textSecondary, size: 18)
+            : null,
         errorText: error,
       ),
     );

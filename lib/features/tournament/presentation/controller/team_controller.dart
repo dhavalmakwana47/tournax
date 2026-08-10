@@ -283,7 +283,7 @@ class TeamController extends FamilyNotifier<TeamState, int> {
       appLogger.e('Add player failed', error: e);
       state = state.copyWith(
         addPlayerStatus: TeamActionStatus.error,
-        errorMessage: e.fieldErrors.isEmpty ? e.message : null,
+        errorMessage: e.fieldErrors.isNotEmpty ? e.fieldErrors.values.first : e.message,
         fieldErrors: e.fieldErrors,
       );
       return false;
@@ -326,7 +326,7 @@ class TeamController extends FamilyNotifier<TeamState, int> {
       appLogger.e('Update player failed', error: e);
       state = state.copyWith(
         updatePlayerStatus: TeamActionStatus.error,
-        errorMessage: e.fieldErrors.isEmpty ? e.message : null,
+        errorMessage: e.fieldErrors.isNotEmpty ? e.fieldErrors.values.first : e.message,
         fieldErrors: e.fieldErrors,
       );
       return false;

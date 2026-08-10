@@ -9,8 +9,8 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../authentication/presentation/controller/login_controller.dart';
 import '../../../profile/presentation/controller/profile_controller.dart';
 import '../../../profile/presentation/pages/profile_page.dart';
-import '../../../tournament/presentation/pages/player_tournament_list_page.dart';
-import '../../../tournament/presentation/pages/tournament_list_page.dart';
+import '../../../tournament/presentation/pages/organizer/tournament_list_page.dart';
+import '../../../tournament/presentation/pages/player/player_tournament_list_page.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
