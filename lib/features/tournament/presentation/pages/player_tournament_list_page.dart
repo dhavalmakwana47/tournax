@@ -73,9 +73,9 @@ class _PlayerTournamentListPageState
 
   Color _statusDotColor(String status) {
     switch (status.toLowerCase()) {
-      case 'upcoming':
+      case 'published':
         return AppColors.upcomingStatus;
-      case 'ongoing':
+      case 'live':
         return AppColors.liveStatus;
       case 'completed':
         return AppColors.completedStatus;
@@ -151,8 +151,8 @@ class _PlayerTournamentListPageState
                     children: [
                       for (final status in [
                         'All',
-                        'Upcoming',
-                        'Ongoing',
+                        'Published',
+                        'Live',
                         'Completed'
                       ])
                         Padding(

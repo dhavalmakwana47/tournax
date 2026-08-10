@@ -1,7 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'core/routes/app_router.dart';
+import 'core/services/remote_error_logger_service.dart';
 import 'core/storage/secure_storage_service.dart';
 import 'core/theme/app_theme.dart';
 import 'features/tournament/presentation/controller/tournament_controller.dart';
@@ -9,9 +11,24 @@ import 'features/tournament/presentation/controller/tournament_controller.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Global Flutter UI & Render Error Catching -> Sends to Laravel Backend API
   FlutterError.onError = (FlutterErrorDetails details) {
     FlutterError.presentError(details);
     debugPrint('FLUTTER ERROR: ${details.exception}\n${details.stack}');
+    RemoteErrorLoggerService.instance.sendErrorLog(
+      exception: details.exception,
+      stackTrace: details.stack,
+    );
+  };
+
+  // Global Uncaught Async Dart Error Catching -> Sends to Laravel Backend API
+  PlatformDispatcher.instance.onError = (Object exception, StackTrace stackTrace) {
+    debugPrint('PLATFORM ASYNC ERROR: $exception\n$stackTrace');
+    RemoteErrorLoggerService.instance.sendErrorLog(
+      exception: exception,
+      stackTrace: stackTrace,
+    );
+    return true;
   };
 
   ErrorWidget.builder = (FlutterErrorDetails details) {

@@ -9,6 +9,7 @@ abstract final class ApiConstants {
   static const String apiKey = 'txx_9f4KqP7mN2vX8aL5RwY1JdEc6HsB3ZnU';
 
   // Public / Shared Auth & Profile Endpoints
+  static const String logError = '/log-error';
   static const String login = '/login';
   static const String logout = '/logout';
   static const String register = '/register';
