@@ -5,11 +5,11 @@ import '../../../../core/utils/app_logger.dart';
 import '../models/leaderboard_item_model.dart';
 
 abstract interface class LeaderboardRemoteDatasource {
-  Future<List<LeaderboardItemModel>> getGroupLeaderboard(int groupId);
-  Future<List<LeaderboardItemModel>> getRoundLeaderboard(int roundId);
-  Future<List<LeaderboardItemModel>> getStageLeaderboard(int stageId);
-  Future<List<LeaderboardItemModel>> getTournamentLeaderboard(int tournamentId);
-  Future<List<LeaderboardItemModel>> getMatchLeaderboard(int matchId);
+  Future<List<LeaderboardItemModel>> getGroupLeaderboard(int groupId, {int? page, int? perPage});
+  Future<List<LeaderboardItemModel>> getRoundLeaderboard(int roundId, {int? page, int? perPage});
+  Future<List<LeaderboardItemModel>> getStageLeaderboard(int stageId, {int? page, int? perPage});
+  Future<List<LeaderboardItemModel>> getTournamentLeaderboard(int tournamentId, {int? page, int? perPage});
+  Future<List<LeaderboardItemModel>> getMatchLeaderboard(int matchId, {int? page, int? perPage});
 }
 
 class LeaderboardRemoteDatasourceImpl implements LeaderboardRemoteDatasource {
@@ -17,19 +17,34 @@ class LeaderboardRemoteDatasourceImpl implements LeaderboardRemoteDatasource {
 
   final ApiClient _apiClient;
 
+  List<LeaderboardItemModel> _parseLeaderboardItems(dynamic response) {
+    final rawData = response['data'];
+    List<dynamic>? list;
+    if (rawData is List) {
+      list = rawData;
+    } else if (rawData is Map && rawData['data'] is List) {
+      list = rawData['data'] as List<dynamic>;
+    }
+    if (list == null) return [];
+    return list
+        .map((e) => LeaderboardItemModel.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
   @override
-  Future<List<LeaderboardItemModel>> getGroupLeaderboard(int groupId) async {
+  Future<List<LeaderboardItemModel>> getGroupLeaderboard(int groupId, {int? page, int? perPage}) async {
     try {
       final response = await _apiClient.post(
         ApiConstants.leaderboardGroup,
-        data: {'group_id': groupId},
+        data: {
+          'group_id': groupId,
+          if (page != null) 'page': page,
+          if (perPage != null) 'per_page': perPage,
+          if (perPage != null) 'limit': perPage,
+        },
       );
       appLogger.d('Group leaderboard response: $response');
-      final data = response['data'] as List<dynamic>?;
-      if (data == null) return [];
-      return data
-          .map((e) => LeaderboardItemModel.fromJson(e as Map<String, dynamic>))
-          .toList();
+      return _parseLeaderboardItems(response);
     } on ApiException {
       rethrow;
     } catch (e, st) {
@@ -39,18 +54,19 @@ class LeaderboardRemoteDatasourceImpl implements LeaderboardRemoteDatasource {
   }
 
   @override
-  Future<List<LeaderboardItemModel>> getRoundLeaderboard(int roundId) async {
+  Future<List<LeaderboardItemModel>> getRoundLeaderboard(int roundId, {int? page, int? perPage}) async {
     try {
       final response = await _apiClient.post(
         ApiConstants.leaderboardRound,
-        data: {'round_id': roundId},
+        data: {
+          'round_id': roundId,
+          if (page != null) 'page': page,
+          if (perPage != null) 'per_page': perPage,
+          if (perPage != null) 'limit': perPage,
+        },
       );
       appLogger.d('Round leaderboard response: $response');
-      final data = response['data'] as List<dynamic>?;
-      if (data == null) return [];
-      return data
-          .map((e) => LeaderboardItemModel.fromJson(e as Map<String, dynamic>))
-          .toList();
+      return _parseLeaderboardItems(response);
     } on ApiException {
       rethrow;
     } catch (e, st) {
@@ -60,18 +76,19 @@ class LeaderboardRemoteDatasourceImpl implements LeaderboardRemoteDatasource {
   }
 
   @override
-  Future<List<LeaderboardItemModel>> getStageLeaderboard(int stageId) async {
+  Future<List<LeaderboardItemModel>> getStageLeaderboard(int stageId, {int? page, int? perPage}) async {
     try {
       final response = await _apiClient.post(
         ApiConstants.leaderboardStage,
-        data: {'stage_id': stageId},
+        data: {
+          'stage_id': stageId,
+          if (page != null) 'page': page,
+          if (perPage != null) 'per_page': perPage,
+          if (perPage != null) 'limit': perPage,
+        },
       );
       appLogger.d('Stage leaderboard response: $response');
-      final data = response['data'] as List<dynamic>?;
-      if (data == null) return [];
-      return data
-          .map((e) => LeaderboardItemModel.fromJson(e as Map<String, dynamic>))
-          .toList();
+      return _parseLeaderboardItems(response);
     } on ApiException {
       rethrow;
     } catch (e, st) {
@@ -81,18 +98,19 @@ class LeaderboardRemoteDatasourceImpl implements LeaderboardRemoteDatasource {
   }
 
   @override
-  Future<List<LeaderboardItemModel>> getTournamentLeaderboard(int tournamentId) async {
+  Future<List<LeaderboardItemModel>> getTournamentLeaderboard(int tournamentId, {int? page, int? perPage}) async {
     try {
       final response = await _apiClient.post(
         ApiConstants.leaderboardTournament,
-        data: {'tournament_id': tournamentId},
+        data: {
+          'tournament_id': tournamentId,
+          if (page != null) 'page': page,
+          if (perPage != null) 'per_page': perPage,
+          if (perPage != null) 'limit': perPage,
+        },
       );
       appLogger.d('Tournament leaderboard response: $response');
-      final data = response['data'] as List<dynamic>?;
-      if (data == null) return [];
-      return data
-          .map((e) => LeaderboardItemModel.fromJson(e as Map<String, dynamic>))
-          .toList();
+      return _parseLeaderboardItems(response);
     } on ApiException {
       rethrow;
     } catch (e, st) {
@@ -102,18 +120,19 @@ class LeaderboardRemoteDatasourceImpl implements LeaderboardRemoteDatasource {
   }
 
   @override
-  Future<List<LeaderboardItemModel>> getMatchLeaderboard(int matchId) async {
+  Future<List<LeaderboardItemModel>> getMatchLeaderboard(int matchId, {int? page, int? perPage}) async {
     try {
       final response = await _apiClient.post(
         ApiConstants.leaderboardMatch,
-        data: {'match_id': matchId},
+        data: {
+          'match_id': matchId,
+          if (page != null) 'page': page,
+          if (perPage != null) 'per_page': perPage,
+          if (perPage != null) 'limit': perPage,
+        },
       );
       appLogger.d('Match leaderboard response: $response');
-      final data = response['data'] as List<dynamic>?;
-      if (data == null) return [];
-      return data
-          .map((e) => LeaderboardItemModel.fromJson(e as Map<String, dynamic>))
-          .toList();
+      return _parseLeaderboardItems(response);
     } on ApiException {
       rethrow;
     } catch (e, st) {

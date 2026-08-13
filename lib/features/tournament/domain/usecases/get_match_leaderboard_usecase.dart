@@ -6,6 +6,6 @@ class GetMatchLeaderboardUseCase {
 
   final LeaderboardRepository _repository;
 
-  Future<List<LeaderboardItemEntity>> call(int matchId) =>
-      _repository.getMatchLeaderboard(matchId);
+  Future<List<LeaderboardItemEntity>> call(int matchId, {int? page, int? perPage}) =>
+      _repository.getMatchLeaderboard(matchId, page: page, perPage: perPage);
 }

@@ -6,6 +6,6 @@ class GetRoundLeaderboardUseCase {
 
   final LeaderboardRepository _repository;
 
-  Future<List<LeaderboardItemEntity>> call(int roundId) =>
-      _repository.getRoundLeaderboard(roundId);
+  Future<List<LeaderboardItemEntity>> call(int roundId, {int? page, int? perPage}) =>
+      _repository.getRoundLeaderboard(roundId, page: page, perPage: perPage);
 }

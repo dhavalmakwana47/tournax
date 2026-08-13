@@ -39,6 +39,7 @@ class _LeaderboardGeneratorPageState extends ConsumerState<LeaderboardGeneratorP
   final TransformationController _transformationController = TransformationController();
   bool _isDownloading = false;
   bool _isSharing = false;
+  bool _isEditorExpanded = false;
 
   @override
   void initState() {
@@ -360,234 +361,282 @@ class _LeaderboardGeneratorPageState extends ConsumerState<LeaderboardGeneratorP
       ),
       body: state.isLoading
           ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
-          : Column(
+          : Stack(
               children: [
-                // Horizontal Studio Template Selector Dock
-                _buildTemplateSelectorDock(state, notifier),
-
-                // Top Page Switcher (if multi-page)
-                if (state.totalPages > 1)
-                  Container(
-                    width: double.infinity,
-                    color: const Color(0xFF161C2C),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.chevron_left_rounded, color: Colors.white),
-                          onPressed: state.currentPageIndex > 0
-                              ? () => notifier.setPage(state.currentPageIndex - 1)
-                              : null,
-                        ),
-                        Row(
+                Column(
+                  children: [
+                    // Top Page Switcher (if multi-page)
+                    if (state.totalPages > 1)
+                      Container(
+                        width: double.infinity,
+                        color: const Color(0xFF161C2C),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Icon(Icons.pages_rounded, color: AppColors.primary, size: 16),
-                            const SizedBox(width: 6),
-                            Text(
-                              'PAGE ${state.currentPageIndex + 1} OF ${state.totalPages}',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 0.8,
-                              ),
+                            IconButton(
+                              icon: const Icon(Icons.chevron_left_rounded, color: Colors.white),
+                              onPressed: state.currentPageIndex > 0
+                                  ? () => notifier.setPage(state.currentPageIndex - 1)
+                                  : null,
+                            ),
+                            Row(
+                              children: [
+                                const Icon(Icons.pages_rounded, color: AppColors.primary, size: 16),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'PAGE ${state.currentPageIndex + 1} OF ${state.totalPages}',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 0.8,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.chevron_right_rounded, color: Colors.white),
+                              onPressed: state.currentPageIndex < state.totalPages - 1
+                                  ? () => notifier.setPage(state.currentPageIndex + 1)
+                                  : null,
                             ),
                           ],
                         ),
-                        IconButton(
-                          icon: const Icon(Icons.chevron_right_rounded, color: Colors.white),
-                          onPressed: state.currentPageIndex < state.totalPages - 1
-                              ? () => notifier.setPage(state.currentPageIndex + 1)
-                              : null,
-                        ),
-                      ],
-                    ),
-                  ),
+                      ),
 
-                // Main Interactive Canvas Preview Area (Top Half)
-                Expanded(
-                  flex: 5,
-                  child: InteractiveViewer(
-                    transformationController: _transformationController,
-                    minScale: 0.3,
-                    maxScale: 3.5,
-                    child: Center(
-                      child: SingleChildScrollView(
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: RepaintBoundary(
-                            key: _exportBoundaryKey,
-                            child: FittedBox(
-                              fit: BoxFit.contain,
-                              child: Builder(
-                                builder: (ctx) {
-                                  if (state.selectedTemplate != null) {
-                                    return SizedBox(
-                                      width: state.selectedTemplate!.canvasSpec.width,
-                                      height: state.selectedTemplate!.canvasSpec.height,
-                                      child: TemplateRenderer(
-                                        template: state.selectedTemplate!,
-                                        overrideVariables: state.currentVariables,
-                                      ),
-                                    );
+                    // Main Interactive Canvas Preview Area (Full Height View)
+                    Expanded(
+                      child: Padding(
+                        padding: EdgeInsets.only(bottom: _isEditorExpanded ? 0 : 54),
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            GestureDetector(
+                              behavior: HitTestBehavior.translucent,
+                              onHorizontalDragEnd: (details) {
+                                if (details.primaryVelocity != null) {
+                                  if (details.primaryVelocity! < -150) {
+                                    notifier.selectNextTemplate();
+                                  } else if (details.primaryVelocity! > 150) {
+                                    notifier.selectPreviousTemplate();
                                   }
-                                  return const SizedBox();
-                                },
+                                }
+                              },
+                              child: InteractiveViewer(
+                                transformationController: _transformationController,
+                                minScale: 0.3,
+                                maxScale: 3.5,
+                                child: Center(
+                                  child: SingleChildScrollView(
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(16),
+                                      child: RepaintBoundary(
+                                        key: _exportBoundaryKey,
+                                        child: FittedBox(
+                                          fit: BoxFit.contain,
+                                          child: Builder(
+                                            builder: (ctx) {
+                                              if (state.selectedTemplate != null) {
+                                                return SizedBox(
+                                                  width: state.selectedTemplate!.canvasSpec.width,
+                                                  height: state.selectedTemplate!.canvasSpec.height,
+                                                  child: TemplateRenderer(
+                                                    template: state.selectedTemplate!,
+                                                    overrideVariables: state.currentVariables,
+                                                  ),
+                                                );
+                                              }
+                                              return const SizedBox();
+                                            },
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
                               ),
                             ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
 
-                Container(
-                  height: 1,
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Colors.transparent, AppColors.cardBorder, Colors.transparent],
-                    ),
-                  ),
-                ),
-
-                // Graphic Details & Tag Replace Editor Panel (Bottom Half)
-                Expanded(
-                  flex: 5,
-                  child: _buildCategorizedEditorPanel(state, notifier),
-                ),
-              ],
-            ),
-    );
-  }
-
-  Widget _buildTemplateSelectorDock(
-    LeaderboardGeneratorState state,
-    LeaderboardGeneratorController notifier,
-  ) {
-    if (state.templates.isEmpty) return const SizedBox.shrink();
-
-    return Container(
-      width: double.infinity,
-      color: const Color(0xFF111622),
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'SELECT GRAPHIC TEMPLATE',
-                  style: TextStyle(
-                    color: Colors.white54,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1.0,
-                  ),
-                ),
-                Text(
-                  '${state.templates.length} Available',
-                  style: const TextStyle(
-                    color: AppColors.primary,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
-          SizedBox(
-            height: 72,
-            child: ListView.separated(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              scrollDirection: Axis.horizontal,
-              itemCount: state.templates.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 12),
-              itemBuilder: (context, index) {
-                final tpl = state.templates[index];
-                final isSelected = tpl.id == state.selectedTemplate?.id;
-
-                return GestureDetector(
-                  onTap: () => notifier.selectTemplate(tpl),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? AppColors.primary.withValues(alpha: 0.15)
-                          : const Color(0xFF1A2234),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: isSelected ? AppColors.primary : Colors.white12,
-                        width: isSelected ? 2 : 1,
-                      ),
-                      boxShadow: isSelected
-                          ? [
-                              BoxShadow(
-                                color: AppColors.primary.withValues(alpha: 0.3),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
+                            // Left Template Navigation Button
+                            if (state.templates.isNotEmpty &&
+                                state.selectedTemplate != null &&
+                                state.templates.indexWhere((t) => t.id == state.selectedTemplate!.id) > 0)
+                              Positioned(
+                                left: 8,
+                                child: Material(
+                                  color: Colors.black54,
+                                  shape: const CircleBorder(),
+                                  clipBehavior: Clip.antiAlias,
+                                  child: IconButton(
+                                    icon: const Icon(Icons.arrow_back_ios_rounded, color: Colors.white, size: 18),
+                                    onPressed: () {
+                                      notifier.selectPreviousTemplate();
+                                    },
+                                    tooltip: 'Previous Template',
+                                  ),
+                                ),
                               ),
-                            ]
-                          : [],
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: isSelected ? AppColors.primary : Colors.white10,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            Icons.emoji_events_rounded,
-                            color: isSelected ? Colors.white : Colors.white70,
-                            size: 18,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              tpl.name,
-                              style: TextStyle(
-                                color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.9),
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
+
+                            // Right Template Navigation Button
+                            if (state.templates.isNotEmpty &&
+                                state.selectedTemplate != null &&
+                                state.templates.indexWhere((t) => t.id == state.selectedTemplate!.id) <
+                                    state.templates.length - 1)
+                              Positioned(
+                                right: 8,
+                                child: Material(
+                                  color: Colors.black54,
+                                  shape: const CircleBorder(),
+                                  clipBehavior: Clip.antiAlias,
+                                  child: IconButton(
+                                    icon: const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white, size: 18),
+                                    onPressed: () {
+                                      notifier.selectNextTemplate();
+                                    },
+                                    tooltip: 'Next Template',
+                                  ),
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              '${tpl.canvasSpec.width.toInt()}×${tpl.canvasSpec.height.toInt()} • ${tpl.category}',
-                              style: TextStyle(
-                                color: isSelected
-                                    ? AppColors.primary
-                                    : Colors.white.withValues(alpha: 0.5),
-                                fontSize: 10,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
                           ],
                         ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                // Floating Expandable Bottom Panel for Graphic Details
+                AnimatedPositioned(
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.fastOutSlowIn,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  height: _isEditorExpanded
+                      ? MediaQuery.of(context).size.height * 0.58
+                      : 54,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0F1420),
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.6),
+                          blurRadius: 16,
+                          offset: const Offset(0, -4),
+                        ),
+                      ],
+                      border: const Border(
+                        top: BorderSide(color: AppColors.primary, width: 1.5),
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        // Floating Panel Handle & Header Bar
+                        InkWell(
+                          onTap: () => setState(() => _isEditorExpanded = !_isEditorExpanded),
+                          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                          child: Container(
+                            height: 52,
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary.withValues(alpha: 0.2),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.edit_note_rounded,
+                                    color: AppColors.primary,
+                                    size: 20,
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'GRAPHIC DETAILS & TAG EDITING',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w900,
+                                          letterSpacing: 0.8,
+                                        ),
+                                      ),
+                                      Text(
+                                        _isEditorExpanded
+                                            ? 'Tap to collapse for full template view'
+                                            : 'Tap to edit text, ranks, kills & logos',
+                                        style: const TextStyle(
+                                          color: Colors.white54,
+                                          fontSize: 10,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary.withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: AppColors.primary.withValues(alpha: 0.4)),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        _isEditorExpanded ? 'COLLAPSE' : 'EDIT DETAILS',
+                                        style: const TextStyle(
+                                          color: AppColors.primary,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Icon(
+                                        _isEditorExpanded
+                                            ? Icons.keyboard_arrow_down_rounded
+                                            : Icons.keyboard_arrow_up_rounded,
+                                        color: AppColors.primary,
+                                        size: 18,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                        // Editor Panel Content (When Expanded)
+                        if (_isEditorExpanded)
+                          Expanded(
+                            child: ClipRect(
+                              child: SingleChildScrollView(
+                                physics: const NeverScrollableScrollPhysics(),
+                                child: SizedBox(
+                                  height: (MediaQuery.of(context).size.height * 0.58) - 52,
+                                  child: _buildCategorizedEditorPanel(state, notifier),
+                                ),
+                              ),
+                            ),
+                          ),
                       ],
                     ),
                   ),
-                );
-              },
+                ),
+              ],
             ),
-          ),
-        ],
-      ),
     );
   }
+
+
 
   Future<void> _downloadGraphic(TemplateModel template) async {
     setState(() => _isDownloading = true);

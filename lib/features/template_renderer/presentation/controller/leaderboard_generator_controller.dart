@@ -27,6 +27,10 @@ class LeaderboardGeneratorState {
   final LeaderboardArgs? args;
   final List<LeaderboardItemEntity> items;
 
+  final int templatePage;
+  final bool hasMoreTemplates;
+  final bool isLoadingMoreTemplates;
+
   const LeaderboardGeneratorState({
     this.isLoading = false,
     this.errorMessage,
@@ -39,6 +43,9 @@ class LeaderboardGeneratorState {
     this.tournament,
     this.args,
     this.items = const [],
+    this.templatePage = 1,
+    this.hasMoreTemplates = false,
+    this.isLoadingMoreTemplates = false,
   });
 
   Map<String, String> get currentVariables => pageVariables[currentPageIndex] ?? {};
@@ -55,6 +62,9 @@ class LeaderboardGeneratorState {
     TournamentEntity? tournament,
     LeaderboardArgs? args,
     List<LeaderboardItemEntity>? items,
+    int? templatePage,
+    bool? hasMoreTemplates,
+    bool? isLoadingMoreTemplates,
   }) {
     return LeaderboardGeneratorState(
       isLoading: isLoading ?? this.isLoading,
@@ -68,6 +78,9 @@ class LeaderboardGeneratorState {
       tournament: tournament ?? this.tournament,
       args: args ?? this.args,
       items: items ?? this.items,
+      templatePage: templatePage ?? this.templatePage,
+      hasMoreTemplates: hasMoreTemplates ?? this.hasMoreTemplates,
+      isLoadingMoreTemplates: isLoadingMoreTemplates ?? this.isLoadingMoreTemplates,
     );
   }
 }
@@ -107,15 +120,18 @@ class LeaderboardGeneratorController extends StateNotifier<LeaderboardGeneratorS
     }
 
     try {
-      final fetched = await repo.getTemplates(categoryType: 'leaderboard');
-      final defaultTemplate = fetched.isNotEmpty ? fetched.first : repo.createDefaultLeaderboardTemplate();
+      final paginated = await repo.getTemplates(categoryType: 'leaderboard', page: 1, perPage: 10);
+      final templates = paginated.items.isNotEmpty ? paginated.items : [repo.createDefaultLeaderboardTemplate()];
+      final defaultTemplate = templates.first;
 
       _setupTemplatePages(
         template: defaultTemplate,
-        templates: fetched.isNotEmpty ? fetched : [defaultTemplate],
+        templates: templates,
         tournament: tournament,
         args: args,
         items: items,
+        templatePage: paginated.currentPage,
+        hasMoreTemplates: paginated.hasMore,
       );
     } catch (e) {
       final fallback = repo.createDefaultLeaderboardTemplate();
@@ -130,18 +146,52 @@ class LeaderboardGeneratorController extends StateNotifier<LeaderboardGeneratorS
     }
   }
 
-  Future<List<LeaderboardItemEntity>> _fetchStandingsForArgs(LeaderboardArgs args) async {
+  Future<void> loadMoreTemplates() async {
+    if (state.isLoadingMoreTemplates || !state.hasMoreTemplates) return;
+    state = state.copyWith(isLoadingMoreTemplates: true);
+
+    try {
+      final nextPage = state.templatePage + 1;
+      final paginated = await repo.getTemplates(
+        categoryType: 'leaderboard',
+        page: nextPage,
+        perPage: 10,
+      );
+
+      if (paginated.items.isNotEmpty) {
+        final existingIds = state.templates.map((t) => t.id).toSet();
+        final newItems = paginated.items.where((t) => !existingIds.contains(t.id)).toList();
+        final updatedList = [...state.templates, ...newItems];
+
+        state = state.copyWith(
+          templates: updatedList,
+          templatePage: paginated.currentPage,
+          hasMoreTemplates: paginated.hasMore,
+          isLoadingMoreTemplates: false,
+        );
+      } else {
+        state = state.copyWith(
+          hasMoreTemplates: false,
+          isLoadingMoreTemplates: false,
+        );
+      }
+    } catch (e) {
+      state = state.copyWith(isLoadingMoreTemplates: false);
+    }
+  }
+
+  Future<List<LeaderboardItemEntity>> _fetchStandingsForArgs(LeaderboardArgs args, {int perPage = 100}) async {
     switch (args.type) {
       case LeaderboardType.group:
-        return await ref.read(getGroupLeaderboardUseCaseProvider)(args.id);
+        return await ref.read(getGroupLeaderboardUseCaseProvider)(args.id, perPage: perPage);
       case LeaderboardType.round:
-        return await ref.read(getRoundLeaderboardUseCaseProvider)(args.id);
+        return await ref.read(getRoundLeaderboardUseCaseProvider)(args.id, perPage: perPage);
       case LeaderboardType.stage:
-        return await ref.read(getStageLeaderboardUseCaseProvider)(args.id);
+        return await ref.read(getStageLeaderboardUseCaseProvider)(args.id, perPage: perPage);
       case LeaderboardType.tournament:
-        return await ref.read(getTournamentLeaderboardUseCaseProvider)(args.id);
+        return await ref.read(getTournamentLeaderboardUseCaseProvider)(args.id, perPage: perPage);
       case LeaderboardType.match:
-        return await ref.read(getMatchLeaderboardUseCaseProvider)(args.id);
+        return await ref.read(getMatchLeaderboardUseCaseProvider)(args.id, perPage: perPage);
     }
   }
 
@@ -151,6 +201,8 @@ class LeaderboardGeneratorController extends StateNotifier<LeaderboardGeneratorS
     required TournamentEntity tournament,
     required LeaderboardArgs args,
     required List<LeaderboardItemEntity> items,
+    int templatePage = 1,
+    bool hasMoreTemplates = false,
     String? error,
   }) {
     final int itemsPerPage = _detectItemsPerPage(template);
@@ -178,6 +230,8 @@ class LeaderboardGeneratorController extends StateNotifier<LeaderboardGeneratorS
       totalPages: totalPages,
       pageVariables: pageVars,
       items: items,
+      templatePage: templatePage,
+      hasMoreTemplates: hasMoreTemplates,
     );
   }
 
@@ -314,7 +368,28 @@ class LeaderboardGeneratorController extends StateNotifier<LeaderboardGeneratorS
         tournament: state.tournament!,
         args: state.args!,
         items: state.items,
+        templatePage: state.templatePage,
+        hasMoreTemplates: state.hasMoreTemplates,
       );
+    }
+  }
+
+  void selectNextTemplate() {
+    if (state.templates.isEmpty || state.selectedTemplate == null) return;
+    final currentIndex = state.templates.indexWhere((t) => t.id == state.selectedTemplate!.id);
+    if (currentIndex != -1 && currentIndex < state.templates.length - 1) {
+      selectTemplate(state.templates[currentIndex + 1]);
+      if (currentIndex >= state.templates.length - 3) {
+        loadMoreTemplates();
+      }
+    }
+  }
+
+  void selectPreviousTemplate() {
+    if (state.templates.isEmpty || state.selectedTemplate == null) return;
+    final currentIndex = state.templates.indexWhere((t) => t.id == state.selectedTemplate!.id);
+    if (currentIndex > 0) {
+      selectTemplate(state.templates[currentIndex - 1]);
     }
   }
 

@@ -6,6 +6,6 @@ class GetGroupLeaderboardUseCase {
 
   final LeaderboardRepository _repository;
 
-  Future<List<LeaderboardItemEntity>> call(int groupId) =>
-      _repository.getGroupLeaderboard(groupId);
+  Future<List<LeaderboardItemEntity>> call(int groupId, {int? page, int? perPage}) =>
+      _repository.getGroupLeaderboard(groupId, page: page, perPage: perPage);
 }

@@ -14,37 +14,37 @@ class LeaderboardRepositoryImpl implements LeaderboardRepository {
   final NetworkInfo networkInfo;
 
   @override
-  Future<List<LeaderboardItemEntity>> getGroupLeaderboard(int groupId) async {
+  Future<List<LeaderboardItemEntity>> getGroupLeaderboard(int groupId, {int? page, int? perPage}) async {
     if (!await networkInfo.isConnected) throw ApiException.noInternet();
-    final models = await remoteDatasource.getGroupLeaderboard(groupId);
+    final models = await remoteDatasource.getGroupLeaderboard(groupId, page: page, perPage: perPage);
     return models.map((m) => m.toEntity()).toList();
   }
 
   @override
-  Future<List<LeaderboardItemEntity>> getRoundLeaderboard(int roundId) async {
+  Future<List<LeaderboardItemEntity>> getRoundLeaderboard(int roundId, {int? page, int? perPage}) async {
     if (!await networkInfo.isConnected) throw ApiException.noInternet();
-    final models = await remoteDatasource.getRoundLeaderboard(roundId);
+    final models = await remoteDatasource.getRoundLeaderboard(roundId, page: page, perPage: perPage);
     return models.map((m) => m.toEntity()).toList();
   }
 
   @override
-  Future<List<LeaderboardItemEntity>> getStageLeaderboard(int stageId) async {
+  Future<List<LeaderboardItemEntity>> getStageLeaderboard(int stageId, {int? page, int? perPage}) async {
     if (!await networkInfo.isConnected) throw ApiException.noInternet();
-    final models = await remoteDatasource.getStageLeaderboard(stageId);
+    final models = await remoteDatasource.getStageLeaderboard(stageId, page: page, perPage: perPage);
     return models.map((m) => m.toEntity()).toList();
   }
 
   @override
-  Future<List<LeaderboardItemEntity>> getTournamentLeaderboard(int tournamentId) async {
+  Future<List<LeaderboardItemEntity>> getTournamentLeaderboard(int tournamentId, {int? page, int? perPage}) async {
     if (!await networkInfo.isConnected) throw ApiException.noInternet();
-    final models = await remoteDatasource.getTournamentLeaderboard(tournamentId);
+    final models = await remoteDatasource.getTournamentLeaderboard(tournamentId, page: page, perPage: perPage);
     return models.map((m) => m.toEntity()).toList();
   }
 
   @override
-  Future<List<LeaderboardItemEntity>> getMatchLeaderboard(int matchId) async {
+  Future<List<LeaderboardItemEntity>> getMatchLeaderboard(int matchId, {int? page, int? perPage}) async {
     if (!await networkInfo.isConnected) throw ApiException.noInternet();
-    final models = await remoteDatasource.getMatchLeaderboard(matchId);
+    final models = await remoteDatasource.getMatchLeaderboard(matchId, page: page, perPage: perPage);
     return models.map((m) => m.toEntity()).toList();
   }
 }

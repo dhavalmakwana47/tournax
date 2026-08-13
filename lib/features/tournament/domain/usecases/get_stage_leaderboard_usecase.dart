@@ -6,6 +6,6 @@ class GetStageLeaderboardUseCase {
 
   final LeaderboardRepository _repository;
 
-  Future<List<LeaderboardItemEntity>> call(int stageId) =>
-      _repository.getStageLeaderboard(stageId);
+  Future<List<LeaderboardItemEntity>> call(int stageId, {int? page, int? perPage}) =>
+      _repository.getStageLeaderboard(stageId, page: page, perPage: perPage);
 }

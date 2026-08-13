@@ -6,6 +6,6 @@ class GetTournamentLeaderboardUseCase {
 
   final LeaderboardRepository _repository;
 
-  Future<List<LeaderboardItemEntity>> call(int tournamentId) =>
-      _repository.getTournamentLeaderboard(tournamentId);
+  Future<List<LeaderboardItemEntity>> call(int tournamentId, {int? page, int? perPage}) =>
+      _repository.getTournamentLeaderboard(tournamentId, page: page, perPage: perPage);
 }

@@ -32,6 +32,10 @@ class SlotListGeneratorState {
   final GroupEntity? group;
   final MatchEntity? match;
 
+  final int templatePage;
+  final bool hasMoreTemplates;
+  final bool isLoadingMoreTemplates;
+
   const SlotListGeneratorState({
     this.isLoading = false,
     this.errorMessage,
@@ -45,6 +49,9 @@ class SlotListGeneratorState {
     this.tournament,
     this.group,
     this.match,
+    this.templatePage = 1,
+    this.hasMoreTemplates = false,
+    this.isLoadingMoreTemplates = false,
   });
 
   Map<String, String> get currentVariables => pageVariables[currentPageIndex] ?? {};
@@ -65,6 +72,9 @@ class SlotListGeneratorState {
     TournamentEntity? tournament,
     GroupEntity? group,
     MatchEntity? match,
+    int? templatePage,
+    bool? hasMoreTemplates,
+    bool? isLoadingMoreTemplates,
   }) {
     return SlotListGeneratorState(
       isLoading: isLoading ?? this.isLoading,
@@ -79,6 +89,9 @@ class SlotListGeneratorState {
       tournament: tournament ?? this.tournament,
       group: group ?? this.group,
       match: match ?? this.match,
+      templatePage: templatePage ?? this.templatePage,
+      hasMoreTemplates: hasMoreTemplates ?? this.hasMoreTemplates,
+      isLoadingMoreTemplates: isLoadingMoreTemplates ?? this.isLoadingMoreTemplates,
     );
   }
 }
@@ -106,15 +119,18 @@ class SlotListGeneratorController extends StateNotifier<SlotListGeneratorState> 
       match: match,
     );
     try {
-      final fetched = await repo.getTemplates(categoryType: 'slot_list');
-      final defaultTemplate = fetched.isNotEmpty ? fetched.first : repo.createDefault12SlotListTemplate();
+      final paginated = await repo.getTemplates(categoryType: 'slot_list', page: 1, perPage: 10);
+      final templates = paginated.items.isNotEmpty ? paginated.items : [repo.createDefault12SlotListTemplate()];
+      final defaultTemplate = templates.first;
 
       _setupTemplatePages(
         template: defaultTemplate,
-        templates: fetched.isNotEmpty ? fetched : [defaultTemplate],
+        templates: templates,
         tournament: tournament,
         group: group,
         match: match,
+        templatePage: paginated.currentPage,
+        hasMoreTemplates: paginated.hasMore,
       );
     } catch (e) {
       final fallback = repo.createDefault12SlotListTemplate();
@@ -129,12 +145,48 @@ class SlotListGeneratorController extends StateNotifier<SlotListGeneratorState> 
     }
   }
 
+  Future<void> loadMoreTemplates() async {
+    if (state.isLoadingMoreTemplates || !state.hasMoreTemplates) return;
+    state = state.copyWith(isLoadingMoreTemplates: true);
+
+    try {
+      final nextPage = state.templatePage + 1;
+      final paginated = await repo.getTemplates(
+        categoryType: 'slot_list',
+        page: nextPage,
+        perPage: 10,
+      );
+
+      if (paginated.items.isNotEmpty) {
+        final existingIds = state.templates.map((t) => t.id).toSet();
+        final newItems = paginated.items.where((t) => !existingIds.contains(t.id)).toList();
+        final updatedList = [...state.templates, ...newItems];
+
+        state = state.copyWith(
+          templates: updatedList,
+          templatePage: paginated.currentPage,
+          hasMoreTemplates: paginated.hasMore,
+          isLoadingMoreTemplates: false,
+        );
+      } else {
+        state = state.copyWith(
+          hasMoreTemplates: false,
+          isLoadingMoreTemplates: false,
+        );
+      }
+    } catch (e) {
+      state = state.copyWith(isLoadingMoreTemplates: false);
+    }
+  }
+
   void _setupTemplatePages({
     required TemplateModel template,
     required List<TemplateModel> templates,
     required TournamentEntity tournament,
     required GroupEntity group,
     required MatchEntity match,
+    int templatePage = 1,
+    bool hasMoreTemplates = false,
     String? error,
   }) {
     final int slotsPerPage = _detectSlotsPerPage(template);
@@ -169,6 +221,11 @@ class SlotListGeneratorController extends StateNotifier<SlotListGeneratorState> 
       slotsPerPage: slotsPerPage,
       totalPages: totalPages,
       pageVariables: pageVars,
+      tournament: tournament,
+      group: group,
+      match: match,
+      templatePage: templatePage,
+      hasMoreTemplates: hasMoreTemplates,
     );
   }
 
@@ -292,6 +349,8 @@ class SlotListGeneratorController extends StateNotifier<SlotListGeneratorState> 
         tournament: state.tournament!,
         group: state.group!,
         match: state.match!,
+        templatePage: state.templatePage,
+        hasMoreTemplates: state.hasMoreTemplates,
       );
     } else {
       final mergedVars = _extractTemplateVariables(template, state.currentVariables);
@@ -412,6 +471,25 @@ class SlotListGeneratorController extends StateNotifier<SlotListGeneratorState> 
     state = state.copyWith(pageVariables: updatedAllPages);
   }
 
+  void selectNextTemplate() {
+    if (state.templates.isEmpty || state.selectedTemplate == null) return;
+    final currentIndex = state.templates.indexWhere((t) => t.id == state.selectedTemplate!.id);
+    if (currentIndex != -1 && currentIndex < state.templates.length - 1) {
+      selectTemplate(state.templates[currentIndex + 1]);
+      if (currentIndex >= state.templates.length - 3) {
+        loadMoreTemplates();
+      }
+    }
+  }
+
+  void selectPreviousTemplate() {
+    if (state.templates.isEmpty || state.selectedTemplate == null) return;
+    final currentIndex = state.templates.indexWhere((t) => t.id == state.selectedTemplate!.id);
+    if (currentIndex > 0) {
+      selectTemplate(state.templates[currentIndex - 1]);
+    }
+  }
+
   void resetVariablesToDefaults() {
     if (state.selectedTemplate != null &&
         state.tournament != null &&
@@ -423,6 +501,8 @@ class SlotListGeneratorController extends StateNotifier<SlotListGeneratorState> 
         tournament: state.tournament!,
         group: state.group!,
         match: state.match!,
+        templatePage: state.templatePage,
+        hasMoreTemplates: state.hasMoreTemplates,
       );
     }
   }

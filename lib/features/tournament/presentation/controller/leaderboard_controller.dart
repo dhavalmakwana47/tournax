@@ -50,26 +50,26 @@ class LeaderboardController extends FamilyNotifier<LeaderboardState, Leaderboard
   GetTournamentLeaderboardUseCase get _getTournament => ref.read(getTournamentLeaderboardUseCaseProvider);
   GetMatchLeaderboardUseCase get _getMatch => ref.read(getMatchLeaderboardUseCaseProvider);
 
-  Future<void> fetchStandings() async {
+  Future<void> fetchStandings({int? page, int perPage = 100}) async {
     if (state.status == LeaderboardStatus.loading) return;
     state = state.copyWith(status: LeaderboardStatus.loading, clearError: true);
     try {
       final List<LeaderboardItemEntity> items;
       switch (arg.type) {
         case LeaderboardType.group:
-          items = await _getGroup(arg.id);
+          items = await _getGroup(arg.id, page: page, perPage: perPage);
           break;
         case LeaderboardType.round:
-          items = await _getRound(arg.id);
+          items = await _getRound(arg.id, page: page, perPage: perPage);
           break;
         case LeaderboardType.stage:
-          items = await _getStage(arg.id);
+          items = await _getStage(arg.id, page: page, perPage: perPage);
           break;
         case LeaderboardType.tournament:
-          items = await _getTournament(arg.id);
+          items = await _getTournament(arg.id, page: page, perPage: perPage);
           break;
         case LeaderboardType.match:
-          items = await _getMatch(arg.id);
+          items = await _getMatch(arg.id, page: page, perPage: perPage);
           break;
       }
       state = state.copyWith(

@@ -7,7 +7,11 @@ import '../../domain/models/canvas_spec.dart';
 import '../../domain/models/enums.dart';
 
 abstract class TemplateRepository {
-  Future<List<TemplateModel>> getTemplates({String? categoryType});
+  Future<PaginatedTemplates> getTemplates({
+    String? categoryType,
+    int page = 1,
+    int perPage = 10,
+  });
   TemplateModel createDefault12SlotListTemplate();
   TemplateModel createDefaultLeaderboardTemplate();
 }
@@ -18,25 +22,63 @@ class TemplateRepositoryImpl implements TemplateRepository {
   TemplateRepositoryImpl(this.remoteDatasource);
 
   @override
-  Future<List<TemplateModel>> getTemplates({String? categoryType}) async {
-    final serverTemplates = await remoteDatasource.fetchTemplates(categoryType: categoryType);
+  Future<PaginatedTemplates> getTemplates({
+    String? categoryType,
+    int page = 1,
+    int perPage = 10,
+  }) async {
+    final serverPaginated = await remoteDatasource.fetchTemplates(
+      categoryType: categoryType,
+      page: page,
+      perPage: perPage,
+    );
+
     if (categoryType != null && categoryType.isNotEmpty) {
       final targetCat = categoryType.toLowerCase().replaceAll(' ', '_');
-      final filtered = serverTemplates.where((t) {
+      final filtered = serverPaginated.items.where((t) {
         final cat = t.category.toLowerCase().replaceAll(' ', '_');
         final catType = t.categoryType.toLowerCase().replaceAll(' ', '_');
         return cat == targetCat || catType == targetCat;
       }).toList();
+
       if (filtered.isNotEmpty) {
-        return filtered;
+        return PaginatedTemplates(
+          items: filtered,
+          hasMore: serverPaginated.hasMore,
+          currentPage: serverPaginated.currentPage,
+          lastPage: serverPaginated.lastPage,
+        );
       }
-      if (targetCat == 'leaderboard') {
-        return [createDefaultLeaderboardTemplate()];
+
+      if (page == 1) {
+        if (targetCat == 'leaderboard') {
+          return PaginatedTemplates(
+            items: [createDefaultLeaderboardTemplate()],
+            hasMore: false,
+            currentPage: 1,
+            lastPage: 1,
+          );
+        }
       }
-    } else if (serverTemplates.isNotEmpty) {
-      return serverTemplates;
+    } else if (serverPaginated.items.isNotEmpty) {
+      return serverPaginated;
     }
-    return [createDefault12SlotListTemplate()];
+
+    if (page == 1) {
+      return PaginatedTemplates(
+        items: [createDefault12SlotListTemplate()],
+        hasMore: false,
+        currentPage: 1,
+        lastPage: 1,
+      );
+    }
+
+    return PaginatedTemplates(
+      items: [],
+      hasMore: false,
+      currentPage: page,
+      lastPage: page,
+    );
   }
 
   @override
