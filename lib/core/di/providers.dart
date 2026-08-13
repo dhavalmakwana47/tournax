@@ -90,6 +90,7 @@ import '../../features/tournament/domain/usecases/update_match_usecase.dart';
 import '../../features/tournament/domain/usecases/delete_match_usecase.dart';
 import '../../features/tournament/domain/usecases/add_match_team_usecase.dart';
 import '../../features/tournament/domain/usecases/remove_match_team_usecase.dart';
+import '../../features/tournament/domain/usecases/update_match_slots_usecase.dart';
 import '../../features/tournament/domain/usecases/submit_match_results_usecase.dart';
 import '../../features/tournament/domain/usecases/get_match_results_usecase.dart';
 import '../../features/tournament/domain/usecases/delete_match_results_usecase.dart';
@@ -493,6 +494,10 @@ final addMatchTeamUseCaseProvider = Provider<AddMatchTeamUseCase>(
 
 final removeMatchTeamUseCaseProvider = Provider<RemoveMatchTeamUseCase>(
   (ref) => RemoveMatchTeamUseCase(ref.read(matchRepositoryProvider)),
+);
+
+final updateMatchSlotsUseCaseProvider = Provider<UpdateMatchSlotsUseCase>(
+  (ref) => UpdateMatchSlotsUseCase(ref.read(matchRepositoryProvider)),
 );
 
 final submitMatchResultsUseCaseProvider = Provider<SubmitMatchResultsUseCase>(

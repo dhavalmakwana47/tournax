@@ -35,6 +35,10 @@ abstract interface class MatchRemoteDatasource {
     required int matchId,
     required int teamId,
   });
+  Future<MatchModel> updateMatchSlots({
+    required int matchId,
+    required List<Map<String, dynamic>> slots,
+  });
   Future<void> submitMatchResults({
     required int matchId,
     required List<Map<String, dynamic>> results,
@@ -145,6 +149,21 @@ class MatchRemoteDatasourceImpl implements MatchRemoteDatasource {
       data: {
         'match_id': matchId,
         'team_id': teamId,
+      },
+    );
+    return MatchModel.fromJson(response['data'] as Map<String, dynamic>);
+  }
+
+  @override
+  Future<MatchModel> updateMatchSlots({
+    required int matchId,
+    required List<Map<String, dynamic>> slots,
+  }) async {
+    final response = await _apiClient.post(
+      ApiConstants.matchesUpdateSlots,
+      data: {
+        'match_id': matchId,
+        'slots': slots,
       },
     );
     return MatchModel.fromJson(response['data'] as Map<String, dynamic>);

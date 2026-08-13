@@ -75,6 +75,7 @@ abstract final class ApiConstants {
   static const String matchesDelete = '/organizer/matches/delete';
   static const String matchesAddTeam = '/organizer/matches/add-team';
   static const String matchesRemoveTeam = '/organizer/matches/remove-team';
+  static const String matchesUpdateSlots = '/organizer/matches/update-slots';
 
   static const String leaderboardGroup = '/organizer/leaderboard/group';
   static const String leaderboardRound = '/organizer/leaderboard/round';

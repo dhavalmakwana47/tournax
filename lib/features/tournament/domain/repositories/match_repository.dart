@@ -33,6 +33,10 @@ abstract interface class MatchRepository {
     required int matchId,
     required int teamId,
   });
+  Future<MatchEntity> updateMatchSlots({
+    required int matchId,
+    required List<Map<String, dynamic>> slots,
+  });
   Future<void> submitMatchResults({
     required int matchId,
     required List<TeamResultEntity> results,

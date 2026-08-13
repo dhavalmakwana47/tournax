@@ -104,6 +104,18 @@ class MatchRepositoryImpl implements MatchRepository {
   }
 
   @override
+  Future<MatchEntity> updateMatchSlots({
+    required int matchId,
+    required List<Map<String, dynamic>> slots,
+  }) async {
+    final model = await remoteDatasource.updateMatchSlots(
+      matchId: matchId,
+      slots: slots,
+    );
+    return model.toEntity();
+  }
+
+  @override
   Future<void> submitMatchResults({
     required int matchId,
     required List<TeamResultEntity> results,

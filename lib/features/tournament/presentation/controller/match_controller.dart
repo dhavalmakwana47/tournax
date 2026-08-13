@@ -10,6 +10,7 @@ import '../../domain/usecases/update_match_usecase.dart';
 import '../../domain/usecases/delete_match_usecase.dart';
 import '../../domain/usecases/add_match_team_usecase.dart';
 import '../../domain/usecases/remove_match_team_usecase.dart';
+import '../../domain/usecases/update_match_slots_usecase.dart';
 
 enum MatchActionStatus { idle, loading, success, error }
 
@@ -74,6 +75,7 @@ class MatchController extends FamilyNotifier<MatchState, int> {
   DeleteMatchUseCase get _deleteMatch => ref.read(deleteMatchUseCaseProvider);
   AddMatchTeamUseCase get _addMatchTeam => ref.read(addMatchTeamUseCaseProvider);
   RemoveMatchTeamUseCase get _removeMatchTeam => ref.read(removeMatchTeamUseCaseProvider);
+  UpdateMatchSlotsUseCase get _updateMatchSlots => ref.read(updateMatchSlotsUseCaseProvider);
 
   Future<void> loadMatches() async {
     state = state.copyWith(status: MatchActionStatus.loading, clearError: true);
@@ -236,6 +238,175 @@ class MatchController extends FamilyNotifier<MatchState, int> {
     } catch (e) {
       appLogger.e('Unexpected remove team from match error', error: e);
       state = state.copyWith(teamActionStatus: MatchActionStatus.error, errorMessage: 'Failed to remove team from match');
+      return false;
+    }
+  }
+
+  Future<bool> swapTeamSlots({
+    required int matchId,
+    required MatchTeamMemberEntity team1,
+    required int slot1,
+    required MatchTeamMemberEntity team2,
+    required int slot2,
+  }) async {
+    state = state.copyWith(teamActionStatus: MatchActionStatus.loading, clearError: true);
+    try {
+      // 1. Try Bulk Update API first
+      try {
+        await _updateMatchSlots(
+          matchId: matchId,
+          slots: [
+            {'team_id': team1.id, 'slot': slot2},
+            {'team_id': team2.id, 'slot': slot1},
+          ],
+        );
+        state = state.copyWith(teamActionStatus: MatchActionStatus.success);
+        await loadMatches();
+        return true;
+      } on ApiException catch (e) {
+        if (e.statusCode != 404) rethrow; // If not 404, throw error
+      }
+
+      // 2. Fallback to remove & re-add if bulk API is 404
+      try {
+        await _removeMatchTeam(matchId: matchId, teamId: team1.id);
+      } catch (_) {}
+      try {
+        await _removeMatchTeam(matchId: matchId, teamId: team2.id);
+      } catch (_) {}
+
+      await _addMatchTeam(
+        matchId: matchId,
+        teamId: team1.id,
+        slot: slot2,
+        lane: team1.lane,
+      );
+      await _addMatchTeam(
+        matchId: matchId,
+        teamId: team2.id,
+        slot: slot1,
+        lane: team2.lane,
+      );
+
+      state = state.copyWith(teamActionStatus: MatchActionStatus.success);
+      await loadMatches();
+      return true;
+    } on ApiException catch (e) {
+      appLogger.e('Swap team slots failed', error: e);
+      state = state.copyWith(teamActionStatus: MatchActionStatus.error, errorMessage: e.message);
+      return false;
+    } catch (e) {
+      appLogger.e('Unexpected swap team slots error', error: e);
+      state = state.copyWith(teamActionStatus: MatchActionStatus.error, errorMessage: 'Failed to swap slots');
+      return false;
+    }
+  }
+
+  Future<bool> changeTeamSlot({
+    required int matchId,
+    required MatchTeamMemberEntity team,
+    required int newSlot,
+  }) async {
+    state = state.copyWith(teamActionStatus: MatchActionStatus.loading, clearError: true);
+    try {
+      // 1. Try Bulk Update API first
+      try {
+        await _updateMatchSlots(
+          matchId: matchId,
+          slots: [
+            {'team_id': team.id, 'slot': newSlot},
+          ],
+        );
+        state = state.copyWith(teamActionStatus: MatchActionStatus.success);
+        await loadMatches();
+        return true;
+      } on ApiException catch (e) {
+        if (e.statusCode != 404) rethrow;
+      }
+
+      // 2. Fallback to remove & re-add
+      try {
+        await _removeMatchTeam(matchId: matchId, teamId: team.id);
+      } catch (_) {}
+
+      await _addMatchTeam(
+        matchId: matchId,
+        teamId: team.id,
+        slot: newSlot,
+        lane: team.lane,
+      );
+
+      state = state.copyWith(teamActionStatus: MatchActionStatus.success);
+      await loadMatches();
+      return true;
+    } on ApiException catch (e) {
+      appLogger.e('Change team slot failed', error: e);
+      state = state.copyWith(teamActionStatus: MatchActionStatus.error, errorMessage: e.message);
+      return false;
+    } catch (e) {
+      appLogger.e('Unexpected change team slot error', error: e);
+      state = state.copyWith(teamActionStatus: MatchActionStatus.error, errorMessage: 'Failed to change slot');
+      return false;
+    }
+  }
+
+  Future<bool> autoAssignSequentialSlots({
+    required int matchId,
+    required List<MatchTeamMemberEntity> teams,
+  }) async {
+    return updateTeamListOrder(matchId: matchId, reorderedTeams: teams);
+  }
+
+  Future<bool> updateTeamListOrder({
+    required int matchId,
+    required List<MatchTeamMemberEntity> reorderedTeams,
+  }) async {
+    state = state.copyWith(teamActionStatus: MatchActionStatus.loading, clearError: true);
+    try {
+      final List<Map<String, dynamic>> slotsPayload = [
+        for (int i = 0; i < reorderedTeams.length; i++)
+          {'team_id': reorderedTeams[i].id, 'slot': i + 1}
+      ];
+
+      // 1. Try Bulk Update API first (Single POST Request)
+      try {
+        await _updateMatchSlots(
+          matchId: matchId,
+          slots: slotsPayload,
+        );
+        state = state.copyWith(teamActionStatus: MatchActionStatus.success);
+        await loadMatches();
+        return true;
+      } on ApiException catch (e) {
+        if (e.statusCode != 404) rethrow;
+      }
+
+      // 2. Fallback to sequential remove & re-add if bulk API is 404
+      for (final team in reorderedTeams) {
+        try {
+          await _removeMatchTeam(matchId: matchId, teamId: team.id);
+        } catch (_) {}
+      }
+
+      for (int i = 0; i < reorderedTeams.length; i++) {
+        await _addMatchTeam(
+          matchId: matchId,
+          teamId: reorderedTeams[i].id,
+          slot: i + 1,
+          lane: reorderedTeams[i].lane,
+        );
+      }
+
+      state = state.copyWith(teamActionStatus: MatchActionStatus.success);
+      await loadMatches();
+      return true;
+    } on ApiException catch (e) {
+      appLogger.e('Reorder team slots failed', error: e);
+      state = state.copyWith(teamActionStatus: MatchActionStatus.error, errorMessage: e.message);
+      return false;
+    } catch (e) {
+      appLogger.e('Unexpected reorder team slots error', error: e);
+      state = state.copyWith(teamActionStatus: MatchActionStatus.error, errorMessage: 'Failed to reorder team slots');
       return false;
     }
   }
